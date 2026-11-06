@@ -1,0 +1,232 @@
+name: LingXiStyle
+
+options:
+  bundleIdPrefix: com.lingxifox
+  deploymentTarget:
+    iOS: "18.0"
+    macOS: "15.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+  developmentLanguage: zh-Hans
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CLANG_ENABLE_MODULES: YES
+
+targets:
+  StylePortCore:
+    type: framework
+    supportedDestinations: [iOS, macOS]
+    sources:
+      - path: Core/Sources/StylePortCore
+      - path: Core/Resources/Profiles
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.StylePortCore
+        PRODUCT_NAME: StylePortCore
+        GENERATE_INFOPLIST_FILE: YES
+        DEFINES_MODULE: YES
+        SKIP_INSTALL: YES
+        SWIFT_EMIT_LOC_STRINGS: NO
+
+  LingXiKit:
+    type: framework
+    supportedDestinations: [iOS, macOS]
+    sources:
+      - path: Kit/Sources/LingXiKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.LingXiKit
+        PRODUCT_NAME: LingXiKit
+        GENERATE_INFOPLIST_FILE: YES
+        DEFINES_MODULE: YES
+        SKIP_INSTALL: YES
+
+  LingXiEngine:
+    type: framework
+    supportedDestinations: [iOS, macOS]
+    sources:
+      - path: Engine/Sources/LingXiEngine
+    dependencies:
+      - target: LingXiKit
+      - target: StylePortCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.Engine
+        PRODUCT_NAME: LingXiEngine
+        GENERATE_INFOPLIST_FILE: YES
+        DEFINES_MODULE: YES
+        SKIP_INSTALL: YES
+
+  LingXiServices:
+    type: framework
+    platform: iOS
+    sources:
+      - path: Services/Sources/LingXiServices
+    dependencies:
+      - target: LingXiKit
+      - target: LingXiEngine
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.Services
+        PRODUCT_NAME: LingXiServices
+        GENERATE_INFOPLIST_FILE: YES
+        DEFINES_MODULE: YES
+        SKIP_INSTALL: YES
+
+  LingXiStyle:
+    type: application
+    platform: iOS
+    sources:
+      - path: App/Sources
+      - path: App/Resources
+        excludes: ["Info.plist"]
+    dependencies:
+      - target: StylePortCore
+        embed: true
+      - target: LingXiKit
+        embed: true
+      - target: LingXiEngine
+        embed: true
+      - target: LingXiServices
+        embed: true
+      - target: LingXiStyleShare
+        embed: true
+    info:
+      path: App/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: LingXiStyle
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        LSRequiresIPhoneOS: true
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSPhotoLibraryUsageDescription: 用于读取你选择的 HEIC 原片，并在本机追加第三代质感。照片不会离开设备。
+        NSPhotoLibraryAddUsageDescription: 用于把补好质感的照片存为相册中的新照片，原照片不会被修改。
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SUPPORTS_MACCATALYST: NO
+
+  LingXiStyleShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: ShareExtension/Sources
+      - path: ShareExtension/Resources
+        excludes: ["Info.plist"]
+    dependencies:
+      - target: StylePortCore
+        embed: true
+      - target: LingXiKit
+        embed: true
+      - target: LingXiEngine
+        embed: true
+      - target: LingXiServices
+        embed: true
+    info:
+      path: ShareExtension/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: 补质感
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSPhotoLibraryAddUsageDescription: 用于把补好质感的照片存为相册中的新照片，原照片不会被修改。
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsImageWithMaxCount: 1
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.Share
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+
+  LingXiKitTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Kit/Tests/LingXiKitTests
+    dependencies:
+      - target: LingXiKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.LingXiKitTests
+        GENERATE_INFOPLIST_FILE: YES
+
+  LingXiEngineTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Engine/Tests/LingXiEngineTests
+    dependencies:
+      - target: LingXiEngine
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.EngineTests
+        GENERATE_INFOPLIST_FILE: YES
+
+  StylePortCoreTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Core/Tests/StylePortCoreTests
+    dependencies:
+      - target: StylePortCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.StylePortCoreTests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  LingXiStyle:
+    build:
+      targets:
+        LingXiStyle: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+  LingXiKitTests:
+    build:
+      targets:
+        LingXiKit: all
+        LingXiKitTests: [test]
+    test:
+      config: Debug
+      targets:
+        - LingXiKitTests
+  LingXiEngineTests:
+    build:
+      targets:
+        LingXiEngine: all
+        LingXiEngineTests: [test]
+    test:
+      config: Debug
+      targets:
+        - LingXiEngineTests
+  StylePortCoreTests:
+    build:
+      targets:
+        StylePortCore: all
+        StylePortCoreTests: [test]
+    test:
+      config: Debug
+      targets:
+        - StylePortCoreTests
