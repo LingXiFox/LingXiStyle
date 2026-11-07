@@ -8,20 +8,20 @@
 ![LingXiStyle app icon](App/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png)
 
 > [!IMPORTANT]
-> 这是一个源码项目：**不上架 App Store，不提供 TestFlight、预编译 IPA 或侧载包**。
-> 你需要 macOS、Xcode 和免费 Apple ID，从源码编译并安装到自己的 iPhone。
-> Personal Team 签名 7 天过期，到期重新编译安装即可；相册里的照片不会丢。
+> 纹粒 / Texel 正在准备 App Store 正式发布。目前公开完整源码，正式商店版本将在完成审核后提供。
+>
+> 当前尚未在 App Store 上架，也不提供 TestFlight、预编译 IPA 或侧载包。你可以用 macOS、Xcode 和自己的 Apple ID 从源码构建；免费 Personal Team 签名 7 天过期，到期重新编译安装即可，相册里的照片不会丢。
 
 ## 状态
 
-- **1.5.0（build 6）**：按 UI handoff 完成视觉重构：iOS 分组表面、狐橙 `#E8A13A`、每屏最多一个强调填充；重写首页、已选照片、处理中、结果、Pro、额度耗尽、设置与权限页；保留 1.4 的设置入口、应用内语言切换、批量超额只处理剩余额度，以及首次额度用尽时的一次性 Pro 介绍。
+- **1.6.0（build 7）**：发布质量收口，保留 1.5 的视觉设计。补齐跨入口额度竞态、分享扩展的失败提示与陈旧临时目录清理、快捷指令的取消 / 重名 / 超额度处理；新增 Keychain 无权限时 fail-closed 测试与 GitHub Actions 持续集成；整理 App Store 发布资料。
 - 免费用户每天可成功转换 5 张 HEIC；失败、跳过、不兼容不扣额度。额度按本地自然日重置，App、分享扩展与快捷指令共用同一账本。
 - Pro 是 StoreKit 2 非消耗型内购，Product ID `com.lingxifox.LingXiStyle.pro`（显示名「纹粒 Pro」/「Texel Pro」）；一次性购买、永久无限，可恢复购买，退款 / 撤销后回到免费额度。
 - 本地化使用 String Catalog，支持简体中文、繁体中文、英文、日文；内部 Bundle ID、Keychain 服务名与 StoreKit Product ID 保持不变，升级不丢购买。
-- 自动化测试：`LingXiKitTests` 27/27、`LingXiPurchaseTests` 21/21（13 个 StoreKit 测试 + 8 个 Keychain 额度测试）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。
+- 自动化测试：`LingXiKitTests` 28/28、`LingXiPurchaseTests` 22/22（13 个 StoreKit 测试 + 9 个 Keychain 额度测试）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。
 - `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift 源码 warning；签名 Debug 构建与模拟器签名构建通过。
 - 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.2 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过；1.3 沿用同一引擎并在模拟器保存成功。
-- 1.5 在 iPhone 17（402×874 pt）模拟器复验 zh-Hans / en 的首页、已选照片、处理中、结果、设置、Pro、额度耗尽与深色；选择页显示 48MP，结果页只保留一个诊断入口；iPhone Duo（466×678 pt）复验 5/5 紧凑首页；accessibility-extra-large 首页可滚动、主操作可见。权限拒绝页因 PhotosPicker 自动授予受限访问而未能在模拟器触发；真实 App Store 交易、真机、分享扩展与快捷指令仍未验证。
+- 1.6 在 iPhone 17（402×874 pt）模拟器复验 5/5 → 4/5 额度、48MP 转换、英文批量「仅处理 4 张」、英文额度页、深色首页 / Pro 页；iPhone Duo（466×678 pt）复验 5/5 紧凑首页。分享扩展在模拟器停在读取阶段；权限拒绝页、快捷指令、真实 App Store 交易与真机矩阵仍未验证。
 
 ## 它做什么
 
@@ -312,7 +312,7 @@ project.yml             XcodeGen 工程定义
 
 ## 已知限制
 
-- 1.5 已完成 Debug / Release、签名 Debug 构建与自动化测试（Kit 27 / Purchase 21 / Engine 2 / Core 14 执行、2 跳过），并在 iPhone 17 模拟器复验 zh-Hans / en 的首页、选择、处理中、结果、设置、Pro、额度耗尽、深色与 accessibility-extra-large；iPhone Duo 复验 5/5 紧凑首页。48MP 转换与 11/11 无损校验沿用 1.2 的端到端证据。权限拒绝页、分享扩展、快捷指令、真实交易与真机矩阵仍未逐项验证。
+- 1.6 已完成 Debug / Release、签名 Debug 构建与自动化测试（Kit 28 / Purchase 22 / Engine 2 / Core 14 执行、2 跳过），并在 iPhone 17 模拟器复验 5/5 → 4/5 额度、48MP 转换、英文批量「仅处理 4 张」、英文额度页、深色首页 / Pro 页；iPhone Duo 复验 5/5 紧凑首页。48MP 转换与 11/11 无损校验沿用 1.2 的端到端证据。分享扩展在模拟器停在读取阶段，权限拒绝页、快捷指令、真实交易与真机矩阵仍未逐项验证。
 - 真实购买、退款 / 待批准、App 与分享扩展的 Keychain 跨进程共享尚未在真机验证；模拟器只能验证 App 内持久化。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 - 免费 Personal Team 只能使用本地 StoreKit 配置测试；真实内购与上架需要付费 Apple Developer Program、App Store Connect 商品与 Sandbox / 生产环境。
 - `Configuration.storekit` 的 `$2.99` 只是本地测试价；线上价格由 App Store Connect 与 `Product.displayPrice` 决定。

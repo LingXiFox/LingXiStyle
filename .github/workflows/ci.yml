@@ -1,0 +1,189 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build, test, and policy checks
+    runs-on: macos-15
+    timeout-minutes: 75
+    env:
+      XCODEGEN_VERSION: "2.46.0"
+      DERIVED_DATA: ${{ github.workspace }}/.build/DerivedData
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/xcodegen.zip             "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"
+          unzip -q /tmp/xcodegen.zip -d /tmp/xcodegen
+          sudo install -m 755 /tmp/xcodegen/xcodegen/bin/xcodegen /usr/local/bin/xcodegen
+          sudo mkdir -p /usr/local/share
+          sudo cp -R /tmp/xcodegen/xcodegen/share/xcodegen /usr/local/share/
+          xcodegen --version
+
+      - name: Validate project.yml and generated project
+        run: |
+          set -euo pipefail
+          xcodegen generate
+          git diff --exit-code -- LingXiStyle.xcodeproj
+
+      - name: Validate localization catalogs
+        run: |
+          python3 - <<'PY'
+          import glob
+          import json
+          import sys
+
+          languages = ("zh-Hans", "zh-Hant", "en", "ja")
+          failures = []
+          for path in glob.glob("**/*.xcstrings", recursive=True):
+              with open(path, encoding="utf-8") as handle:
+                  data = json.load(handle)
+              strings = data.get("strings", {})
+              print(f"{path}: {len(strings)} keys")
+              for key, entry in strings.items():
+                  localizations = entry.get("localizations", {})
+                  for language in languages:
+                      value = localizations.get(language, {}).get("stringUnit", {}).get("value")
+                      if not value:
+                          failures.append(f"{path}: {key!r} missing {language}")
+          if failures:
+              print("\n".join(failures))
+              sys.exit(1)
+
+          with open("Resources/Localization/InfoPlist.xcstrings", encoding="utf-8") as handle:
+              info = json.load(handle)["strings"]
+          expected = {
+              "zh-Hans": "纹粒",
+              "zh-Hant": "Texel",
+              "en": "Texel",
+              "ja": "Texel",
+          }
+          for language, name in expected.items():
+              value = info["CFBundleDisplayName"]["localizations"][language]["stringUnit"]["value"]
+              if value != name:
+                  failures.append(f"CFBundleDisplayName {language}: {value!r} != {name!r}")
+          if failures:
+              print("\n".join(failures))
+              sys.exit(1)
+          print("All catalogs have four non-empty localizations and the expected display names.")
+          PY
+
+      - name: Scan for credentials and signing assets
+        run: |
+          set -euo pipefail
+          if git grep -nE -- '-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----'; then
+            echo "A private key is tracked in the repository." >&2
+            exit 1
+          fi
+          assets=$(find . -path ./.git -prune -o \
+            \( -name '*.p12' -o -name '*.p8' -o -name '*.mobileprovision' -o -name '*.cer' -o -name '*.key' \) \
+            -print)
+          if [ -n "$assets" ]; then
+            echo "Signing assets must not be committed:" >&2
+            echo "$assets" >&2
+            exit 1
+          fi
+          if git grep -nE -- '_developerTeamID"[[:space:]]*:[[:space:]]*"[A-Z0-9]{10}"'; then
+            echo "A real Apple Developer Team ID is recorded in Configuration.storekit." >&2
+            exit 1
+          fi
+          echo "No private keys, signing assets, or recorded team ID found."
+
+      - name: Build Debug for iOS
+        run: |
+          set -euo pipefail
+          mkdir -p .build/logs
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme LingXiStyle -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee .build/logs/debug.log
+          if grep -E 'warning:' .build/logs/debug.log \
+              | grep -vE 'appintentsmetadataprocessor|Metadata extraction skipped'; then
+            echo "Unexpected compiler warning in the Debug build." >&2
+            exit 1
+          fi
+
+      - name: Build Release for iOS
+        run: |
+          set -euo pipefail
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme LingXiStyle -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee .build/logs/release.log
+          if grep -E 'warning:' .build/logs/release.log \
+              | grep -vE 'appintentsmetadataprocessor|Metadata extraction skipped'; then
+            echo "Unexpected compiler warning in the Release build." >&2
+            exit 1
+          fi
+
+      - name: Run Kit tests
+        run: |
+          set -euo pipefail
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme LingXiKitTests -destination 'platform=macOS' \
+            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO test \
+            2>&1 | tee .build/logs/kit-tests.log
+
+      - name: Run Engine tests
+        run: |
+          set -euo pipefail
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme LingXiEngineTests -destination 'platform=macOS' \
+            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO test \
+            2>&1 | tee .build/logs/engine-tests.log
+
+      - name: Run Core tests
+        run: |
+          set -euo pipefail
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme StylePortCoreTests -destination 'platform=macOS' \
+            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO test \
+            2>&1 | tee .build/logs/core-tests.log
+
+      - name: Run purchase and keychain tests
+        run: |
+          set -euo pipefail
+          DEVICE_ID=$(xcrun simctl list devices available \
+            | sed -n 's/.*iPhone 16 (\([0-9A-F-]\{36\}\)).*/\1/p' | head -1)
+          if [ -z "$DEVICE_ID" ]; then
+            echo "No iPhone 16 simulator available on this runner." >&2
+            xcrun simctl list devices available >&2
+            exit 1
+          fi
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme LingXiPurchaseTests -configuration Debug \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO test \
+            2>&1 | tee .build/logs/purchase-tests.log
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-logs
+          path: .build/logs
+          if-no-files-found: ignore

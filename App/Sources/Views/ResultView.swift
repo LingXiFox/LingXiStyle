@@ -329,7 +329,7 @@ struct ResultView: View {
             Label(String(localized: "result.deferred", defaultValue: "还有 \(model.deferredCount) 张未处理"), systemImage: "clock.badge.exclamationmark")
                 .font(Typography.captionEmphasized)
                 .foregroundStyle(Palette.warning)
-            Text("今日免费额度不足，这些照片没有处理，也没有消耗额度。明天 00:00 后会恢复免费额度。")
+            Text(String(localized: "result.deferredQuota", defaultValue: "今日免费额度不足，这些照片没有处理，也没有消耗额度。明天 00:00 后会恢复免费额度。"))
                 .font(Typography.caption)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

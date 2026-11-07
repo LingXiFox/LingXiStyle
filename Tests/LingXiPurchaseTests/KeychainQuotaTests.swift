@@ -146,6 +146,24 @@ final class KeychainQuotaTests: XCTestCase {
         XCTAssertEqual(try restarted.status(isPro: false).used, 1)
     }
 
+    /// The app and the Share Extension must agree on one access group. If the entitlement is
+    /// missing, the store has to report a storage failure instead of silently falling back to a
+    /// different keychain item set, which would split the quota into two ledgers.
+    func testConfiguredSharedGroupWithoutEntitlementFailsClosed() throws {
+        let clock = KeychainTestClock()
+        let store = KeychainQuotaStore(service: service,
+                                       accessGroup: "com.lingxifox.LingXiStyle.shared",
+                                       limit: QuotaConfiguration.freeDailyLimit,
+                                       now: { clock.now() })
+        stores.append(store)
+
+        XCTAssertThrowsError(try store.status(isPro: false)) { error in
+            guard case QuotaError.database = error else {
+                return XCTFail("expected QuotaError.database, got \(error)")
+            }
+        }
+    }
+
     func testProBypassesKeychainStore() throws {
         let clock = KeychainTestClock()
         let quota = store(limit: 1, clock: clock)

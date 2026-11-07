@@ -84,6 +84,18 @@ public struct ConversionRun: Sendable, Equatable {
         states[itemID] = state
     }
 
+    /// Defers every still-pending item without recording a failure. Used when another entry
+    /// point wins the last free slot after this pass preflighted the same allowance.
+    @discardableResult
+    public mutating func deferRemaining() -> [UUID] {
+        var deferred: [UUID] = []
+        for itemID in order where states[itemID] == .pending {
+            states[itemID] = .deferred
+            deferred.append(itemID)
+        }
+        return deferred
+    }
+
     /// Returns the next action. A pending item stays pending until complete() is called, so a
     /// caller that awaits conversion will see the same item again only if it never completed it.
     public mutating func next() -> Step {

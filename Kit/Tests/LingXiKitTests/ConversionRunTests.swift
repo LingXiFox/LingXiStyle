@@ -81,6 +81,27 @@ final class ConversionRunTests: XCTestCase {
         XCTAssertEqual(run.next(), .finished)
     }
 
+    func testDeferRemainingLeavesCompletedItemsAlone() {
+        let saved = UUID()
+        let waiting = UUID()
+        let later = UUID()
+        var run = ConversionRun(entries: [
+            (saved, .pending),
+            (waiting, .pending),
+            (later, .pending)
+        ])
+
+        XCTAssertEqual(run.next(), .convert(saved))
+        run.complete(saved, state: .saved)
+        let deferred = run.deferRemaining()
+
+        XCTAssertEqual(Set(deferred), Set([waiting, later]))
+        XCTAssertEqual(run.state(of: saved), .saved)
+        XCTAssertEqual(run.state(of: waiting), .deferred)
+        XCTAssertEqual(run.state(of: later), .deferred)
+        XCTAssertEqual(run.next(), .finished)
+    }
+
     func testCompletingNonPendingItemIsIgnored() {
         let item = UUID()
         var run = ConversionRun(entries: [(item, .saved)])

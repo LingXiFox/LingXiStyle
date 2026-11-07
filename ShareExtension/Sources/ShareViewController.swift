@@ -56,6 +56,7 @@ final class ShareModel: ObservableObject {
     @Published private(set) var message = String(localized: "share.copyHint", defaultValue: "文件会先复制到 \(Brand.name) 的沙盒，再检查结构。")
     @Published private(set) var diagnosticCode: String?
     @Published private(set) var canRetry = false
+    @Published private(set) var failureHint: String?
 
     var onClose: (() -> Void)?
 
@@ -82,11 +83,37 @@ final class ShareModel: ObservableObject {
     }
 
     func begin(providers: [NSItemProvider]) {
-        guard let provider = providers.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier) }) else {
+        cleanupStaleWorkDirectories()
+        // Photos normally hands over a public.image item. Files hands over a file URL;
+        // accepting both still leaves the byte-level HEIC validation in process().
+        let provider = providers.first { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier) }
+            ?? providers.first { $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) }
+        guard let provider else {
             fail(title: String(localized: "没有收到照片"), message: String(localized: "share.error.noProviders", defaultValue: "请回到系统「照片」重新分享，或直接在 \(Brand.name) 内从图库选择照片。"), retry: false)
             return
         }
         load(provider)
+    }
+
+    /// The extension process can be killed while a conversion is in flight, leaving its copy in
+    /// temporaryDirectory. Only old directories are removed so a concurrently running share is
+    /// never touched.
+    private func cleanupStaleWorkDirectories() {
+        let fileManager = FileManager.default
+        let keys: Set<URLResourceKey> = [.isDirectoryKey, .contentModificationDateKey]
+        guard let entries = try? fileManager.contentsOfDirectory(
+            at: fileManager.temporaryDirectory,
+            includingPropertiesForKeys: Array(keys),
+            options: [.skipsHiddenFiles]
+        ) else { return }
+        let cutoff = Date().addingTimeInterval(-60 * 60)
+        for entry in entries where entry.lastPathComponent.hasPrefix("LingXiShare-") {
+            guard let values = try? entry.resourceValues(forKeys: keys),
+                  values.isDirectory == true,
+                  let modified = values.contentModificationDate,
+                  modified < cutoff else { continue }
+            try? fileManager.removeItem(at: entry)
+        }
     }
 
     func retry() {
@@ -97,8 +124,17 @@ final class ShareModel: ObservableObject {
     /// Starts work. The caller owns the file until the task reaches a safe boundary, so closing
     /// the sheet cannot delete a file that PhotoKit or the engine is still reading.
     private func load(_ provider: NSItemProvider) {
-        let identifiers = [UTType.heic.identifier, UTType.heif.identifier, UTType.image.identifier]
-        guard let identifier = identifiers.first(where: { provider.hasItemConformingToTypeIdentifier($0) }) else {
+        // Ask for the concrete type the provider registered (public.heic, public.jpeg, …).
+        // Requesting the abstract public.image can leave some providers without a file
+        // representation, which shows up as an endless "reading" spinner.
+        let imageIdentifiers = provider.registeredTypeIdentifiers.filter {
+            UTType($0)?.conforms(to: .image) == true
+        }
+        let identifier = imageIdentifiers.first { UTType($0)?.conforms(to: .heic) == true }
+            ?? imageIdentifiers.first { UTType($0)?.conforms(to: .heif) == true }
+            ?? imageIdentifiers.first
+            ?? (provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) ? UTType.fileURL.identifier : nil)
+        guard let identifier else {
             fail(title: String(localized: "没有收到照片"), message: String(localized: "share.error.notHEIC", defaultValue: "请分享一张 HEIC 原片，或直接在 \(Brand.name) 内从图库选择照片。"), retry: false)
             return
         }
@@ -159,6 +195,7 @@ final class ShareModel: ObservableObject {
         closeWhenFinished = false
         canRetry = false
         diagnosticCode = nil
+        failureHint = nil
         phase = .inspecting
         title = String(localized: "正在检查 HEIC 结构")
         message = String(localized: "确认这是完整原片，并检查是否已经带有纹理与颗粒。")
@@ -248,6 +285,24 @@ final class ShareModel: ObservableObject {
 
     private func present(_ error: Error) {
         if let failure = error as? ConversionFailure {
+            if case .quota(let quotaError) = failure {
+                switch quotaError {
+                case .exhausted:
+                    // Another entry point spent the last slot first. Retrying the same file
+                    // cannot succeed until tomorrow or after Pro is unlocked.
+                    fail(title: String(localized: "今日免费额度已用完"),
+                         message: failure.message,
+                         code: failure.diagnosticCode,
+                         retry: false,
+                         hint: String(localized: "share.quotaHint", defaultValue: "免费额度会在本地时间 00:00 重置，也可以打开 \(Brand.name) 了解纹粒 Pro。"))
+                case .unavailable, .database:
+                    fail(title: String(localized: "处理没有完成"),
+                         message: failure.message,
+                         code: failure.diagnosticCode,
+                         retry: true)
+                }
+                return
+            }
             fail(title: String(localized: "处理没有完成"), message: failure.message, code: failure.diagnosticCode, retry: true)
         } else if let libraryError = error as? PhotoLibraryError {
             let denied: Bool
@@ -264,12 +319,13 @@ final class ShareModel: ObservableObject {
         }
     }
 
-    private func fail(title: String, message: String, code: String? = nil, retry: Bool) {
+    private func fail(title: String, message: String, code: String? = nil, retry: Bool, hint: String? = nil) {
         phase = .failed
         self.title = title
         self.message = message
         self.diagnosticCode = code
         self.canRetry = retry && sharedFile != nil
+        self.failureHint = hint
     }
 
     /// A user-visible cancel. Work already written to Photos is never deleted; work that has not
@@ -415,9 +471,10 @@ struct ShareFlowView: View {
                 .font(.footnote.weight(.medium))
                 .foregroundStyle(SharePalette.textSecondary)
         case .failed:
-            Text(model.canRetry ? String(localized: "可以重试，不会覆盖原照片。") : String(localized: "请返回主 App 重新选择这张照片。"))
+            Text(model.failureHint ?? (model.canRetry ? String(localized: "可以重试，不会覆盖原照片。") : String(localized: "请返回主 App 重新选择这张照片。")))
                 .font(.caption)
                 .foregroundStyle(SharePalette.textSecondary)
+                .multilineTextAlignment(.center)
         case .cancelling:
             ProgressView()
                 .controlSize(.large)

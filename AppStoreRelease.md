@@ -1,4 +1,4 @@
-# App Store 发布配置（纹粒 / Texel 1.5）
+# App Store 发布配置（纹粒 / Texel 1.6）
 
 这份文档只描述**若要发布到 App Store**时需要完成的 App Store Connect 与签名配置。
 仓库本身仍然只提供源码，不附带 IPA、TestFlight 包或真实商品。
@@ -84,12 +84,12 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 3. 验证：购买成功、取消、待批准、恢复购买、删除重装后恢复、退款后权益回收。
 4. 退款可在 App Store Connect → 用户与访问 → Sandbox → 交易记录中模拟；或使用
    StoreKitTest 的 `refundTransaction` 做自动化回归。
-5. 真机必须验证 App 与分享扩展共享额度；模拟器没有共享 Keychain entitlement，
-   只能验证 App 进程内的持久化。
+5. 真机必须验证 App 与分享扩展共享额度；模拟器签名构建的 entitlements 为空，
+   只能验证 App 进程内的持久化，不能写成跨进程共享已验证。
 
 ## 5. 发布前检查清单
 
-- [ ] 版本号 `1.5.0`、Build `6`（或更高）已写入 `project.yml`。
+- [ ] 版本号 `1.6.0`、Build `7`（或更高）已写入 `project.yml`。
 - [ ] `xcodegen generate` 后 Debug scheme 仍带 `Configuration.storekit`。
 - [ ] `LingXiKitTests`、`LingXiPurchaseTests`、`LingXiEngineTests`、`StylePortCoreTests` 全绿。
 - [ ] Release 构建不包含 StoreKit 测试配置。
@@ -101,7 +101,11 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 - [ ] 恢复购买、退款 / 撤销、待批准、未完成交易均有本地化提示。
 - [ ] 首次启动不强制弹付费页。
 - [ ] 分享扩展与快捷指令同样受额度约束。
-- [ ] 1.5 视觉：iOS 语义表面、狐橙 `#E8A13A`、每屏最多一个强调填充；无渐变边框 / 扫光 / 呼吸光。
+- [ ] 1.5 / 1.6 视觉：iOS 语义表面、狐橙 `#E8A13A`、每屏最多一个强调填充；无渐变边框 / 扫光 / 呼吸光。
+- [ ] 跨入口额度竞态：另一入口抢走最后额度时，未处理项显示为延后，不记失败。
+- [ ] Keychain 无共享组 entitlement 时 fail-closed，不静默拆成两套账本。
+- [ ] 分享扩展在真机完成一次完整分享转换，不再停在“正在读取分享的照片”。
+- [ ] GitHub Actions CI 至少成功运行一次，XcodeGen 生成工程与仓库一致。
 - [ ] 设置页 Pro 行只显示「一次购买，永久不限张数。」或已购状态，不显示价格。
 - [ ] 浅色 / 深色、Dynamic Type、Reduce Motion、VoiceOver 通过。
 - [ ] 隐私说明、支持 URL、审核备注已填写。
@@ -122,5 +126,7 @@ on the Pro page.
 - 本仓库不分发 IPA；真实商品只在 App Store 生产环境扣款。
 - 免费 Personal Team 的 7 天签名只适合源码自用，不能用于上架或真实内购。
 - 本地 StoreKit 配置的 `$2.99` 只是测试显示，不是定价建议。
+- 1.6 的分享扩展在 iOS 27.3 模拟器上会停在“正在读取分享的照片”，取消可用且不扣额度；
+  未证明是设备问题，也未完成真机端到端验证。上线前必须在真机复验。
 - 若未来改用 App Group + SQLite 作为额度存储，必须同时为 App 与扩展申请 App Group，
   并重新验证签名；当前实现不依赖这条路径。

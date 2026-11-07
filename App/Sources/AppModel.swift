@@ -59,6 +59,9 @@ final class AppModel: ObservableObject {
     private var conversionTask: Task<Void, Never>?
     private var preparationTasks: [Task<Void, Never>] = []
     private var run: ConversionRun?
+    /// Set when another entry point wins the last free slot after this pass preflighted it.
+    /// The affected items are deferred, not failed, and the user sees the quota page at the end.
+    private var quotaExhaustedDuringRun = false
     /// Identifies the current "start" intent. reset() replaces it so a permission prompt that
     /// returns late can never attach an old request to a newly selected batch.
     private var startToken = UUID()
@@ -190,6 +193,7 @@ final class AppModel: ObservableObject {
         conversionTask = nil
         cancelPreparation()
         run = nil
+        quotaExhaustedDuringRun = false
         isCancelling = false
         isStartingConversion = false
         startToken = UUID()
@@ -642,6 +646,7 @@ final class AppModel: ObservableObject {
         let newRun = ConversionRun(entries: entries)
         workspace.begin()
         run = newRun
+        quotaExhaustedDuringRun = false
         summary = nil
         diagnosticsText = nil
         isCancelling = false
@@ -735,6 +740,23 @@ final class AppModel: ObservableObject {
                     run?.complete(id, state: .cancelled)
                 } catch {
                     guard run?.id == sessionID else { return }
+                    // Preflight is advisory. If another process reserves the last slot first,
+                    // this item and the rest of the queue are deferred instead of being
+                    // reported as hard failures. The result screen still shows what saved.
+                    if let failure = error as? ConversionFailure,
+                       case .quota(.exhausted) = failure {
+                        update(id) {
+                            $0.stage = nil
+                            $0.failedDuringStage = false
+                            $0.outcome = nil
+                        }
+                        run?.complete(id, state: .deferred)
+                        let queued = run?.deferRemaining() ?? []
+                        deferredItemIDs.insert(id)
+                        deferredItemIDs.formUnion(queued)
+                        quotaExhaustedDuringRun = true
+                        continue
+                    }
                     let message: String
                     let code: String
                     if let failure = error as? ConversionFailure {
@@ -770,11 +792,25 @@ final class AppModel: ObservableObject {
         run = nil
         conversionTask = nil
         isCancelling = false
-        screen = .result
+        let raced = quotaExhaustedDuringRun
+        quotaExhaustedDuringRun = false
+        if raced, summary.savedCount == 0, summary.failedCount == 0 {
+            // Nothing was saved: leave the result screen for a real outcome and keep the
+            // selection so the user can upgrade or come back tomorrow.
+            self.summary = nil
+            diagnosticsText = nil
+            screen = .selecting
+        } else {
+            screen = .result
+        }
         Task { [weak self] in
             guard let self else { return }
             await self.refreshQuota()
-            self.presentFirstQuotaUpsellIfNeeded()
+            if raced {
+                self.presentQuotaLimit()
+            } else {
+                self.presentFirstQuotaUpsellIfNeeded()
+            }
         }
     }
 

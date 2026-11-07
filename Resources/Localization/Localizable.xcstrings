@@ -1132,6 +1132,35 @@
         }
       }
     },
+    "intent.dialog.quota": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n%lld photo(s) were not processed because today’s free quota is used up."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n%lld 枚は本日の無料枠を使い切ったため未処理です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n%lld 张因今日免费额度用完未处理。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n%lld 張因今日免費額度用完未處理。"
+          }
+        }
+      }
+    },
     "intent.error.conversion": {
       "extractionState": "manual",
       "localizations": {
@@ -2234,6 +2263,35 @@
         }
       }
     },
+    "result.deferredQuota": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today’s free quota ran out. These photos were not processed and did not use quota. Free conversions return after 00:00 local time."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本日の無料枠が不足したため、これらの写真は処理されず、枠も消費していません。現地時間 0:00 以降に無料枠が回復します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日免费额度不足，这些照片没有处理，也没有消耗额度。明天 00:00 后会恢复免费额度。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日免費額度不足，這些照片沒有處理，也沒有消耗額度。明天 00:00 後會恢復免費額度。"
+          }
+        }
+      }
+    },
     "result.failures.title": {
       "extractionState": "extracted_with_value",
       "localizations": {
@@ -3274,6 +3332,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "請在 %@ 內從圖庫選擇照片。分享面板有時會轉成 JPEG 或只給出預覽圖，這時無法保留原始編碼。"
+          }
+        }
+      }
+    },
+    "share.quotaHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free quota resets at 00:00 local time. You can also open %@ to learn about Texel Pro."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料枠は現地時間 0:00 にリセットされます。%@ で Texel Pro もご覧いただけます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费额度会在本地时间 00:00 重置，也可以打开 %@ 了解纹粒 Pro。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免費額度會在本地時間 00:00 重置，也可以開啟 %@ 了解 Texel Pro。"
           }
         }
       }

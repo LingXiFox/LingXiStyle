@@ -6,9 +6,11 @@
 ## 项目一句话
 
 本地 SwiftUI App：读取 PhotoKit 中 iPhone 16/17 的 HEIC **原始资源文件**，只追加
-纹理与颗粒（Texture / Grain），另存为相册新照片。原图不覆盖、不转码、不上传。当前版本 1.5.0（build 6），
+纹理与颗粒（Texture / Grain），另存为相册新照片。原图不覆盖、不转码、不上传。当前版本 1.6.0（build 7），
 包含品牌「纹粒 / Texel」、四语言本地化、5 张 / 日免费额度、StoreKit 2 一次性 Pro 内购、
 首页设置入口与应用内语言切换、首次额度用尽的一次性 Pro 介绍，以及 1.5 的 iOS 分组表面 / 狐橙视觉重构。
+1.6 是发布质量收口：跨入口额度竞态改为延后、快捷指令补齐取消 / 重名 / 超额度处理、
+分享扩展补齐 fileURL 输入与陈旧临时目录清理、Keychain 无共享组权限时 fail-closed。
 
 ## 构建与验证
 
@@ -78,6 +80,12 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 19. **1.5 视觉**：结构色用 iOS 语义色，交互强调色只用狐橙 `#E8A13A`；每屏最多一个
    强调填充。`surfaceElevated` 是浅色白 / 深色 `#2C2C2E`，保证卡片在两种外观下可见；
    不恢复 `accentSecondary`、渐变边框、`ConversionStageAura`、扫光或呼吸光。
+20. **跨入口额度竞态**：预检后额度被另一入口抢走时，当前项与剩余 pending 项必须转
+   `deferred`，不得记成失败，也不得把已保存项重转；若一张都没保存，回到选择页。
+21. **分享扩展类型**：向 `NSItemProvider` 要具体注册类型，优先 `public.heic` / `public.heif`，
+   再取任一具体图片类型，最后才回退 `public.fileURL`；不要向抽象 `public.image` 直接要文件。
+22. **Keychain fail-closed**：配置了共享组但进程没有对应 entitlement 时，必须抛
+   `QuotaError.database`，不得静默改用另一套 Keychain 条目或本地 bool。
 
 ## 代码约定
 
@@ -95,8 +103,8 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 - 修改 Kit / Engine 必须跑对应 macOS 测试 scheme；修改 App 必须至少做一次
   `generic/platform=iOS` Debug 与 Release 构建。修改任务生命周期必须跑 `ConversionRunTests`。
 - 真机验证状态以 `TEST_REPORT.md` 为准，不得把「编译通过」写成「真机通过」。
-- 1.5 已完成 Debug / Release、签名 Debug 构建与自动化测试（Kit 27 / Purchase 21 / Engine 2 / Core 14 执行、2 跳过）；在 iPhone 17（402×874 pt）复验 zh-Hans / en 首页、选择、处理中、结果、设置、Pro、额度耗尽、深色与 accessibility-extra-large，并在 iPhone Duo（466×678 pt）复验 5/5 紧凑首页。权限拒绝页、分享扩展、快捷指令、真实交易与真机矩阵仍未逐项验证；不得把模拟器通过写成真机通过。
-- 已有 48MP 实拍 HEIC 的引擎层与 1.2 App 端到端验证，记录见 `TEST_REPORT.md`；1.5 引擎算法未改，仅更新错误文案。真实 App Store 交易 / 退款、分享扩展、快捷指令与真机系统权限矩阵仍需确认。
+- 1.6 已完成 Debug / Release、签名 Debug 构建与自动化测试（Kit 28 / Purchase 22 / Engine 2 / Core 14 执行、2 跳过）；在 iPhone 17（402×874 pt）复验 5/5 → 4/5 额度、48MP 转换、英文批量「仅处理 4 张」、英文额度页、深色首页 / Pro 页，并在 iPhone Duo（466×678 pt）复验 5/5 紧凑首页。分享扩展在模拟器停在读取阶段，快捷指令、真实交易、权限拒绝页与真机矩阵仍未逐项验证；不得把模拟器通过写成真机通过。
+- 已有 48MP 实拍 HEIC 的引擎层与 1.2 App 端到端验证，记录见 `TEST_REPORT.md`；1.6 引擎算法未改。真实 App Store 交易 / 退款、分享扩展、快捷指令与真机系统权限矩阵仍需确认。
 - 语言偏好只写 `LingXiStyle.appLanguage`，非「跟随系统」时再写 `AppleLanguages`；不要让 SwiftUI 预览或测试进程持久化语言设置。
 - 修改 HEIF 解析后必须跑 `LingXiKitTests` 的 `iref` 回归用例；修改额度必须同时跑
   `QuotaTests` 与 `KeychainQuotaTests`；修改购买必须跑 `LingXiPurchaseTests`。
@@ -117,3 +125,4 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 | `Core/Sources/StylePortCore` | vendor 风格核心，尽量不改 |
 | `ShareExtension/Sources` | 分享扩展入口与 SwiftUI 流程 |
 | `Resources/Localization` | String Catalog（App / 分享扩展 / 快捷指令 / Info.plist） |
+| `.github/workflows` | CI：XcodeGen 一致性、四语言完整性、凭据扫描、Debug / Release、四套测试 |

@@ -53,12 +53,19 @@ struct UnlockTextureIntent: AppIntent {
         var savedToLibrary = 0
         var skipped = 0
         var failed = 0
+        var unprocessed = 0
+        var quotaExhausted = false
         var firstFailure: String?
 
         for (index, file) in photos.enumerated() {
+            try Task.checkCancellation()
             let name = Self.safeName(file.filename, fallbackIndex: index)
-            let source = workDirectory.appendingPathComponent(name)
+            // One directory per photo: two inputs can share a filename, and the second must not
+            // overwrite the first before it has been converted.
+            let itemDirectory = workDirectory.appendingPathComponent("item-\(index)", isDirectory: true)
+            let source = itemDirectory.appendingPathComponent(name)
             do {
+                try FileManager.default.createDirectory(at: itemDirectory, withIntermediateDirectories: true)
                 try Self.copy(file, to: source)
             } catch {
                 failed += 1
@@ -92,9 +99,13 @@ struct UnlockTextureIntent: AppIntent {
                                                              preferredName: preferredName,
                                                              saveToLibrary: saveToLibrary,
                                                              returnsFile: returnsFiles)) { _ in }
-                converted += 1
                 if saveToLibrary { savedToLibrary += 1 }
-                if returnsFiles, let outputURL = result.outputURL {
+                if returnsFiles {
+                    guard let outputURL = result.outputURL else {
+                        failed += 1
+                        firstFailure = firstFailure ?? String(localized: "intent.error.unreadableOutput", defaultValue: "\(preferredName)：无法读取转换结果")
+                        continue
+                    }
                     // The intent's work directory is deleted when perform() returns, and the
                     // conversion service owns its temporary output. Copy the bytes into the
                     // IntentFile so Shortcuts receives a file that outlives both.
@@ -102,14 +113,27 @@ struct UnlockTextureIntent: AppIntent {
                         let data = try Data(contentsOf: outputURL)
                         outputs.append(IntentFile(data: data, filename: preferredName, type: .heic))
                     } catch {
+                        failed += 1
                         firstFailure = firstFailure ?? String(localized: "intent.error.unreadableOutput", defaultValue: "\(preferredName)：无法读取转换结果")
+                        let parent = outputURL.deletingLastPathComponent()
+                        if parent.lastPathComponent.hasPrefix("LingXiOutput-") {
+                            try? FileManager.default.removeItem(at: parent)
+                        }
+                        continue
                     }
                     let parent = outputURL.deletingLastPathComponent()
                     if parent.lastPathComponent.hasPrefix("LingXiOutput-") {
                         try? FileManager.default.removeItem(at: parent)
                     }
                 }
+                converted += 1
             } catch let failure as ConversionFailure {
+                if case .quota(.exhausted) = failure {
+                    quotaExhausted = true
+                    unprocessed = photos.count - index
+                    firstFailure = firstFailure ?? String(localized: "intent.error.conversion", defaultValue: "\(name)：\(failure.message)")
+                    break
+                }
                 failed += 1
                 firstFailure = firstFailure ?? String(localized: "intent.error.conversion", defaultValue: "\(name)：\(failure.message)")
             } catch let failure as PhotoLibraryError {
@@ -126,6 +150,7 @@ struct UnlockTextureIntent: AppIntent {
             dialog = String(localized: "intent.dialog.check", defaultValue: "可处理 \(ready) 张，跳过 \(skipped) 张，失败 \(failed) 张。")
         } else {
             dialog = String(localized: "intent.dialog.convert", defaultValue: "已转换 \(converted) 张，其中 \(savedToLibrary) 张已存入相册；跳过 \(skipped) 张，失败 \(failed) 张。")
+                + (quotaExhausted ? String(localized: "intent.dialog.quota", defaultValue: "\n\(unprocessed) 张因今日免费额度用完未处理。") : "")
                 + (firstFailure.map { String(localized: "intent.dialog.firstFailure", defaultValue: "\n第一处问题：\($0)") } ?? "")
         }
 
@@ -150,8 +175,13 @@ struct UnlockTextureIntent: AppIntent {
 
     private static func safeName(_ name: String, fallbackIndex: Int) -> String {
         let trimmed = (name as NSString).lastPathComponent
-        let base = trimmed.isEmpty ? "photo-\(fallbackIndex + 1).heic" : trimmed
-        return base.replacingOccurrences(of: "/", with: "_")
+        let cleaned = trimmed
+            .components(separatedBy: .controlCharacters).joined()
+            .replacingOccurrences(of: "/", with: "_")
+        let base = cleaned.isEmpty || cleaned == "." || cleaned == ".."
+            ? "photo-\(fallbackIndex + 1).heic"
+            : cleaned
+        return String(base.prefix(160))
     }
 
     private static func outputName(for name: String) -> String {
