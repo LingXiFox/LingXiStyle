@@ -319,22 +319,38 @@ public enum RasterImport {
         let exifIFD = ifd0 + 2 + 12 + 4
         let dataStart = exifIFD + 2 + 12 * entries.count + 4
         var tiff: Bytes = Bytes("MM".utf8) + [0, 42] + bigEndianBytes(ifd0, count: 4)
-        tiff += bigEndianBytes(1, count: 2) + bigEndianBytes(0x8769, count: 2) + bigEndianBytes(4, count: 2)
-            + bigEndianBytes(1, count: 4) + bigEndianBytes(exifIFD, count: 4) + [0, 0, 0, 0]
+        // Split these byte concatenations for the Xcode 16.4 type checker; the single
+        // expression form exceeds its solver budget in release-quality CI.
+        tiff += bigEndianBytes(1, count: 2)
+        tiff += bigEndianBytes(0x8769, count: 2)
+        tiff += bigEndianBytes(4, count: 2)
+        tiff += bigEndianBytes(1, count: 4)
+        tiff += bigEndianBytes(exifIFD, count: 4)
+        tiff += [0, 0, 0, 0]
         var table: Bytes = []
         var area: Bytes = []
         for entry in entries {
-            table += bigEndianBytes(entry.tag, count: 2) + bigEndianBytes(entry.type, count: 2)
-                + bigEndianBytes(entry.count, count: 4)
+            table += bigEndianBytes(entry.tag, count: 2)
+            table += bigEndianBytes(entry.type, count: 2)
+            table += bigEndianBytes(entry.count, count: 4)
             if entry.value.count <= 4 {
-                table += entry.value + Bytes(repeating: 0, count: 4 - entry.value.count)
+                table += entry.value
+                table += Bytes(repeating: 0, count: 4 - entry.value.count)
             } else {
                 table += bigEndianBytes(dataStart + area.count, count: 4)
-                area += entry.value + (entry.value.count % 2 == 1 ? [0] : [])
+                area += entry.value
+                if entry.value.count % 2 == 1 { area += [0] }
             }
         }
-        tiff += bigEndianBytes(entries.count, count: 2) + table + [0, 0, 0, 0] + area
-        return [0, 0, 0, 6] + Bytes("Exif".utf8) + [0, 0] + tiff
+        tiff += bigEndianBytes(entries.count, count: 2)
+        tiff += table
+        tiff += [0, 0, 0, 0]
+        tiff += area
+        var result = Bytes([0, 0, 0, 6])
+        result += Bytes("Exif".utf8)
+        result += [0, 0]
+        result += tiff
+        return result
     }
 
     private static func fullBox(_ type: String, _ payload: Bytes, version: UInt8 = 0) -> Bytes {

@@ -9,7 +9,7 @@
 纹理与颗粒（Texture / Grain），另存为相册新照片。原图不覆盖、不转码、不上传。当前版本 1.7.0（build 8），
 包含品牌「纹粒 / Texel」、四语言本地化、5 张 / 日免费额度、StoreKit 2 一次性 Pro 内购、
 首页设置入口与应用内语言切换、首次额度用尽的一次性 Pro 介绍，以及 1.5 的 iOS 分组表面 / 狐橙视觉重构。
-1.7 是发布候选收口：修复 Xcode 16.4 编译失败（StoreKitError 新 case 与 PeopleDetection 类型检查超时），CI 拆成 iOS 18.5 / 26.x 双 SDK 矩阵，
+1.7 是发布候选收口：修复 Xcode 16.4 编译失败（StoreKitError 新 case 与 PeopleDetection / RasterImport 类型检查超时），CI 拆成 iOS 18.5 / 26.x 双 SDK 矩阵，
 修复分享扩展读取完成后不进入处理的阻塞缺陷并补超时回退，模拟器签名构建验证共享 Keychain 组，
 新增 100% 免费 Offer Code 的 StoreKit 测试。
 
