@@ -10,6 +10,10 @@ struct StageProgressView: View {
     let photoTotal: Int
     let photoName: String
 
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
+    @Environment(\.reduceMotionOverride) private var reduceMotionOverride
+    private var reduceMotion: Bool { systemReduceMotion || reduceMotionOverride }
+
     private var pipeline: [ConversionStage] { ConversionStage.pipeline }
     private var currentIndex: Int? {
         guard let stage else { return nil }
@@ -81,8 +85,8 @@ struct StageProgressView: View {
                 }
             }
             .frame(width: 20, height: 20)
-            .animation(Motion.stageChange, value: done)
-            .animation(Motion.stageChange, value: isCurrent)
+            .animation(Motion.respectingReduceMotion(reduceMotion, Motion.stageChange), value: done)
+            .animation(Motion.respectingReduceMotion(reduceMotion, Motion.stageChange), value: isCurrent)
 
             Text(step.title)
                 .font(isCurrent ? Typography.bodyEmphasized : Typography.caption)

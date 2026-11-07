@@ -12,24 +12,30 @@ public final class ConversionService: @unchecked Sendable {
         public let traits: AssetTraits
         public let preferredName: String
         public let saveToLibrary: Bool
-        /// Ask for a file copy even when the photo is also saved to the library (shortcuts).
+        /// Ask for a file copy even when the photo is also saved to the library (shortcuts/share).
         public var returnsFile: Bool
+        /// Optional caller-owned directory for the returned HEIC. The app passes a folder inside
+        /// its session workspace so the result can be previewed/shared and cleaned up with it.
+        public var outputDirectory: URL?
 
         public init(fileURL: URL,
                     traits: AssetTraits,
                     preferredName: String,
                     saveToLibrary: Bool,
-                    returnsFile: Bool = false) {
+                    returnsFile: Bool = false,
+                    outputDirectory: URL? = nil) {
             self.fileURL = fileURL
             self.traits = traits
             self.preferredName = preferredName
             self.saveToLibrary = saveToLibrary
             self.returnsFile = returnsFile
+            self.outputDirectory = outputDirectory
         }
     }
 
     public struct Result: Sendable {
         public let savedAssetIdentifier: String?
+        public let saveWarning: String?
         public let outputURL: URL?
         public let outputByteCount: Int
         public let integrity: IntegrityReport
@@ -52,50 +58,75 @@ public final class ConversionService: @unchecked Sendable {
         let workDirectory = fileManager.temporaryDirectory
             .appendingPathComponent("LingXiConvert-\(UUID().uuidString)", isDirectory: true)
         try fileManager.createDirectory(at: workDirectory, withIntermediateDirectories: true)
-        // When the caller asked for the file, hand back a copy that outlives this scope.
-        // On success the export directory is never removed here: its URL is the caller's only handle.
-        var handedBack: URL?
-        defer { try? fileManager.removeItem(at: workDirectory) }
+
+        var exportDirectory: URL?
+        var didSucceed = false
+        defer {
+            try? fileManager.removeItem(at: workDirectory)
+            if !didSucceed, let exportDirectory {
+                try? fileManager.removeItem(at: exportDirectory)
+            }
+        }
 
         let engine = self.engine
-        let output = try await Task.detached(priority: .userInitiated) {
+        let engineTask = Task.detached(priority: .userInitiated) {
             try engine.convert(fileURL: request.fileURL,
                                traits: request.traits,
                                outputDirectory: workDirectory,
                                onStage: onStage)
-        }.value
+        }
+        let output = try await withTaskCancellationHandler {
+            try await engineTask.value
+        } onCancel: {
+            engineTask.cancel()
+        }
 
-        // Materialize the caller's copy before touching the library. If the copy fails (for
-        // example, the disk is full), no photo has been saved yet, so retrying cannot duplicate
-        // an asset. If the later save fails, remove the now-orphaned copy.
-        var exportDirectory: URL?
+        // The engine has reached a safe boundary. From here on every await is preceded by a
+        // cancellation check, so a cancelled app session cannot silently save a photo.
+        try Task.checkCancellation()
+
+        var handedBack: URL?
         if request.returnsFile || !request.saveToLibrary {
-            let directory = fileManager.temporaryDirectory
-                .appendingPathComponent("LingXiOutput-\(UUID().uuidString)", isDirectory: true)
-            try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
-            let destination = directory.appendingPathComponent(request.preferredName)
-            do {
-                try fileManager.copyItem(at: output.outputURL, to: destination)
+            try Task.checkCancellation()
+            let destinationDirectory: URL
+            if let outputDirectory = request.outputDirectory {
+                try fileManager.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
+                destinationDirectory = outputDirectory
+            } else {
+                let directory = fileManager.temporaryDirectory
+                    .appendingPathComponent("LingXiOutput-\(UUID().uuidString)", isDirectory: true)
+                try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
                 exportDirectory = directory
+                destinationDirectory = directory
+            }
+            onStage(.saving)
+            let destination = destinationDirectory.appendingPathComponent(request.preferredName)
+            do {
+                if fileManager.fileExists(atPath: destination.path) {
+                    try fileManager.removeItem(at: destination)
+                }
+                try fileManager.copyItem(at: output.outputURL, to: destination)
                 handedBack = destination
             } catch {
-                try? fileManager.removeItem(at: directory)
                 throw error
             }
         }
 
         var savedIdentifier: String?
+        var saveWarning: String?
         if request.saveToLibrary {
-            do {
-                savedIdentifier = try await library.saveNewPhoto(from: output.outputURL,
-                                                                 preferredName: request.preferredName)
-            } catch {
-                if let exportDirectory { try? fileManager.removeItem(at: exportDirectory) }
-                throw error
-            }
+            try Task.checkCancellation()
+            onStage(.saving)
+            let saved = try await library.saveNewPhoto(from: output.outputURL,
+                                                       preferredName: request.preferredName)
+            savedIdentifier = saved.identifier
+            saveWarning = saved.warning
         }
 
+        onStage(.finished)
+        didSucceed = true
         return Result(savedAssetIdentifier: savedIdentifier,
+                      saveWarning: saveWarning,
                       outputURL: handedBack,
                       outputByteCount: output.outputByteCount,
                       integrity: output.integrity,

@@ -6,7 +6,7 @@
 ## 项目一句话
 
 本地 SwiftUI App：读取 PhotoKit 中 iPhone 16/17 的 HEIC **原始资源文件**，只追加第三代
-Texture / Grain，另存为相册新照片。原图不覆盖、不转码、不上传。
+Texture / Grain，另存为相册新照片。原图不覆盖、不转码、不上传。当前版本 1.1.0（build 2）。
 
 ## 构建与验证
 
@@ -43,6 +43,20 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
    动效走 `Motion.swift`，循环动画必须尊重 Reduce Motion。
 7. **同一个服务二进制**：`PhotoLibraryService` 与 `ConversionService` 属于 `LingXiServices`
    framework，App 与 ShareExtension 都链接它，不要复制源文件到两个 target。
+8. **任务会话隔离**：转换队列由 `Kit/Sources/LingXiKit/ConversionRun.swift` 的 session token 驱动。
+   所有 stage / result / finish 回调必须先校验所属会话；`saved` 永不重转，`failed` 才可重试；
+   `reset()` 只能 retire 工作目录，等活跃操作结束后再删除，不能抽走任务正在读的文件。
+9. **不重复保存**：保存已写入相册但回读 HEIC 失败时，记录 `SavedPhoto.warning`，不要抛错把该项
+   标成失败；否则重试会再次写入相册。
+10. **真实进度**：`ConversionService` 在保存前发 `.saving`、成功后发 `.finished`；iCloud 下载
+   进度只能来自 `PHAssetResourceRequestOptions.progressHandler`。禁止定时器、假百分比和
+   用动画推进业务状态。
+11. **按需权限**：启动时不要请求相册权限；图库选择后再请求 read，保存前才请求 addOnly；
+   文件导入不需要相册权限。权限被拒后要提供系统设置与文件导入两条恢复路径。
+12. **公开 API**：禁止 `photos-redirect://` 等未公开 scheme。结果页用应用内预览、`ShareLink`
+   与已保存 Asset 标识完成查看 / 分享，不依赖跳转系统「照片」。
+13. **图片加载**：`PHImageManager` 只接受非 degraded 的最终图，并处理 error / cancelled；
+   缩略图请求要支持任务取消，避免长期停留在低清预览。
 
 ## 代码约定
 
@@ -56,9 +70,10 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 ## 测试与交付
 
 - 修改 Kit / Engine 必须跑对应 macOS 测试 scheme；修改 App 必须至少做一次
-  `generic/platform=iOS` 构建。
+  `generic/platform=iOS` Debug 与 Release 构建。修改任务生命周期必须跑 `ConversionRunTests`。
 - 真机验证状态以 `TEST_REPORT.md` 为准，不得把「编译通过」写成「真机通过」。
-- 已有 48MP 实拍 HEIC 的引擎层验证，记录见 `TEST_REPORT.md`；主 App 主流程已由机主确认，分享扩展与快捷指令仍需真机确认，不得把引擎通过写成 App 通过。
+- 1.1 已完成 Debug / Release 构建与自动化测试；当前环境没有 iOS 模拟器 runtime，1.1 UI 未做运行验收。
+- 已有 48MP 实拍 HEIC 的引擎层验证，记录见 `TEST_REPORT.md`；主 App 1.0 主流程已由机主确认，1.1、分享扩展与快捷指令仍需真机确认，不得把引擎通过写成 App 通过。
 - 修改 HEIF 解析后必须跑 `LingXiKitTests` 的 `iref` 回归用例。
 
 ## 目录速查
@@ -68,10 +83,10 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 | `App/Sources/Views` | 四态页面、权限页 |
 | `App/Sources/Components` | PhotoHeroCard、缩略图条、徽章、进度、结果卡、诊断 |
 | `App/Sources/DesignSystem` | 颜色 / 间距 / 字体 / 动效 |
-| `App/Sources/AppModel.swift` | 队列、选择、导入、取消、诊断 |
+| `App/Sources/AppModel.swift` | 任务会话、队列、选择、导入、取消、诊断 |
 | `App/Sources/Integrations/Shortcuts` | AppIntent 与 AppShortcutsProvider |
 | `Services/Sources/LingXiServices` | PhotoKit 适配 + ConversionService |
 | `Engine/Sources/LingXiEngine` | URL → URL 固定管线 |
-| `Kit/Sources/LingXiKit` | HEIF 解析、兼容性、无损校验、诊断格式化 |
+| `Kit/Sources/LingXiKit` | HEIF 解析、兼容性、无损校验、ConversionRun、诊断格式化 |
 | `Core/Sources/StylePortCore` | vendor 风格核心，尽量不改 |
 | `ShareExtension/Sources` | 分享扩展入口与 SwiftUI 流程 |

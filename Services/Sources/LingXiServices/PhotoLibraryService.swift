@@ -4,9 +4,17 @@ import UIKit
 import UniformTypeIdentifiers
 import LingXiKit
 
+public struct SavedPhoto: Sendable {
+    public let identifier: String
+    /// Set when the asset exists but the post-save re-read could not confirm HEIC. The photo is
+    /// already in the library, so callers must treat it as saved (never retry and duplicate it).
+    public let warning: String?
+}
+
 public enum PhotoLibraryError: LocalizedError {
     case noHEICResource([String])
     case exportFailed(String)
+    case addPermissionDenied
     case saveFailed(String)
     case savedAssetMissing
     case savedAssetIsNotHEIC([String])
@@ -17,6 +25,8 @@ public enum PhotoLibraryError: LocalizedError {
             return "这张照片没有 HEIC 原件（\(types.joined(separator: ", "))），请在 LingXiStyle 内从图库选择原片。"
         case .exportFailed(let detail):
             return "下载原件失败：\(detail)"
+        case .addPermissionDenied:
+            return "没有相册写入权限。请在系统设置中允许 LingXiStyle 添加照片，再回来重试。"
         case .saveFailed(let detail):
             return "保存到相册失败：\(detail)"
         case .savedAssetMissing:
@@ -30,6 +40,7 @@ public enum PhotoLibraryError: LocalizedError {
         switch self {
         case .noHEICResource: return "E_PHOTO_NO_HEIC"
         case .exportFailed: return "E_PHOTO_EXPORT"
+        case .addPermissionDenied: return "E_PHOTO_ADD_DENIED"
         case .saveFailed: return "E_PHOTO_SAVE"
         case .savedAssetMissing: return "E_PHOTO_SAVED_MISSING"
         case .savedAssetIsNotHEIC: return "E_PHOTO_SAVED_NOT_HEIC"
@@ -46,16 +57,30 @@ public struct PhotoLibraryService {
 
     // MARK: Authorization
 
-    public static var authorizationStatus: PHAuthorizationStatus {
+    public static var readAuthorizationStatus: PHAuthorizationStatus {
         PHPhotoLibrary.authorizationStatus(for: .readWrite)
     }
 
-    public static func requestAuthorization() async -> PHAuthorizationStatus {
+    public static var addAuthorizationStatus: PHAuthorizationStatus {
+        PHPhotoLibrary.authorizationStatus(for: .addOnly)
+    }
+
+    /// Kept for callers that only need to know whether the library can be read.
+    public static var authorizationStatus: PHAuthorizationStatus {
+        readAuthorizationStatus
+    }
+
+    public static func requestReadAuthorization() async -> PHAuthorizationStatus {
         await withCheckedContinuation { continuation in
             PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
                 continuation.resume(returning: status)
             }
         }
+    }
+
+    /// Backwards-compatible alias used by older call sites.
+    public static func requestAuthorization() async -> PHAuthorizationStatus {
+        await requestReadAuthorization()
     }
 
     public static func requestAddAuthorization() async -> PHAuthorizationStatus {
@@ -87,20 +112,40 @@ public struct PhotoLibraryService {
 
     // MARK: Thumbnails
 
+    /// Returns only the final image. PhotoKit may call the handler with a degraded preview
+    /// first; ignoring those callbacks prevents the picker from being stuck on a blurry image.
+    /// Cancelling the surrounding Task cancels the PhotoKit request as well.
     public func thumbnail(for asset: PHAsset, targetSize: CGSize) async -> UIImage? {
         let options = PHImageRequestOptions()
         options.deliveryMode = .highQualityFormat
         options.resizeMode = .fast
         options.isNetworkAccessAllowed = true
-        return await withCheckedContinuation { continuation in
-            let box = ResumeBox()
-            PHImageManager.default().requestImage(for: asset,
-                                                  targetSize: targetSize,
-                                                  contentMode: .aspectFill,
-                                                  options: options) { image, _ in
-                guard box.claim() else { return }
-                continuation.resume(returning: image)
+        options.version = .current
+
+        let state = ImageRequestState()
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                state.install(continuation)
+                let requestID = PHImageManager.default().requestImage(for: asset,
+                                                                      targetSize: targetSize,
+                                                                      contentMode: .aspectFit,
+                                                                      options: options) { image, info in
+                    if info?[PHImageErrorKey] != nil {
+                        state.finish(nil)
+                        return
+                    }
+                    if (info?[PHImageCancelledKey] as? Bool) == true {
+                        state.finish(nil)
+                        return
+                    }
+                    let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+                    guard !isDegraded else { return }
+                    state.finish(image)
+                }
+                state.setRequestID(requestID)
             }
+        } onCancel: {
+            state.cancel()
         }
     }
 
@@ -108,7 +153,13 @@ public struct PhotoLibraryService {
 
     /// Copies the photo resource's original bytes to disk. Network access lets PhotoKit pull an
     /// iCloud original, which is why the UI has a real "正在下载原件" phase.
-    public func exportOriginal(for asset: PHAsset, to directory: URL) async throws -> URL {
+    ///
+    /// PhotoKit's writeData API has no cancellable request ID and no synchronous cancellation.
+    /// We therefore resume the caller immediately on Task cancellation and clean up the item
+    /// directory when the eventual completion arrives.
+    public func exportOriginal(for asset: PHAsset,
+                               to directory: URL,
+                               progress: (@Sendable (Double) -> Void)? = nil) async throws -> URL {
         let resources = PHAssetResource.assetResources(for: asset)
         let heifPhotos = resources.filter { $0.type == .photo && Self.isHEIF($0.uniformTypeIdentifier) }
         guard let resource = heifPhotos.first else {
@@ -122,15 +173,30 @@ public struct PhotoLibraryService {
         let url = itemDirectory.appendingPathComponent(filename.isEmpty ? "original.heic" : filename)
         let options = PHAssetResourceRequestOptions()
         options.isNetworkAccessAllowed = true
+        if let progress {
+            options.progressHandler = { value in
+                progress(value)
+            }
+        }
+
+        let state = ExportRequestState()
         do {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                PHAssetResourceManager.default().writeData(for: resource, toFile: url, options: options) { error in
-                    if let error {
-                        continuation.resume(throwing: PhotoLibraryError.exportFailed(error.localizedDescription))
-                    } else {
-                        continuation.resume()
+            try await withTaskCancellationHandler {
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                    state.install(continuation)
+                    PHAssetResourceManager.default().writeData(for: resource, toFile: url, options: options) { error in
+                        let claimed = state.finish(error: error.map {
+                            PhotoLibraryError.exportFailed($0.localizedDescription)
+                        })
+                        if !claimed {
+                            // The caller already cancelled and removed the directory. If PhotoKit
+                            // finished writing afterwards, make sure no orphan bytes remain.
+                            try? FileManager.default.removeItem(at: itemDirectory)
+                        }
                     }
                 }
+            } onCancel: {
+                state.cancel()
             }
         } catch {
             try? FileManager.default.removeItem(at: itemDirectory)
@@ -142,8 +208,17 @@ public struct PhotoLibraryService {
     // MARK: Save
 
     /// Adds the converted file as a brand-new asset, then reads it back to prove PhotoKit kept HEIC.
+    /// The add-only permission is requested at the moment of saving, never at app launch.
     @discardableResult
-    public func saveNewPhoto(from fileURL: URL, preferredName: String) async throws -> String {
+    public func saveNewPhoto(from fileURL: URL, preferredName: String) async throws -> SavedPhoto {
+        var status = Self.addAuthorizationStatus
+        if status == .notDetermined {
+            status = await Self.requestAddAuthorization()
+        }
+        guard status == .authorized || status == .limited else {
+            throw PhotoLibraryError.addPermissionDenied
+        }
+
         var placeholderIdentifier: String?
         do {
             try await PHPhotoLibrary.shared().performChanges {
@@ -158,8 +233,14 @@ public struct PhotoLibraryService {
             throw PhotoLibraryError.saveFailed(error.localizedDescription)
         }
         guard let identifier = placeholderIdentifier else { throw PhotoLibraryError.savedAssetMissing }
-        try verifySavedAssetIsHEIC(identifier: identifier)
-        return identifier
+        do {
+            try verifySavedAssetIsHEIC(identifier: identifier)
+            return SavedPhoto(identifier: identifier, warning: nil)
+        } catch let error as PhotoLibraryError {
+            // The asset is already in the library. A failed re-read is a warning, not a reason
+            // to report failure: retrying would create a duplicate photo.
+            return SavedPhoto(identifier: identifier, warning: error.errorDescription)
+        }
     }
 
     private func verifySavedAssetIsHEIC(identifier: String) throws {
@@ -186,15 +267,123 @@ public struct PhotoLibraryService {
     }
 }
 
-/// PHImageManager can deliver a degraded image first; the continuation must resume exactly once.
-private final class ResumeBox: @unchecked Sendable {
+/// PHImageManager can deliver a degraded image first and can answer after cancellation. This
+/// small gate makes sure the continuation resumes exactly once and cancels the right request.
+private final class ImageRequestState: @unchecked Sendable {
     private let lock = NSLock()
-    private var resumed = false
-    func claim() -> Bool {
+    private var continuation: CheckedContinuation<UIImage?, Never>?
+    private var requestID: PHImageRequestID = PHInvalidImageRequestID
+    private var finished = false
+    private var cancelled = false
+
+    func install(_ continuation: CheckedContinuation<UIImage?, Never>) {
         lock.lock()
-        defer { lock.unlock() }
-        guard !resumed else { return false }
-        resumed = true
+        if finished {
+            lock.unlock()
+            continuation.resume(returning: nil)
+            return
+        }
+        self.continuation = continuation
+        let cancelNow = cancelled
+        let id = requestID
+        lock.unlock()
+        if cancelNow, id != PHInvalidImageRequestID {
+            PHImageManager.default().cancelImageRequest(id)
+        }
+    }
+
+    func setRequestID(_ requestID: PHImageRequestID) {
+        lock.lock()
+        if finished || cancelled {
+            lock.unlock()
+            if requestID != PHInvalidImageRequestID {
+                PHImageManager.default().cancelImageRequest(requestID)
+            }
+            return
+        }
+        self.requestID = requestID
+        lock.unlock()
+    }
+
+    func finish(_ image: UIImage?) {
+        lock.lock()
+        guard !finished else {
+            lock.unlock()
+            return
+        }
+        finished = true
+        let continuation = self.continuation
+        self.continuation = nil
+        lock.unlock()
+        continuation?.resume(returning: image)
+    }
+
+    func cancel() {
+        lock.lock()
+        guard !finished else {
+            lock.unlock()
+            return
+        }
+        cancelled = true
+        finished = true
+        let continuation = self.continuation
+        self.continuation = nil
+        let requestID = self.requestID
+        lock.unlock()
+        if requestID != PHInvalidImageRequestID {
+            PHImageManager.default().cancelImageRequest(requestID)
+        }
+        continuation?.resume(returning: nil)
+    }
+}
+
+/// PhotoKit's writeData completion is the only signal that the file is fully written. The state
+/// lets a cancelled caller resume immediately while still cleaning up a late completion.
+private final class ExportRequestState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Void, Error>?
+    private var finished = false
+
+    func install(_ continuation: CheckedContinuation<Void, Error>) {
+        lock.lock()
+        if finished {
+            lock.unlock()
+            continuation.resume(throwing: CancellationError())
+            return
+        }
+        self.continuation = continuation
+        lock.unlock()
+    }
+
+    /// Returns true when this completion owns the continuation.
+    func finish(error: Error?) -> Bool {
+        lock.lock()
+        guard !finished else {
+            lock.unlock()
+            return false
+        }
+        finished = true
+        let continuation = self.continuation
+        self.continuation = nil
+        lock.unlock()
+        if let error {
+            continuation?.resume(throwing: error)
+        } else {
+            continuation?.resume()
+        }
         return true
+    }
+
+    func cancel() {
+        lock.lock()
+        guard !finished else {
+            lock.unlock()
+            return
+        }
+        finished = true
+        let continuation = self.continuation
+        self.continuation = nil
+        lock.unlock()
+        continuation?.resume(throwing: CancellationError())
     }
 }

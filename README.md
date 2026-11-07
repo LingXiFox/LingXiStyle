@@ -12,11 +12,12 @@
 
 ## 状态
 
-- 自动化测试：`LingXiKitTests` 10/10、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。
-- 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile，11/11 项无损校验通过。
-- 主 App 已在一台 iPhone 16 Pro Max 上安装并运行；文件导入的 `iref` 解析问题已修复。
-- 分享扩展、快捷指令、12/24MP、权限、存储、取消等系统矩阵尚未逐项验证。
-- `generic/platform=iOS` 构建通过，0 error、0 compiler warning。
+- **1.1.0（build 2）**：P0 任务生命周期、分享扩展与结果页；P1 图片加载、批量导入、真实进度与按需权限；P2 四页视觉升级。
+- 自动化测试：`LingXiKitTests` 16/16、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。
+- `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift compiler warning；仅有 App Intents 元数据工具的非阻塞提示。
+- 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile，11/11 项无损校验通过（1.0 引擎层基线）。
+- 主 App 曾在 iPhone 16 Pro Max 上安装并跑通 1.0 主流程；1.1 的 UI 与交互尚无可用模拟器 runtime，未做运行截图验收。
+- 分享扩展、快捷指令、12/24MP、权限、存储、取消等系统矩阵仍需真机逐项验证。
 
 ## 它做什么
 
@@ -25,6 +26,9 @@
 - 输出编码后的主图 payload 逐 item 逐块比对 SHA-256；HDR、EXIF、Styles、缩略图保留。
 - 用 `PHAssetCreationRequest` 另存为相册中的**新照片**，保存后回读确认仍是 HEIC。
 - 提供真实的阶段进度、可取消队列、成功 / 跳过 / 失败统计、中文错误与诊断信息。
+- 准备阶段最多并发 2 张，单张 iCloud 照片不会阻塞整个队列；下载进度来自 PhotoKit 的真实回调。
+- 转换任务按会话隔离：取消、重试、清空只影响所属批次，已保存照片不会被再次写入。
+- 结果页可在 App 内查看已保存照片，并分享转换后的真实 HEIC；不依赖未公开的系统跳转。
 
 ## 它不做什么
 
@@ -91,7 +95,7 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 
 1. 目标设备和系统矩阵很窄，HEIC 的 `iref` / grid / tile 结构会随机型和系统版本变化，尚未做完整验证。
 2. 预编译 IPA 无法用不同人的签名复用；免费证书 7 天过期，最适合的方式就是自己从源码编译。
-3. 「打开相册」使用未公开的 `photos-redirect://`，不把它作为商店分发依赖。
+3. 分享扩展、快捷指令与系统权限矩阵仍处于真机验证阶段，尚不适合作为预编译包分发。
 
 因此仓库不发布 IPA，也不提供 AltStore / 侧载支持。
 
@@ -113,12 +117,16 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 | App | `App/Sources` | 四态 UI、DesignSystem、AppModel、快捷指令 |
 | Services | `Services/Sources/LingXiServices` | PhotoKit 适配 + 唯一转换入口，App 与扩展共用同一份二进制 |
 | Engine | `Engine/Sources/LingXiEngine` | 读文件 → 检查 → 调核心 → 复审 → 写临时文件 |
-| Kit | `Kit/Sources/LingXiKit` | ISO BMFF / HEIF 解析、兼容性判定、无损校验、诊断 |
+| Kit | `Kit/Sources/LingXiKit` | ISO BMFF / HEIF 解析、兼容性判定、无损校验、任务会话状态机、诊断 |
 | Core | `Core/Sources/StylePortCore` | 上游第三代风格核心（MIT，见 ThirdPartyNotices） |
 
 所有入口（图库、文件导入、快捷指令、分享扩展）最终都调用
 `ConversionService.shared.convert(_:onStage:)`。PhotoKit 与分享面板只是输入 / 输出适配器，
 不参与编码决策。
+
+`Kit/Sources/LingXiKit/ConversionRun.swift` 是任务会话状态机：记录每张照片的
+`pending / saved / skipped / failed / cancelled` 状态，只有所属 session token 能推进队列；
+已保存项不会被重试，取消后的未开始项按顺序标记为取消。
 
 ### 固定管线
 
@@ -153,10 +161,27 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 1. **空状态**：品牌标题、4:5 构图框、主按钮「选择照片」、次级「从文件导入」、隐私文案「仅在本机处理 · 原图始终保留」。
 2. **已选照片**：大图不裁切、60–72pt 缩略图条、兼容标签、数量与主 CTA。
 3. **转换中**：照片始终清晰，只有边框层承载扫光 / 呼吸光；真实阶段文字与 X/Y；可取消队列。
-4. **结果页**：成功 / 跳过 / 失败数量、「已保存新照片」、打开相册、失败原因、重试与诊断。
+4. **结果页**：已保存照片预览、成功 / 跳过 / 失败数量、应用内查看与分享、继续处理、失败重试；原始错误码只放诊断。
 
-支持真深 / 浅色、Dynamic Type、横竖屏、Reduce Motion（关闭循环光、扫边与缩放，只保留状态变化）。
-设计令牌见 `App/Sources/DesignSystem/Tokens.swift`，动效见 `Motion.swift`。
+转换页按真实阶段反馈：读取时呼吸光、检查 / 校验时扫边、追加质感时冰蓝到淡紫的渐变描边、
+保存时收束淡出；照片本身始终显示真实预览，动效只作用于边框、背景和状态组件。
+
+支持真深 / 浅色、Dynamic Type、横竖屏、窄屏、VoiceOver 与 Reduce Motion
+（关闭循环光、扫边与缩放，只保留状态变化）。设计令牌见
+`App/Sources/DesignSystem/Tokens.swift`，动效见 `Motion.swift`。
+
+## 任务生命周期与取消
+
+- 每次开始转换都会创建独立的 `ConversionRun` 会话；阶段、结果与完成回调只更新所属会话，
+  旧任务不能覆盖新一轮 UI。
+- `reset()` 只会 retire 当前工作目录；等正在进行的准备 / 转换操作结束后才删除临时文件，
+  不会抽走任务正在读取的文件。
+- 取消时，当前照片会走到安全边界：已经写入相册的照片保留并计入成功，尚未开始的照片标记为取消，
+  不会继续调用转换。
+- 重试只重置失败项；已保存项永久跳过，避免重复保存。只有权限与工作区都就绪后才清空
+  失败状态，启动被拒绝时结果页仍保留原失败项。保存已写入但回读确认失败时，结果会记录
+  警告而不是把该照片判为失败，从而避免重试重复写入。
+- 准备队列与转换任务分离；关闭选择、清空或重新选片会取消准备任务，而不是让 iCloud 下载在后台空转。
 
 ## 快捷指令
 
@@ -167,7 +192,8 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 - 仅检查兼容性（默认关）
 
 输出转换后的文件列表（仅在打开「返回转换后的文件」时），并用「已转换 / 已存入相册 /
-跳过 / 失败」分项统计。输入会先复制到 App 沙盒，再交给 `ConversionService`，不会碰原文件。
+跳过 / 失败」分项统计。输入会先复制到 App 沙盒，再交给 `ConversionService`，不会碰原文件；
+返回的 `IntentFile` 在临时目录被清理前已读入内存，避免文件生命周期竞态。
 
 ## 分享扩展
 
@@ -175,7 +201,8 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 
 1. `loadFileRepresentation` 后**立刻**复制到扩展自己的沙盒（回调外 URL 会失效）。
 2. 强制解析并校验完整 HEIC；不是 HEIC 就提示「请在 LingXiStyle 内从图库选择照片」。
-3. 通过后调用同一个 `ConversionService` 保存新照片。
+3. 通过后调用同一个 `ConversionService` 保存新照片。处理中只提供「取消」，成功后才显示「完成」；
+   失败或取消可安全重试，临时文件在关闭时清理。
 
 分享面板有时只给 JPEG / 预览图，这时会被拒绝，这是预期行为——转码会破坏原始编码。
 
@@ -193,6 +220,7 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 | `E_PHOTO_NO_HEIC` | 该 Asset 没有 HEIC 照片资源 |
 | `E_PHOTO_EXPORT` | 原件导出失败 |
 | `E_PHOTO_SAVE` | 相册写入失败 |
+| `E_PHOTO_ADD_DENIED` | 没有相册写入权限，需在系统设置中允许添加照片 |
 | `E_PHOTO_SAVED_MISSING` | 保存后找不到新 Asset |
 | `E_PHOTO_SAVED_NOT_HEIC` | 保存后回读不是 HEIC |
 
@@ -205,10 +233,10 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 App/Sources/            Views / Components / DesignSystem / Models / Integrations / AppModel.swift
 Services/Sources/       LingXiServices（PhotoKit 适配 + ConversionService）
 Engine/Sources/         LingXiEngine
-Kit/Sources/            LingXiKit
+Kit/Sources/            LingXiKit（含 ConversionRun 任务会话状态机）
 Core/Sources/           StylePortCore（vendor）
 Core/Resources/Profiles 45-15 / 48-12 / live-photo-video
-Kit/Tests/              ISOBox / 兼容性 / 校验测试
+Kit/Tests/              ISOBox / 兼容性 / 校验 / ConversionRun 测试
 Engine/Tests/           引擎集成测试
 ShareExtension/         分享扩展
 ThirdPartyNotices/      上游 MIT 许可证与 vendor 说明
@@ -217,9 +245,9 @@ project.yml             XcodeGen 工程定义
 
 ## 已知限制
 
-- 主 App 已在真机上运行；分享扩展、快捷指令，以及 12/24MP、权限、存储、取消等系统矩阵尚未逐项验证。详见 [TEST_REPORT.md](TEST_REPORT.md)。
+- 1.1 的 Debug / Release 构建与自动化测试通过；当前环境没有 iOS 模拟器 runtime，1.1 UI 未做运行截图验收。
+- 主 App 1.0 曾在真机运行；分享扩展、快捷指令，以及 12/24MP、权限、存储、取消等系统矩阵尚未逐项验证。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 - 不同机型 / iOS 版本的 HEIC 可能使用不同的 `iref` 结构；已加 16-bit / 32-bit 回归测试，但仍需更多样本。
-- 「打开相册」使用未公开的 `photos-redirect://`，失败会回退到系统设置；这是体验优化，不影响保存结果。
 - 分享扩展首次运行时可能拿不到相册写入授权（扩展内不一定能弹权限框）。此时会提示先回 App 授权；这是系统行为，需真机确认具体表现。
 - 分享面板可能把照片转成 JPEG，扩展会拒绝而不是偷偷转码。
 - Live Photo 暂不支持，会跳过并提示；视频部分不会被处理。
@@ -229,7 +257,8 @@ project.yml             XcodeGen 工程定义
 
 - App 本身不发起网络请求，不上传照片，不收集分析数据。
 - iCloud 原件下载由 PhotoKit 在系统层完成。
-- 导出与转换的临时文件位于沙盒 `tmp`，每个任务结束即删除；成功保存的照片由系统相册管理。
+- 导出与转换的临时文件位于沙盒 `tmp`；`SessionWorkspace` 用引用计数延迟删除，任务结束或清空后清理。
+  成功保存的照片由系统相册管理；结果页分享使用所属会话的输出文件，继续处理时一并释放。
 
 ## 第三方与许可
 

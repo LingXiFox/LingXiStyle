@@ -10,6 +10,10 @@ struct PhotoThumbnailStrip: View {
     /// Hidden at the selection limit so the picker can never open on a guaranteed rejection.
     var canAdd: Bool = true
 
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
+    @Environment(\.reduceMotionOverride) private var reduceMotionOverride
+    private var reduceMotion: Bool { systemReduceMotion || reduceMotionOverride }
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.s) {
@@ -29,7 +33,11 @@ struct PhotoThumbnailStrip: View {
     private func thumbnail(for item: PhotoItem) -> some View {
         let isSelected = item.id == selectedID
         return Button {
-            withAnimation(Motion.selection) { selectedID = item.id }
+            if reduceMotion {
+                selectedID = item.id
+            } else {
+                withAnimation(Motion.selection) { selectedID = item.id }
+            }
         } label: {
             Image(uiImage: item.image)
                 .resizable()

@@ -24,7 +24,7 @@ struct EmptyStateView: View {
                     .padding(.top, Spacing.l)
 
                 privacyLine
-                    .padding(.top, Spacing.s)
+                    .padding(.top, Spacing.m)
                     .padding(.bottom, Spacing.l)
             }
             .padding(.horizontal, margin)
@@ -41,56 +41,109 @@ struct EmptyStateView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: Spacing.s) {
-            Text("LingXiStyle")
-                .font(Typography.brand)
+            HStack(spacing: 7) {
+                Circle()
+                    .fill(LinearGradient(colors: [Palette.accent, Palette.accentSecondary],
+                                         startPoint: .topLeading,
+                                         endPoint: .bottomTrailing))
+                    .frame(width: 7, height: 7)
+                Text("LINGXI STYLE")
+                    .font(.system(.caption2, design: .default, weight: .semibold))
+                    .tracking(2.4)
+                    .foregroundStyle(Palette.accentText)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("LingXiStyle")
+
+            Text("为原片补上\n第三代摄影质感")
+                .font(.system(.largeTitle, design: .default, weight: .semibold))
                 .foregroundStyle(Palette.textPrimary)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
-            Text("为你的原片补上第三代摄影风格")
+
+            Text("照片本身保持清晰，只追加纹理与颗粒。HDR、景深和原始信息都留在原片里。")
                 .font(Typography.body)
                 .foregroundStyle(Palette.textSecondary)
-            Text("HEIC 原片 · 仅追加 Texture / Grain")
-                .font(Typography.micro)
-                .foregroundStyle(Palette.accentText)
-                .padding(.horizontal, Spacing.s)
-                .padding(.vertical, 6)
-                .background(Palette.accent.opacity(0.12), in: Capsule())
-                .padding(.top, Spacing.xxs)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: Spacing.xs) {
+                miniBadge("HEIC 原片", systemImage: "photo")
+                miniBadge("仅补质感", systemImage: "sparkles")
+            }
+            .padding(.top, Spacing.xxs)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func miniBadge(_ title: String, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(Typography.micro)
+            .foregroundStyle(Palette.textSecondary)
+            .padding(.horizontal, Spacing.xs)
+            .padding(.vertical, 5)
+            .background(Palette.surface.opacity(0.7), in: Capsule())
+            .overlay(Capsule().strokeBorder(Palette.hairline, lineWidth: 1))
     }
 
     private var compositionFrame: some View {
         ZStack {
             RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                .fill(Palette.surface)
+                .fill(LinearGradient(colors: [Palette.surface, Palette.surfaceElevated.opacity(0.75)],
+                                     startPoint: .topLeading,
+                                     endPoint: .bottomTrailing))
+
+            // A soft aperture glow sits behind the framing marks, never on top of a photo.
+            Circle()
+                .fill(RadialGradient(colors: [Palette.accent.opacity(0.20), Palette.accentSecondary.opacity(0.05), .clear],
+                                     center: .center,
+                                     startRadius: 4,
+                                     endRadius: 180))
+                .frame(width: 300, height: 300)
+                .blur(radius: 10)
+                .accessibilityHidden(true)
 
             ThirdsGrid()
-                .stroke(Palette.textSecondary.opacity(0.10), lineWidth: 0.5)
+                .stroke(Palette.textSecondary.opacity(0.12), lineWidth: 0.5)
                 .padding(1)
 
             CornerBrackets()
-                .stroke(Palette.accent.opacity(0.55), lineWidth: 1.5)
+                .stroke(LinearGradient(colors: [Palette.accent.opacity(0.8), Palette.accentSecondary.opacity(0.55)],
+                                       startPoint: .topLeading,
+                                       endPoint: .bottomTrailing),
+                        lineWidth: 1.5)
                 .padding(14)
 
             VStack(spacing: Spacing.s) {
-                Image(systemName: "camera.filters")
-                    .font(.system(size: 40, weight: .light))
-                    .foregroundStyle(Palette.accent)
-                Text("选择一张 HEIC 原片")
+                ZStack {
+                    Circle()
+                        .fill(Palette.surfaceElevated)
+                        .frame(width: 78, height: 78)
+                    Circle()
+                        .strokeBorder(Palette.accent.opacity(0.24), lineWidth: 1)
+                        .frame(width: 78, height: 78)
+                    Image(systemName: "camera.filters")
+                        .font(.system(size: 32, weight: .light))
+                        .foregroundStyle(Palette.accent)
+                }
+                .shadow(color: Palette.accent.opacity(0.18), radius: 18)
+                Text("一张原片，一层质感")
                     .font(Typography.status)
                     .foregroundStyle(Palette.textPrimary)
-                Text("HDR、景深、风格元数据全部保留")
+                Text("保留原始光影，只让质感更接近第三代风格")
                     .font(Typography.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(Spacing.l)
 
             VStack {
                 Spacer()
                 HStack {
-                    Text("16 · 17 系列风格")
+                    Text("ORIGINAL HEIC")
                         .font(Typography.micro)
+                        .tracking(1.2)
                         .foregroundStyle(Palette.textSecondary)
                     Spacer(minLength: 0)
                     Text("4:5")
@@ -105,8 +158,12 @@ struct EmptyStateView: View {
         .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                .strokeBorder(Palette.hairline, lineWidth: 1)
+                .strokeBorder(LinearGradient(colors: [Palette.accent.opacity(0.24), Palette.hairline, Palette.accentSecondary.opacity(0.18)],
+                                             startPoint: .topLeading,
+                                             endPoint: .bottomTrailing),
+                              lineWidth: 1)
         )
+        .shadow(color: Palette.shadow, radius: 22, y: 10)
         .accessibilityHidden(true)
     }
 
@@ -128,10 +185,18 @@ struct EmptyStateView: View {
     }
 
     private var privacyLine: some View {
-        Label("仅在本机处理 · 原图始终保留", systemImage: "lock.shield")
-            .font(Typography.caption)
-            .foregroundStyle(Palette.textSecondary)
-            .frame(maxWidth: .infinity)
+        HStack(spacing: Spacing.xs) {
+            Image(systemName: "lock.shield")
+                .font(.system(.caption, design: .default, weight: .medium))
+            Text("仅在本机处理")
+            Text("·").foregroundStyle(Palette.textSecondary.opacity(0.5))
+            Text("原图始终保留")
+        }
+        .font(Typography.caption)
+        .foregroundStyle(Palette.textSecondary)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("仅在本机处理，原图始终保留")
     }
 }
 

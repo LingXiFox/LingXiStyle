@@ -8,13 +8,14 @@ import LingXiServices
 
 /// Share-sheet entry point. It copies the shared file into its own sandbox before doing
 /// anything, validates that the bytes are a complete HEIC, then hands the file to the same
-/// ConversionService the app and shortcuts use.
+/// ConversionService the app and shortcuts use. The extension never pretends a running job is
+/// finished: while work is in flight the only action is an explicit cancel.
 final class ShareViewController: UIViewController {
     private let model = ShareModel()
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        preferredContentSize = CGSize(width: 0, height: 470)
+        preferredContentSize = CGSize(width: 0, height: 500)
         view.backgroundColor = .systemBackground
 
         let host = UIHostingController(rootView: ShareFlowView(model: model))
@@ -44,8 +45,9 @@ final class ShareModel: ObservableObject {
         case reading
         case inspecting
         case converting(ConversionStage)
-        case saving
+        case cancelling
         case done
+        case cancelled
         case failed
     }
 
@@ -59,7 +61,25 @@ final class ShareModel: ObservableObject {
 
     private var workDirectory: URL?
     private var sharedFile: URL?
-    private var isBusy = false
+    private var processingTask: Task<Void, Never>?
+    private var sessionID = UUID()
+    private var loadGeneration = UUID()
+    private var cancelRequested = false
+    private var closeWhenFinished = false
+    private var didClose = false
+
+    var isBusy: Bool {
+        switch phase {
+        case .reading, .inspecting, .converting, .cancelling: return true
+        case .done, .cancelled, .failed: return false
+        }
+    }
+
+    var canCancel: Bool {
+        guard isBusy else { return false }
+        if case .cancelling = phase { return false }
+        return true
+    }
 
     func begin(providers: [NSItemProvider]) {
         guard let provider = providers.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier) }) else {
@@ -70,10 +90,12 @@ final class ShareModel: ObservableObject {
     }
 
     func retry() {
-        guard let sharedFile else { return }
+        guard let sharedFile, !isBusy else { return }
         process(sharedFile)
     }
 
+    /// Starts work. The caller owns the file until the task reaches a safe boundary, so closing
+    /// the sheet cannot delete a file that PhotoKit or the engine is still reading.
     private func load(_ provider: NSItemProvider) {
         let identifiers = [UTType.heic.identifier, UTType.heif.identifier, UTType.image.identifier]
         guard let identifier = identifiers.first(where: { provider.hasItemConformingToTypeIdentifier($0) }) else {
@@ -81,15 +103,17 @@ final class ShareModel: ObservableObject {
             return
         }
         phase = .reading
+        let generation = UUID()
+        loadGeneration = generation
         // Read the suggested name before the @Sendable callback: NSItemProvider is not Sendable.
         let suggestedName = provider.suggestedName
         provider.loadFileRepresentation(forTypeIdentifier: identifier) { [weak self] url, error in
             guard let self else { return }
             guard let url else {
+                let detail = error?.localizedDescription ?? "系统没有提供可读取的文件副本。请直接在 LingXiStyle 内从图库选择照片。"
                 Task { @MainActor in
-                    self.fail(title: "无法读取分享的文件",
-                              message: error?.localizedDescription ?? "系统没有提供可读取的文件副本。请直接在 LingXiStyle 内从图库选择照片。",
-                              retry: false)
+                    guard self.loadGeneration == generation else { return }
+                    self.fail(title: "无法读取分享的文件", message: detail, retry: false)
                 }
                 return
             }
@@ -108,11 +132,18 @@ final class ShareModel: ObservableObject {
             } catch {
                 try? FileManager.default.removeItem(at: directory)
                 Task { @MainActor in
-                    self.fail(title: "无法复制这个文件", message: "分享扩展没有拿到文件的读写权限。请在 LingXiStyle 内从图库选择照片。", retry: false)
+                    guard self.loadGeneration == generation else { return }
+                    self.fail(title: "无法复制这个文件",
+                              message: "分享扩展没有拿到文件的读写权限。请在 LingXiStyle 内从图库选择照片。",
+                              retry: false)
                 }
                 return
             }
             Task { @MainActor in
+                guard self.loadGeneration == generation, self.phase == .reading else {
+                    try? FileManager.default.removeItem(at: directory)
+                    return
+                }
                 self.workDirectory = directory
                 self.sharedFile = destination
                 self.process(destination)
@@ -121,75 +152,97 @@ final class ShareModel: ObservableObject {
     }
 
     private func process(_ fileURL: URL) {
-        guard !isBusy else { return }
-        isBusy = true
+        guard processingTask == nil, !isBusy else { return }
+        let session = UUID()
+        sessionID = session
+        cancelRequested = false
+        closeWhenFinished = false
         canRetry = false
         diagnosticCode = nil
         phase = .inspecting
         title = "正在检查 HEIC 结构"
         message = "确认这是完整原片，并检查是否已经带有第三代质感。"
 
-        Task {
-            defer { isBusy = false }
-            let traits = AssetTraits(originalIsHEIC: true)
-            let outcome: InspectionOutcome
-            do {
-                outcome = try await Task.detached(priority: .userInitiated) { [service = ConversionService.shared] in
-                    try service.inspect(fileURL: fileURL, traits: traits)
-                }.value
-            } catch {
-                let failure = error as? ConversionFailure
-                fail(title: "这不是可处理的 HEIC 原片",
-                     message: "请在 LingXiStyle 内从图库选择照片。分享面板有时会转成 JPEG 或只给出预览图，这时无法保留原始编码。",
-                     code: failure?.diagnosticCode,
-                     retry: false)
-                return
-            }
+        processingTask = Task { [weak self] in
+            await self?.run(fileURL: fileURL, session: session)
+        }
+    }
 
-            guard outcome.verdict.isReady else {
-                fail(title: outcome.verdict.headline,
-                     message: outcome.verdict.detail + " 请在 LingXiStyle 内从图库选择照片。",
-                     code: outcome.verdict.issues.map(\.rawValue).joined(separator: ","),
-                     retry: false)
-                return
+    private func run(fileURL: URL, session: UUID) async {
+        defer {
+            if sessionID == session {
+                processingTask = nil
             }
+            if closeWhenFinished {
+                finishClose()
+            }
+        }
 
+        let traits = AssetTraits(originalIsHEIC: true)
+        let outcome: InspectionOutcome
+        do {
+            outcome = try await Task.detached(priority: .userInitiated) { [service = ConversionService.shared] in
+                try service.inspect(fileURL: fileURL, traits: traits)
+            }.value
+        } catch {
+            guard sessionID == session else { return }
+            let failure = error as? ConversionFailure
+            fail(title: "这不是可处理的 HEIC 原片",
+                 message: "请在 LingXiStyle 内从图库选择照片。分享面板有时会转成 JPEG 或只给出预览图，这时无法保留原始编码。",
+                 code: failure?.diagnosticCode,
+                 retry: false)
+            return
+        }
+
+        guard sessionID == session else { return }
+        guard outcome.verdict.isReady else {
+            fail(title: outcome.verdict.headline,
+                 message: outcome.verdict.detail + " 请在 LingXiStyle 内从图库选择照片。",
+                 code: outcome.verdict.issues.map(\.rawValue).joined(separator: ","),
+                 retry: false)
+            return
+        }
+
+        do {
+            try Task.checkCancellation()
             phase = .converting(.readingOriginal)
             title = "正在补上第三代质感"
             message = "照片保持清晰，只处理纹理与颗粒层。"
 
-            let status = await PhotoLibraryService.requestAddAuthorization()
-            guard status == .authorized || status == .limited else {
-                fail(title: "没有相册写入权限",
-                     message: "请在系统设置中允许 LingXiStyle 添加照片，或在 LingXiStyle 内从图库选择照片。",
-                     code: "E_PHOTO_ADD_DENIED",
-                     retry: true)
-                return
-            }
-
-            do {
-                let request = ConversionService.Request(
-                    fileURL: fileURL,
-                    traits: traits,
-                    preferredName: Self.outputName(for: fileURL),
-                    saveToLibrary: true,
-                    returnsFile: false
-                )
-                let result = try await ConversionService.shared.convert(request) { stage in
-                    Task { @MainActor in
-                        self.phase = .converting(stage)
-                    }
+            let request = ConversionService.Request(
+                fileURL: fileURL,
+                traits: traits,
+                preferredName: Self.outputName(for: fileURL),
+                saveToLibrary: true,
+                returnsFile: false
+            )
+            let result = try await ConversionService.shared.convert(request) { [weak self] stage in
+                Task { @MainActor [weak self] in
+                    guard let self, self.sessionID == session, !self.cancelRequested else { return }
+                    self.phase = .converting(stage)
+                    self.title = stage == .finished ? "正在完成保存" : "正在\(stage.title)"
+                    self.message = Self.message(for: stage)
                 }
-                phase = .done
-                title = "已保存新照片"
-                message = "原照片没有被修改。新照片已出现在系统「照片」中，可以继续编辑。"
-                if let identifier = result.savedAssetIdentifier {
-                    diagnosticCode = "SAVED:\(identifier)"
-                }
-            } catch {
-                isBusy = false
-                present(error)
             }
+            guard sessionID == session else { return }
+            phase = .done
+            title = "已保存新照片"
+            message = cancelRequested
+                ? "取消请求到达时，这张照片已经写入相册，已保留。原照片没有被修改。"
+                : "原照片没有被修改。新照片已出现在系统「照片」中，可以继续编辑。"
+            diagnosticCode = result.savedAssetIdentifier.map { "SAVED:\($0)" }
+            canRetry = false
+            cleanupInput()
+        } catch is CancellationError {
+            guard sessionID == session else { return }
+            phase = .cancelled
+            title = "已取消，没有保存新照片"
+            message = "没有写入相册，原照片保持不变。"
+            diagnosticCode = nil
+            canRetry = sharedFile != nil
+        } catch {
+            guard sessionID == session else { return }
+            present(error)
         }
     }
 
@@ -197,7 +250,15 @@ final class ShareModel: ObservableObject {
         if let failure = error as? ConversionFailure {
             fail(title: "转换没有完成", message: failure.message, code: failure.diagnosticCode, retry: true)
         } else if let libraryError = error as? PhotoLibraryError {
-            fail(title: "保存到相册失败", message: libraryError.localizedDescription, code: libraryError.diagnosticCode, retry: true)
+            let denied: Bool
+            switch libraryError {
+            case .addPermissionDenied: denied = true
+            default: denied = false
+            }
+            fail(title: denied ? "没有相册写入权限" : "保存到相册失败",
+                 message: libraryError.localizedDescription,
+                 code: libraryError.diagnosticCode,
+                 retry: true)
         } else {
             fail(title: "转换没有完成", message: error.localizedDescription, code: nil, retry: true)
         }
@@ -208,20 +269,77 @@ final class ShareModel: ObservableObject {
         self.title = title
         self.message = message
         self.diagnosticCode = code
-        self.canRetry = retry
+        self.canRetry = retry && sharedFile != nil
+    }
+
+    /// A user-visible cancel. Work already written to Photos is never deleted; work that has not
+    /// crossed the save boundary is stopped cooperatively.
+    func cancel() {
+        switch phase {
+        case .reading:
+            loadGeneration = UUID()
+            phase = .cancelled
+            title = "已取消"
+            message = "没有读取或保存任何照片。"
+            canRetry = false
+            cleanupInput()
+        case .inspecting, .converting:
+            cancelRequested = true
+            phase = .cancelling
+            title = "正在取消"
+            message = "已保存的照片会保留；正在写入的照片会先完成保存。"
+            processingTask?.cancel()
+        case .cancelling:
+            break
+        case .done, .cancelled, .failed:
+            close()
+        }
     }
 
     func close() {
+        if isBusy {
+            if case .reading = phase {
+                loadGeneration = UUID()
+                cleanupInput()
+                finishClose()
+            } else {
+                closeWhenFinished = true
+                cancel()
+            }
+            return
+        }
+        finishClose()
+    }
+
+    private func finishClose() {
+        guard !didClose else { return }
+        didClose = true
         cleanup()
         onClose?()
     }
 
-    private func cleanup() {
+    private func cleanupInput() {
         if let workDirectory {
             try? FileManager.default.removeItem(at: workDirectory)
         }
         workDirectory = nil
         sharedFile = nil
+    }
+
+    private func cleanup() {
+        cleanupInput()
+    }
+
+    private static func message(for stage: ConversionStage) -> String {
+        switch stage {
+        case .readingOriginal: return "正在读取原始 HEIC，照片内容不会被改动。"
+        case .inspecting: return "正在确认主图、HDR、EXIF 与风格元数据。"
+        case .converting: return "只追加纹理与颗粒层，主图编码保持原样。"
+        case .verifying: return "正在逐项比对转换前后的完整性。"
+        case .saving: return "正在把新照片写入系统相册。"
+        case .finished: return "新照片已经保存，原照片保留。"
+        case .failed: return "这一步没有完成，请重试。"
+        }
     }
 
     nonisolated private static func sanitized(_ name: String) -> String {
@@ -239,83 +357,183 @@ final class ShareModel: ObservableObject {
 
 struct ShareFlowView: View {
     @ObservedObject var model: ShareModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var accent: Color { Color(red: 0.51, green: 0.84, blue: 1.0) }
+    private var accent: Color { SharePalette.accent }
 
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer(minLength: 8)
+        ZStack {
+            SharePalette.background.ignoresSafeArea()
+            VStack(spacing: 20) {
+                Spacer(minLength: 8)
 
-            ZStack {
-                Circle()
-                    .fill(accent.opacity(0.16))
-                    .frame(width: 76, height: 76)
-                Image(systemName: symbol)
-                    .font(.system(size: 30, weight: .semibold))
-                    .foregroundStyle(iconColor)
-            }
-
-            VStack(spacing: 8) {
-                Text(model.title)
-                    .font(.title3.weight(.semibold))
-                    .multilineTextAlignment(.center)
-                Text(model.message)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if model.phase == .done {
-                Label("已存为相册中的新照片", systemImage: "checkmark.circle.fill")
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(.green)
-            } else if model.phase == .failed {
-                if let code = model.diagnosticCode {
-                    Text(code)
-                        .font(.caption2.monospaced())
-                        .foregroundStyle(.tertiary)
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(colors: [accent.opacity(0.22), SharePalette.violet.opacity(0.16)],
+                                           startPoint: .topLeading,
+                                           endPoint: .bottomTrailing)
+                        )
+                        .frame(width: 88, height: 88)
+                    Circle()
+                        .strokeBorder(accent.opacity(0.26), lineWidth: 1)
+                        .frame(width: 88, height: 88)
+                    Image(systemName: symbol)
+                        .font(.system(size: 32, weight: .semibold))
+                        .foregroundStyle(iconColor)
+                        .symbolEffect(.pulse, options: reduceMotion ? .nonRepeating : .repeating, value: model.isBusy)
                 }
-            } else {
+
+                VStack(spacing: 8) {
+                    Text(model.title)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(SharePalette.textPrimary)
+                        .multilineTextAlignment(.center)
+                    Text(model.message)
+                        .font(.subheadline)
+                        .foregroundStyle(SharePalette.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                statusArea
+
+                Spacer(minLength: 8)
+
+                actions
+                    .padding(.bottom, 8)
+            }
+            .padding(.horizontal, 24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .tint(accent)
+    }
+
+    @ViewBuilder
+    private var statusArea: some View {
+        switch model.phase {
+        case .done:
+            Label("已存为相册中的新照片", systemImage: "checkmark.circle.fill")
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(SharePalette.success)
+        case .cancelled:
+            Label("没有保存新照片", systemImage: "xmark.circle")
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(SharePalette.textSecondary)
+        case .failed:
+            Text(model.canRetry ? "可以重试，不会覆盖原照片。" : "请返回主 App 重新选择这张照片。")
+                .font(.caption)
+                .foregroundStyle(SharePalette.textSecondary)
+        case .cancelling:
+            ProgressView()
+                .controlSize(.large)
+                .tint(accent)
+        case .converting(let stage):
+            VStack(spacing: 8) {
+                ShareStageRail(stage: stage)
                 ProgressView()
-                    .controlSize(.large)
+                    .controlSize(.small)
                     .tint(accent)
             }
+        case .reading, .inspecting:
+            ProgressView()
+                .controlSize(.large)
+                .tint(accent)
+        }
+    }
 
-            Spacer(minLength: 8)
-
+    @ViewBuilder
+    private var actions: some View {
+        if model.isBusy {
+            Button("取消") { model.cancel() }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .disabled(!model.canCancel)
+                .frame(maxWidth: .infinity)
+        } else {
             HStack(spacing: 12) {
                 if model.canRetry {
                     Button("重试") { model.retry() }
                         .buttonStyle(.bordered)
                         .controlSize(.large)
+                        .frame(maxWidth: .infinity)
                 }
-                Button(model.phase == .failed ? "关闭" : "完成") { model.close() }
+                Button(model.phase == .done ? "完成" : "关闭") { model.close() }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
+                    .frame(maxWidth: .infinity)
                     .tint(accent)
                     .foregroundStyle(.black)
             }
-            .padding(.bottom, 8)
         }
-        .padding(.horizontal, 24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
     }
 
     private var symbol: String {
         switch model.phase {
         case .done: return "checkmark"
         case .failed: return "exclamationmark"
+        case .cancelled: return "xmark"
+        case .cancelling: return "xmark.circle"
         default: return "camera.filters"
         }
     }
 
     private var iconColor: Color {
         switch model.phase {
-        case .done: return .green
-        case .failed: return .orange
+        case .done: return SharePalette.success
+        case .failed: return SharePalette.warning
+        case .cancelled, .cancelling: return SharePalette.textSecondary
         default: return accent
         }
+    }
+}
+
+/// A compact, real-stage rail. It does not show a percentage or a timer.
+private struct ShareStageRail: View {
+    let stage: ConversionStage
+
+    private var currentIndex: Int {
+        ConversionStage.pipeline.firstIndex(of: stage) ?? 0
+    }
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ForEach(Array(ConversionStage.pipeline.enumerated()), id: \.element) { index, step in
+                Capsule()
+                    .fill(index <= currentIndex ? SharePalette.accent : SharePalette.hairline)
+                    .frame(height: 4)
+                    .overlay {
+                        if index == currentIndex {
+                            Capsule().strokeBorder(SharePalette.accent.opacity(0.35), lineWidth: 1)
+                        }
+                    }
+                    .accessibilityLabel("\(step.title)\(index < currentIndex ? "，已完成" : index == currentIndex ? "，进行中" : "")")
+            }
+        }
+        .frame(maxWidth: 220)
+        .accessibilityElement(children: .contain)
+    }
+}
+
+private enum SharePalette {
+    static let background = Color(light: 0xF6F8FB, dark: 0x0B101A)
+    static let textPrimary = Color(light: 0x182233, dark: 0xF7F9FC)
+    static let textSecondary = Color(light: 0x526175, dark: 0xAAB6C8)
+    static let accent = Color(light: 0x087DB5, dark: 0x82D7FF)
+    static let violet = Color(light: 0x7954C5, dark: 0xBBA7F4)
+    static let success = Color(light: 0x148059, dark: 0x80DDB8)
+    static let warning = Color(light: 0x956009, dark: 0xF3CD8A)
+    static let hairline = Color(light: 0x182233, dark: 0xF7F9FC).opacity(0.14)
+}
+
+private extension Color {
+    init(light: UInt32, dark: UInt32) {
+        self.init(uiColor: UIColor { traits in
+            let hex = traits.userInterfaceStyle == .dark ? dark : light
+            return UIColor(red: CGFloat((hex >> 16) & 0xFF) / 255,
+                           green: CGFloat((hex >> 8) & 0xFF) / 255,
+                           blue: CGFloat(hex & 0xFF) / 255,
+                           alpha: 1)
+        })
     }
 }

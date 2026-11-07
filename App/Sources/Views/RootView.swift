@@ -7,12 +7,15 @@ struct RootView: View {
     @State private var diagnostics: DiagnosticsPayload?
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.reduceMotionOverride) private var reduceMotionOverride
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
     private var reduceMotion: Bool { systemReduceMotion || reduceMotionOverride }
 
     var body: some View {
         GeometryReader { proxy in
             ZStack {
                 Palette.background.ignoresSafeArea()
+                ambientLight
                 content
                     .environment(\.contentMargin, Spacing.margin(for: proxy.size.width))
                     .animation(reduceMotion ? nil : Motion.entrance, value: model.screen)
@@ -21,9 +24,13 @@ struct RootView: View {
         .tint(Palette.accent)
         .overlay(alignment: .top) { noticeBanner }
         .task { await model.onAppear() }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            model.refreshPermissions()
+        }
         .onChange(of: model.pickerSelection) { _, selection in
             guard !selection.isEmpty else { return }
-            Task { await model.handlePickerSelection() }
+            model.handlePickerSelection()
         }
         .fileImporter(isPresented: $model.isImportingFiles,
                       allowedContentTypes: [.heic, .heif],
@@ -33,6 +40,30 @@ struct RootView: View {
         .sheet(item: $diagnostics) { payload in
             DiagnosticsSheet(text: payload.text)
         }
+    }
+
+    /// Soft photographic light, kept behind every page. It is decorative only and never touches
+    /// the photo surface; light and dark get separate intensities so the same palette breathes.
+    private var ambientLight: some View {
+        ZStack {
+            RadialGradient(
+                colors: [Palette.accent.opacity(colorScheme == .dark ? 0.16 : 0.09), .clear],
+                center: .topLeading,
+                startRadius: 0,
+                endRadius: 430
+            )
+            .offset(x: -90, y: -120)
+            RadialGradient(
+                colors: [Palette.accentSecondary.opacity(colorScheme == .dark ? 0.11 : 0.06), .clear],
+                center: .bottomTrailing,
+                startRadius: 0,
+                endRadius: 380
+            )
+            .offset(x: 110, y: 160)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     @ViewBuilder
@@ -53,9 +84,10 @@ struct RootView: View {
             }
             .transition(.opacity)
         case .permissionDenied:
-            PermissionDeniedView {
-                Task { await model.onAppear() }
-            }
+            PermissionDeniedView(
+                onRetry: { Task { await model.onAppear() } },
+                onImportFiles: { model.isImportingFiles = true }
+            )
             .transition(.opacity)
         }
     }

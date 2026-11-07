@@ -95,7 +95,19 @@ struct UnlockTextureIntent: AppIntent {
                 converted += 1
                 if saveToLibrary { savedToLibrary += 1 }
                 if returnsFiles, let outputURL = result.outputURL {
-                    outputs.append(IntentFile(fileURL: outputURL, filename: preferredName, type: .heic))
+                    // The intent's work directory is deleted when perform() returns, and the
+                    // conversion service owns its temporary output. Copy the bytes into the
+                    // IntentFile so Shortcuts receives a file that outlives both.
+                    do {
+                        let data = try Data(contentsOf: outputURL)
+                        outputs.append(IntentFile(data: data, filename: preferredName, type: .heic))
+                    } catch {
+                        firstFailure = firstFailure ?? "\(preferredName)：无法读取转换结果"
+                    }
+                    let parent = outputURL.deletingLastPathComponent()
+                    if parent.lastPathComponent.hasPrefix("LingXiOutput-") {
+                        try? FileManager.default.removeItem(at: parent)
+                    }
                 }
             } catch let failure as ConversionFailure {
                 failed += 1

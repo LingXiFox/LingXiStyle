@@ -1,9 +1,13 @@
 import SwiftUI
+import LingXiKit
 
 struct ConvertingView: View {
     @ObservedObject var model: AppModel
     @Environment(\.contentMargin) private var margin
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
+    @Environment(\.reduceMotionOverride) private var reduceMotionOverride
+    private var reduceMotion: Bool { systemReduceMotion || reduceMotionOverride }
 
     private var heroHeight: CGFloat { verticalSizeClass == .compact ? 180 : 300 }
 
@@ -17,15 +21,34 @@ struct ConvertingView: View {
         return index + 1
     }
 
+    private var completedCount: Int {
+        model.items.filter { $0.outcome != nil }.count
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.m) {
-                PhotoHeroCard(image: current?.image,
-                              isWorking: true,
-                              isScanning: isScanning,
-                              badge: .convertible,
-                              selectionID: current?.id)
-                    .frame(height: heroHeight)
+                header
+
+                ZStack {
+                    RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                        .fill(LinearGradient(colors: [Palette.accent.opacity(0.10), Palette.accentSecondary.opacity(0.06)],
+                                             startPoint: .topLeading,
+                                             endPoint: .bottomTrailing))
+                        .blur(radius: 24)
+                        .padding(8)
+                        .accessibilityHidden(true)
+
+                    PhotoHeroCard(image: current?.image,
+                                  isWorking: current?.stage == .readingOriginal,
+                                  isScanning: false,
+                                  badge: .convertible,
+                                  selectionID: current?.id)
+                        .overlay {
+                            ConversionStageAura(stage: current?.stage, reduceMotion: reduceMotion)
+                        }
+                        .frame(height: heroHeight)
+                }
 
                 StageProgressView(stage: current?.stage,
                                   failed: current?.failedDuringStage ?? false,
@@ -33,21 +56,40 @@ struct ConvertingView: View {
                                   photoTotal: max(model.items.count, 1),
                                   photoName: current?.displayName ?? "")
 
-                Text("一张一张处理。当前这张完成前，后面的照片不会开始。")
+                Label("照片内容保持原样，光效只发生在边框与背景上。",
+                      systemImage: "lock.shield")
                     .font(Typography.micro)
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, Spacing.s)
             }
             .padding(.horizontal, margin)
-            .padding(.top, Spacing.m)
+            .padding(.top, Spacing.s)
             .padding(.bottom, Spacing.l)
         }
+        .scrollBounceBehavior(.basedOnSize)
         .safeAreaInset(edge: .bottom, spacing: 0) { cancelBar }
     }
 
-    private var isScanning: Bool {
-        guard let stage = current?.stage else { return false }
-        return stage == .inspecting || stage == .verifying
+    private var header: some View {
+        HStack(alignment: .center, spacing: Spacing.s) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("正在解锁第三代质感")
+                    .font(Typography.section)
+                    .foregroundStyle(Palette.textPrimary)
+                    .accessibilityAddTraits(.isHeader)
+                Text(current?.stage == .saving ? "正在写入相册，请稍候" : "照片始终保持清晰，不预览虚假效果")
+                    .font(Typography.caption)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            Spacer(minLength: 0)
+            Text("\(completedCount) / \(model.items.count)")
+                .font(Typography.captionEmphasized)
+                .foregroundStyle(Palette.textSecondary)
+                .monospacedDigit()
+                .accessibilityLabel("已完成 \(completedCount) 张，共 \(model.items.count) 张")
+        }
     }
 
     private var cancelBar: some View {

@@ -52,23 +52,24 @@ enum PreviewFixtures {
     }
 
     static func readyItem(name: String = "IMG_4821.HEIC", seed: Int = 1) -> PhotoItem {
-        PhotoItem(assetIdentifier: "preview-\(seed)",
-                  displayName: name,
-                  image: image(seed),
-                  traits: AssetTraits(),
-                  inspection: inspection,
-                  verdict: CompatibilityVerdict(status: .ready, inspection: inspection),
-                  phase: .ready)
+        var item = PhotoItem(assetIdentifier: "preview-\(seed)",
+                             displayName: name,
+                             image: image(seed),
+                             traits: AssetTraits())
+        item.inspection = inspection
+        item.verdict = CompatibilityVerdict(status: .ready, inspection: inspection)
+        item.phase = .ready
+        return item
     }
 
     static func downloadingItem(name: String = "IMG_4822.HEIC") -> PhotoItem {
-        PhotoItem(assetIdentifier: "preview-download",
-                  displayName: name,
-                  image: image(2),
-                  traits: AssetTraits(),
-                  inspection: nil,
-                  verdict: nil,
-                  phase: .preparing)
+        var item = PhotoItem(assetIdentifier: "preview-download",
+                             displayName: name,
+                             image: image(2),
+                             traits: AssetTraits())
+        item.phase = .preparing
+        item.downloadProgress = 0.42
+        return item
     }
 
     static func alreadyEnhancedItem(name: String = "IMG_4823.HEIC") -> PhotoItem {
@@ -92,6 +93,12 @@ enum PreviewFixtures {
         var item = readyItem(name: name, seed: seed)
         item.stage = .finished
         item.outcome = .saved(assetIdentifier: "preview-saved-\(seed)", byteCount: 5_120_000)
+        return item
+    }
+
+    static func warnedItem(name: String = "IMG_4821.HEIC") -> PhotoItem {
+        var item = savedItem(name: name)
+        item.saveWarning = "照片已经保存，但回读资源类型时超时。"
         return item
     }
 
@@ -184,6 +191,12 @@ enum PreviewFixtures {
         .preferredColorScheme(.dark)
 }
 
+#Preview("转换中 · 保存阶段 · 深色") {
+    ConvertingView(model: PreviewFixtures.model(screen: .converting,
+                                                items: [PreviewFixtures.convertingItem(stage: .saving)]))
+        .preferredColorScheme(.dark)
+}
+
 #Preview("转换中 · 减少动态效果") {
     ConvertingView(model: PreviewFixtures.model(screen: .converting,
                                                 items: [PreviewFixtures.convertingItem(stage: .verifying)]))
@@ -195,6 +208,11 @@ enum PreviewFixtures {
 
 #Preview("成功 · 深色") {
     ResultView(model: PreviewFixtures.resultModel([PreviewFixtures.savedItem()])) {}
+        .preferredColorScheme(.dark)
+}
+
+#Preview("保存警告 · 深色") {
+    ResultView(model: PreviewFixtures.resultModel([PreviewFixtures.warnedItem()])) {}
         .preferredColorScheme(.dark)
 }
 
@@ -214,12 +232,12 @@ enum PreviewFixtures {
 // MARK: - Permission
 
 #Preview("权限拒绝 · 深色") {
-    PermissionDeniedView {}
+    PermissionDeniedView(onRetry: {}, onImportFiles: {})
         .preferredColorScheme(.dark)
 }
 
 #Preview("权限拒绝 · 浅色") {
-    PermissionDeniedView {}
+    PermissionDeniedView(onRetry: {}, onImportFiles: {})
         .preferredColorScheme(.light)
 }
 #endif
