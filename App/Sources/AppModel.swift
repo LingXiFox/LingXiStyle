@@ -39,6 +39,7 @@ final class AppModel: ObservableObject {
     enum Modal: String, Identifiable {
         case pro
         case quotaExhausted
+        case settings
 
         var id: String { rawValue }
     }
@@ -63,6 +64,7 @@ final class AppModel: ObservableObject {
     private var startToken = UUID()
 
     static let maxSelection = 9
+    private static let firstQuotaReminderKey = "LingXiStyle.hasShownFirstQuotaReminder"
 
     // MARK: Derived state
 
@@ -119,8 +121,45 @@ final class AppModel: ObservableObject {
         }
     }
 
+    func presentSettings() {
+        activeModal = .settings
+        Task { [weak self] in
+            guard let self else { return }
+            await self.purchases.start()
+            if self.purchases.product == nil {
+                await self.purchases.loadProduct()
+            }
+        }
+    }
+
+    /// The first time the free allowance runs out, show the Pro page once. Later exhaustion
+    /// always uses the quieter quota page, which still has a manual upgrade entry.
+    func presentQuotaLimit() {
+        guard !isPro else { return }
+        if !hasShownFirstQuotaReminder {
+            hasShownFirstQuotaReminder = true
+            presentPro()
+        } else {
+            presentQuotaExhausted()
+        }
+    }
+
     func presentQuotaExhausted() {
         activeModal = .quotaExhausted
+    }
+
+    private var hasShownFirstQuotaReminder: Bool {
+        get { UserDefaults.standard.bool(forKey: Self.firstQuotaReminderKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Self.firstQuotaReminderKey) }
+    }
+
+    /// Called after a conversion commits its last free slot. It never fires on a cold launch,
+    /// so the first screen a new user sees is still the free home screen.
+    private func presentFirstQuotaUpsellIfNeeded() {
+        guard !isPro, quota?.isExhausted == true, !hasShownFirstQuotaReminder else { return }
+        guard activeModal == nil, screen != .converting else { return }
+        hasShownFirstQuotaReminder = true
+        presentPro()
     }
 
     func dismissModal() {
@@ -548,7 +587,7 @@ final class AppModel: ObservableObject {
                 return
             }
             if status.remaining <= 0 {
-                presentQuotaExhausted()
+                presentQuotaLimit()
                 return
             }
             if let limit, limit > status.remaining {
@@ -732,7 +771,11 @@ final class AppModel: ObservableObject {
         conversionTask = nil
         isCancelling = false
         screen = .result
-        Task { [weak self] in await self?.refreshQuota() }
+        Task { [weak self] in
+            guard let self else { return }
+            await self.refreshQuota()
+            self.presentFirstQuotaUpsellIfNeeded()
+        }
     }
 
     func retryFailed() {

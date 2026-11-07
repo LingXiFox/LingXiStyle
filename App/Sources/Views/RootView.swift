@@ -60,6 +60,13 @@ struct RootView: View {
                     onDismiss: { model.dismissModal() }
                 )
                 .presentationDragIndicator(.visible)
+            case .settings:
+                SettingsView(
+                    model: model,
+                    purchases: model.purchases,
+                    onClose: { model.dismissModal() }
+                )
+                .presentationDragIndicator(.visible)
             }
         }
         .onChange(of: model.activeModal) { _, modal in

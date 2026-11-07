@@ -6,8 +6,9 @@
 ## 项目一句话
 
 本地 SwiftUI App：读取 PhotoKit 中 iPhone 16/17 的 HEIC **原始资源文件**，只追加第三代
-Texture / Grain，另存为相册新照片。原图不覆盖、不转码、不上传。当前版本 1.3.0（build 4），
-包含品牌「纹粒 / Texel」、四语言本地化、5 张 / 日免费额度与 StoreKit 2 一次性 Pro 内购。
+Texture / Grain，另存为相册新照片。原图不覆盖、不转码、不上传。当前版本 1.4.0（build 5），
+包含品牌「纹粒 / Texel」、四语言本地化、5 张 / 日免费额度、StoreKit 2 一次性 Pro 内购、
+首页设置入口与应用内语言切换、首次额度用尽的一次性 Pro 介绍。
 
 ## 构建与验证
 
@@ -91,8 +92,9 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 - 修改 Kit / Engine 必须跑对应 macOS 测试 scheme；修改 App 必须至少做一次
   `generic/platform=iOS` Debug 与 Release 构建。修改任务生命周期必须跑 `ConversionRunTests`。
 - 真机验证状态以 `TEST_REPORT.md` 为准，不得把「编译通过」写成「真机通过」。
-- 1.3 已完成 Debug / Release、签名 Debug 构建与自动化测试（Kit 27 / Purchase 21 / Engine 2 / Core 14 执行、2 跳过），并在 iPhone 17（402×874 pt）与 iPhone Duo（466×678 pt）模拟器验收四语言首页、5/5 免费态、Pro 页与紧凑布局；不得把模拟器通过写成真机通过。
-- 已有 48MP 实拍 HEIC 的引擎层与 1.2 App 端到端验证，记录见 `TEST_REPORT.md`；1.3 引擎未改。真实 App Store 交易 / 退款、批量超额提示、分享扩展、快捷指令与真机系统权限矩阵仍需确认。
+- 1.4 已完成 Debug / Release、签名 Debug 构建与自动化测试（Kit 27 / Purchase 21 / Engine 2 / Core 14 执行、2 跳过）；在 1.3 四语言与深色验收基础上，用 1.4 构建复验 iPhone 17（402×874 pt）的 zh-Hans / en 首页、设置与语言切换、Pro 页，并在 iPhone Duo（466×678 pt）验收 5/5 免费态与紧凑布局，另走通批量超额与首次额度用尽提示。不得把模拟器通过写成真机通过。
+- 已有 48MP 实拍 HEIC 的引擎层与 1.2 App 端到端验证，记录见 `TEST_REPORT.md`；1.4 引擎未改。真实 App Store 交易 / 退款、分享扩展、快捷指令与真机系统权限矩阵仍需确认。
+- 语言偏好只写 `LingXiStyle.appLanguage`，非「跟随系统」时再写 `AppleLanguages`；不要让 SwiftUI 预览或测试进程持久化语言设置。
 - 修改 HEIF 解析后必须跑 `LingXiKitTests` 的 `iref` 回归用例；修改额度必须同时跑
   `QuotaTests` 与 `KeychainQuotaTests`；修改购买必须跑 `LingXiPurchaseTests`。
 
@@ -100,10 +102,11 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 
 | 路径 | 内容 |
 | --- | --- |
-| `App/Sources/Views` | 四态页面、权限页、Pro 购买页、额度耗尽页 |
+| `App/Sources/Views` | 四态页面、权限页、Pro 购买页、额度耗尽页、设置页 |
 | `App/Sources/Components` | PhotoHeroCard、缩略图条、徽章、进度、结果卡、诊断、额度徽章 |
 | `App/Sources/DesignSystem` | 颜色 / 间距 / 字体 / 动效 |
-| `App/Sources/AppModel.swift` | 任务会话、队列、选择、导入、取消、诊断 |
+| `App/Sources/AppModel.swift` | 任务会话、队列、选择、导入、取消、诊断、一次性额度提示 |
+| `App/Sources/Models/AppLanguage.swift` | 应用语言偏好与 `AppleLanguages` 写入 |
 | `App/Sources/Integrations/Shortcuts` | AppIntent 与 AppShortcutsProvider |
 | `Services/Sources/LingXiServices` | PhotoKit 适配 + ConversionService |
 | `Engine/Sources/LingXiEngine` | URL → URL 固定管线 |

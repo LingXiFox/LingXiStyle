@@ -1,8 +1,8 @@
 # TEST_REPORT
 
 - 日期：2026-11-07
-- 项目：LingXiStyle 1.3.0（build 4），公开名称：简体中文「纹粒」，繁体中文 / 英文 / 日文「Texel」
-- 结论：**XcodeGen 生成、Debug / Release 构建与全部自动化测试通过。1.3 在 iPhone 17（402 × 874 pt）模拟器完成四语言首页、深色与 Pro 页面目视验收，在 iPhone Duo（466 × 678 pt 折叠屏）完成 5 / 5 免费态与紧凑布局验收；紧凑布局无需滚动即可看到全部主操作与隐私文案。真实 App Store 交易、真机、分享扩展与快捷指令的跨进程额度共享仍需验收。**
+- 项目：LingXiStyle 1.4.0（build 5），公开名称：简体中文「纹粒」，繁体中文 / 英文 / 日文「Texel」
+- 结论：**XcodeGen 生成、Debug / Release 构建与全部自动化测试通过。1.4 在 1.3 的四语言首页与深色验收基础上，用 1.4 构建在 iPhone 17（402 × 874 pt）模拟器复验 zh-Hans / en 首页、Pro 页、设置与语言切换，并走通批量超额「仅转换 N 张」与首次额度用尽的一次性 Pro 介绍；在 iPhone Duo（466 × 678 pt 折叠屏）完成 5 / 5 免费态与紧凑布局验收。真实 App Store 交易、真机、分享扩展与快捷指令的跨进程额度共享仍需验收。**
 
 ## 1. 环境
 
@@ -15,7 +15,7 @@
 | 工程生成 | XcodeGen 2.46.0 |
 | 签名 | 自动签名；本轮 QA 使用开发者本机 Apple Development Team，仓库不包含 Team ID |
 | 模拟器 | iPhone 17，iOS 27.3；iPhone Duo，iOS 27.3（内屏 466 × 678 pt） |
-| 真机 | 1.0 曾在 iPhone 16 Pro Max 安装运行；1.3 未做真机安装 |
+| 真机 | 1.0 曾在 iPhone 16 Pro Max 安装运行；1.4 未做真机安装 |
 | StoreKit | 本地 `Configuration.storekit`；没有连接 App Store，没有真实扣款 |
 
 ## 2. 构建结果
@@ -24,12 +24,12 @@
 
 `xcodegen generate` 成功。App 与 ShareExtension 的 Info.plist 均使用
 `$(MARKETING_VERSION)` / `$(CURRENT_PROJECT_VERSION)`，本轮版本为
-**1.3.0 / build 4**。
+**1.4.0 / build 5**。
 
 `project.yml` 的 `developmentLanguage` 为 `zh-Hans`，`knownRegions` 为
 `zh-Hans, zh-Hant, en, ja`。String Catalog 共：
 
-- `Resources/Localization/Localizable.xcstrings`：328 个 key，覆盖 App、分享扩展与快捷指令文案。
+- `Resources/Localization/Localizable.xcstrings`：338 个 key，覆盖 App、分享扩展与快捷指令文案。
 - `Resources/Localization/AppShortcuts.xcstrings`：1 个 App Shortcut 标题。
 - `Resources/Localization/InfoPlist.xcstrings`：4 个 key，覆盖应用名与两条相册权限说明。
 
@@ -66,7 +66,7 @@ App 的 `Metadata.appintents` 或购买结果。
 ```bash
 xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiStyle \
   -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -derivedDataPath /tmp/LX13Duo \
+  -derivedDataPath /tmp/LX14SimDD \
   DEVELOPMENT_TEAM=<your team> -allowProvisioningUpdates build
 ```
 
@@ -75,7 +75,7 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiStyle \
 > 该 QA 构建由 Xcode 自动签名，entitlements 为空，Keychain 额度仍可读写。
 > 不要对 QA 产物手工执行 `codesign --deep`：手工重签会破坏 Keychain 访问。
 
-### 2.4 1.3 模拟器目视验收
+### 2.4 1.4 模拟器目视验收
 
 | 检查项 | 结果 |
 | --- | --- |
@@ -87,15 +87,20 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiStyle \
 | Pro 页面 | 从额度徽标打开；本地配置显示 `$2.99`、权益列表、恢复购买与法律说明；购买 CTA 在首屏可见，法律说明在下方滚动 |
 | Pro 已购态 | 显示「已解锁 纹粒 Pro」/ “Unlocked Texel Pro” 与本地化说明；英文详情不再回退中文 |
 | Pro 页英文 | “No 5-per-day free limit”“Convert 5 photos free every day without buying”“Unlimited conversions are active…” 全部为英文 |
+| 设置入口与设置页 | 首页右上角齿轮为 44pt 触控区；打开后显示语言分组、Pro 卡片与关闭按钮；浅色与英文下均可读、可点 |
+| 语言切换 | 设置切到 English → 出现“Language Changed”提示 → 杀掉 App 重开显示 Texel 英文首页；切回「跟随系统」重开恢复「纹粒」中文首页 |
+| 批量超额 | 9 张中 3 张可解锁、今日剩 2 张；弹出「免费额度不足」，选「仅转换 2 张」后成功 2、跳过 6、1 张未处理 |
+| 首次额度用尽 | 最后一次成功保存后自动展示一次 Pro 页；关闭后首页为 0 / 5；再次选可转照片只打开轻量额度页；重启后仍不重复弹 Pro |
+| 额度耗尽页 | 显示「今日免费额度已用完」；提供「永久解锁无限转换」「明天继续免费使用」，并说明本地 00:00 重置 |
 | 品牌与 locales | zh-Hans 显示「纹粒」/「纹粒 Pro」；zh-Hant、en、ja 显示「Texel」/「Texel Pro」；英文 catalog 无中日韩字符残留 |
 | 空状态构图框 | 已移除 `ORIGINAL HEIC` 与 `4:5` 两个角落文字；只保留 `HEIC 原片` / `仅补质感` 两枚状态标签 |
-| 48MP 转换 | iPhone 17 选择 8064 × 6048 HEIC 显示「可解锁」；转换完成并显示「已保存新照片」；1.3 引擎未改算法，完整性基线沿用 1.2 的 11 / 11 |
-| 大字号 | 1.1 已在 accessibility-large 验证可滚动、主操作可点；1.3 新增文案均来自 String Catalog，未引入固定高度文本 |
+| 48MP 转换 | iPhone 17 选择 8064 × 6048 HEIC 显示「可解锁」；转换完成并显示「已保存新照片」；1.4 引擎未改算法，完整性基线沿用 1.2 的 11 / 11 |
+| 大字号 | 1.1 已在 accessibility-large 验证可滚动、主操作可点；1.4 新增文案均来自 String Catalog，未引入固定高度文本 |
 
 本地 StoreKit 配置的 `$2.99` 只用于自动化与模拟器，**不是线上价格**；线上价格必须来自
 App Store Connect 的 `Product.displayPrice`。
 
-### 2.5 真实 HEIC 引擎基线（1.0 / 1.2 验证，1.3 未改算法）
+### 2.5 真实 HEIC 引擎基线（1.0 / 1.2 验证，1.4 未改算法）
 
 - 输入 8064 × 6048 HEIC，125 items、54 主图 tiles、15 HDR tiles。
 - `ConversionEngine.convert` 返回 `mode=add-texture`；输出 5,933,004 字节，
@@ -105,8 +110,8 @@ App Store Connect 的 `Product.displayPrice`。
 - 两次转换输出 SHA-256 一致（`90939abf...`）；原图 SHA-256（`7edf1625...`）未变。
 - 对输出再次判定为「已有第三代质感」，不会重复处理。
 
-1.3 只改品牌、本地化、额度上限与响应式布局，没有修改 `StylePortCore` 的纹理 / 颗粒算法
-或固定转换管线。
+1.4 只改设置入口、语言切换、首次额度提示与版本文案，没有修改 `StylePortCore` 的纹理 /
+颗粒算法或固定转换管线；引擎基线沿用 1.2。
 
 ## 3. 自动化测试
 
@@ -186,26 +191,28 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 上游编码核心的结构测试。跳过的 2 项依赖 `STYLEPORT_FIXTURES` /
 `STYLEPORT_LIVE_VIDEO` 环境变量，未配置，不是失败。
 
-## 4. 1.3 实现审查
+## 4. 1.4 实现审查
 
 | 项 | 验证方式 | 结论 |
 | --- | --- | --- |
-| 品牌更名 | `Brand.name` / `Brand.proName` + 四语言模拟器 | ✅ zh-Hans「纹粒」；zh-Hant / en / ja「Texel」 |
+| 品牌更名 | `Brand.name` / `Brand.proName` + 四语言模拟器 | ✅ 1.3 验收四语言；1.4 复验 zh-Hans / en |
 | 内部标识稳定 | 源码审查 | ✅ Bundle ID、StoreKit Product ID、Keychain 服务名仍为 LingXiStyle，升级与购买不中断 |
-| 四语言 catalog | 328 + 1 + 4 key；各语言截图 | ✅ App、分享扩展、快捷指令、Info.plist 全覆盖；英文无 CJK 残留 |
+| 四语言 catalog | 338 + 1 + 4 key；1.3 各语言截图 + 1.4 zh / en 复验 | ✅ App、分享扩展、快捷指令、Info.plist 全覆盖；英文无 CJK 残留 |
 | 5 张 / 日额度 | `QuotaTests`（11）+ `KeychainQuotaTests`（8）+ Duo 首页 | ✅ 上限 5；免费态显示 5 / 5 |
 | 额度文案随上限插值 | `ProPurchaseView` 使用 `QuotaConfiguration.freeDailyLimit` | ✅ 不再写死 10，避免改上限后文案漂移 |
 | 所有入口共享额度 | 三个 `ConversionService` 单测 + 源码审查 | ✅ App / 分享扩展 / 快捷指令都走同一服务；真机跨进程未实测 |
 | Pro 一次性永久无限 | StoreKit 2 非消耗型 + 13 项测试 | ✅ 购买 / 恢复 / 退款 / 重复回调均覆盖；真实扣款未做 |
 | 价格只用 `displayPrice` | 四地区价格测试 + 源码检索 | ✅ 无硬编码金额；`$2.99` 仅来自本地测试配置 |
 | 首页额度 / Pro 徽标 | 模拟器截图 + `QuotaBadge` 审查 | ✅ 免费 5 / 5；Pro 「无限转换」；Pro 用户仍可打开 Pro 页恢复购买 |
-| 独立 Pro 页 | 模拟器截图（zh-Hans / en） | ✅ 本地价格、权益、购买态、恢复购买、法律说明 |
-| 额度耗尽页 | 1.2 临时上限 1 触发；1.3 代码未改结构 | ✅ 升级与「明天继续」两个出口；已还原正式上限 |
+| 独立 Pro 页 | 1.3 / 1.4 模拟器截图（zh-Hans / en） | ✅ 本地价格、权益、购买态、恢复购买、法律说明 |
+| 额度耗尽页 | 1.4 模拟器：耗尽后再次选可转照片 | ✅ 轻量「今日免费额度已用完」页，提供升级与「明天继续免费使用」；说明本地 00:00 重置 |
 | 响应式布局 | iPhone 17 与 Duo 截图 | ✅ 标准高度走 260pt 构图框；< 760pt 走 152pt 紧凑构图框 |
-| 批量超额度提示 | `AppModel.startConversion` 审查 | 🟡 计算剩余额度并只处理可转数量；未运行批量超额 |
+| 批量超额度提示 | 1.4 模拟器：9 选 3、剩 2 张 | ✅ 提示实际可转 2 张；「仅转换 2 张」后成功 2、跳过 6、1 未处理 |
+| 首次额度用尽提醒 | 1.4 模拟器：最后一次成功保存 | ✅ Pro 页自动出现一次；关闭后 0 / 5；再次触发只开额度页；重启后不再弹 Pro |
+| 设置与语言切换 | 1.4 模拟器：设置 → English → 重启 → 跟随系统 → 重启 | ✅ 设置页可开关；语言切换写 AppleLanguages；重启后中英文首页均恢复正确 |
 | 首次启动不弹付费 | `AppModel.onAppear` 审查 + 模拟器首页 | ✅ 仅刷新权限与额度 |
-| 深浅色 / Dynamic Type / 无障碍 | 令牌、Preview、iPhone 17 深色与 1.1 大字号检查 | ✅ 品牌页与 Pro 页令牌未退回硬编码色；1.3 未重跑 VoiceOver |
-| 版本 1.3.0 / build 4 | `project.yml` + 构建产物 | ✅ |
+| 深浅色 / Dynamic Type / 无障碍 | 令牌、Preview、1.3 iPhone 17 深色与 1.1 大字号检查 | ✅ 品牌页与 Pro 页令牌未退回硬编码色；1.4 未重跑深色、大字号与 VoiceOver |
+| 版本 1.4.0 / build 5 | `project.yml` + 构建产物 | ✅ |
 | 本地 StoreKit 配置仅 Debug | scheme 检查 | ✅ Debug LaunchAction 绑定，Release 不绑定 |
 | 不依赖 App Group | `QuotaManager` 回退路径 | ✅ 无 App Group 时使用 Keychain |
 
@@ -218,8 +225,8 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 | --- | --- | --- | --- |
 | 1 | 12MP HEIC 原片 | 成功，另存新照片，原图不变 | ⚪ |
 | 2 | 24MP HEIC 原片 | 成功 | ⚪ |
-| 3 | 48MP Pro 原片（多 tile grid） | 成功，逐 tile 无损 | ✅ 1.2 引擎 54 tiles / 11 / 11；1.3 模拟器成功保存 |
-| 4 | HDR / Gain Map 照片 | 成功，HDR 元数据保留 | ✅ 1.2 引擎 15 个 gain-map tiles；1.3 未改算法 |
+| 3 | 48MP Pro 原片（多 tile grid） | 成功，逐 tile 无损 | ✅ 1.2 引擎 54 tiles / 11 / 11；1.4 模拟器成功保存 |
+| 4 | HDR / Gain Map 照片 | 成功，HDR 元数据保留 | ✅ 1.2 引擎 15 个 gain-map tiles；1.4 未改算法 |
 | 5 | 夜景 / 人像 | 成功，纹理只追加不替换 | ⚪ |
 | 6 | 已含第三代质感 | 「无需转换」，不写入相册 | ✅ 自动化 + 模拟器 |
 | 7 | Live Photo | 跳过并提示，不处理视频 | ✅ 自动化 |
@@ -235,10 +242,10 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 | 17 | 存储空间不足 | 失败并说明原因，不产生半张照片 | ⚪ |
 | 18 | 批量转换中取消 | 当前张到安全边界；已保存保留；未开始取消 | 🟡 状态机自动化通过，未真机 |
 | 19 | 重试失败项 | 只重转失败项，不重复保存已成功项 | 🟡 ConversionRun 自动化通过，未真机 |
-| 20 | 免费额度成功扣减 | 5 / 5 起，成功一次扣 1；重启仍保留 | ✅ 自动化；1.3 UI 已验证免费态 5 / 5 |
+| 20 | 免费额度成功扣减 | 5 / 5 起，成功一次扣 1；重启仍保留 | ✅ 自动化；1.4 UI 已验证 5 / 5、4 / 5 与 0 / 5 |
 | 21 | 失败 / 跳过不扣额度 | 额度不变 | ✅ 自动化（失败转换释放预留） |
-| 22 | 额度耗尽页 | 显示永久解锁与明天继续免费 | ✅ 1.2 模拟器（临时上限触发，已还原） |
-| 23 | 批量超过剩余额度 | 提示实际可转数量，只转剩余 | 🟡 已实现，未运行 |
+| 22 | 额度耗尽页 | 显示永久解锁与明天继续免费 | ✅ 1.4 模拟器；0 / 5 后再次选择只开轻量额度页 |
+| 23 | 批量超过剩余额度 | 提示实际可转数量，只转剩余 | ✅ 1.4 模拟器：9 选 3、剩 2，仅转 2；成功 2 / 跳过 6 / 1 未处理 |
 | 24 | 购买成功解锁 Pro | 首页显示 Pro 无限，重启保持 | ✅ StoreKit 自动化；1.2 本地购买 + 重启目视 |
 | 25 | 取消 / 失败 / pending 购买 | 不授予 Pro；pending 批准后授予 | ✅ StoreKit 自动化 |
 | 26 | 恢复购买 | 恢复 Pro | ✅ StoreKit 自动化 |
@@ -248,31 +255,34 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 | 30 | 真实扣款 / App Store Sandbox | 真实交易可恢复、可退款 | ⚪ 未连接 App Store |
 | 31 | 分享扩展额度共享 | 扩展转换后 App 额度减少 | 🟡 代码共用 `ConversionService`；未真机 |
 | 32 | 快捷指令额度共享 | 三个参数都受额度约束 | 🟡 代码共用 `ConversionService`；未真机 |
-| 33 | 深色 / 浅色 | 真动态色，对比度 ≥ 4.5:1 | ✅ 1.1 + 1.3 iPhone 17 首页深色目视；Pro 页深色未逐项 |
-| 34 | Dynamic Type 大字号 | 布局不截断，主按钮仍可点 | ✅ 1.1 accessibility-large；1.3 未重跑 |
+| 33 | 深色 / 浅色 | 真动态色，对比度 ≥ 4.5:1 | ✅ 1.1 + 1.3 iPhone 17 首页深色目视；1.4 未重跑 |
+| 34 | Dynamic Type 大字号 | 布局不截断，主按钮仍可点 | ✅ 1.1 accessibility-large；1.4 未重跑 |
 | 35 | Reduce Motion | 关闭扫光 / 呼吸光 / 缩放 | 🟡 代码审查，未运行 |
 | 36 | VoiceOver | 大图、缩略图、进度、错误、额度可读 | ⚪ 未运行 |
 | 37 | 快捷指令（保存 / 返回文件 / 仅检查） | 统计正确，文件可回传 | 🟡 已实现，未真机 |
 | 38 | 分享扩展完整闭环 | 保存新照片，失败有本地化提示 | 🟡 已实现，未真机 |
 | 39 | 7 天签名过期 | 重新安装后可继续使用，照片不丢 | ⚪ |
 | 40 | 折叠 / 紧凑屏幕 | 全部主操作与隐私文案一屏可见 | ✅ iPhone Duo 466 × 678 pt 模拟器 |
+| 41 | 设置与语言切换 | 四个语言选项，重启后生效；跟随系统可恢复 | ✅ 1.4 模拟器 zh-Hans ↔ en 往返 |
+| 42 | 首次额度用尽提醒 | Pro 页只自动出现一次；之后安静额度页；重启保持 | ✅ 1.4 模拟器，flag 写入 UserDefaults |
+| 43 | 批量额度不足「仅转换 N 张」 | 只转剩余额度，统计正确，不静默扣费 | ✅ 1.4 模拟器 |
 
 ## 6. 已知风险与未验证项
 
 1. **没有真实 App Store 交易。** 自动化断言来自 `SKTestSession`，模拟器购买使用本地
    `Configuration.storekit`；真实商品、税务 / 银行信息、Sandbox 账号、退款到账时延都未验证。
    上线前必须按 `AppStoreRelease.md` 在 Sandbox 走一遍。
-2. **没有 1.3 真机安装。** 分享扩展与快捷指令是否与主 App 共用 Keychain 额度，取决于
+2. **没有 1.4 真机安装。** 分享扩展与快捷指令是否与主 App 共用 Keychain 额度，取决于
    真机 entitlements 与 `LingXiKeychainGroup` 是否正确展开；模拟器空 entitlements 的通过
    不能证明真机跨进程共享。
 3. **App Group 路径未启用。** 免费 Personal Team 没有 App Group entitlement，当前真机
    默认走 Keychain；若使用付费团队并开启 App Group，SQLite 路径的跨进程事务需要在真机复测。
-4. **批量超额提示只做了代码审查。** 额度耗尽页与「耗尽 → Pro」切换在 1.2 用临时上限走通；
-   1.3 批量选择超过 5 张时的提示与「仅转换 N 张」仍未运行。
-5. **Pro 页只做了浅色标准字号与英文目视。** 深色、最大 Dynamic Type、VoiceOver 下按钮与
-   法律说明的可达性未逐项检查。
+4. **批量超额只在模拟器走通。** 1.4 已验证 9 选 3、剩 2 张时只转 2 张；真机、多入口共享额度
+   与真实存储不足仍未验证。
+5. **设置页与 Pro 页只做了浅色标准字号与中英文目视。** 深色、最大 Dynamic Type、VoiceOver
+   下按钮与法律说明的可达性未逐项检查。
 6. **系统矩阵仍空白。** 12MP / 24MP、夜景、人像、RAW、iCloud 下载、权限受限、存储不足、
-   取消 / 重试、分享扩展、快捷指令均未在 1.3 真机验收。
+   取消 / 重试、分享扩展、快捷指令均未在 1.4 真机验收。
 7. **Duo 只验证了首页。** 折叠屏上的选片、转换、结果页没有跑通；模拟器 PhotosPicker 在
    Duo 上出现输入无响应，不能据此判定 App 逻辑，也不能写成通过。
 8. `StylePortCoreTests` 有 2 项跳过，因为未设置 `STYLEPORT_FIXTURES` /
@@ -286,11 +296,11 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 
 ## 7. 建议的验收顺序
 
-1. 用付费团队或 Personal Team 在真机安装 1.3，确认首页显示 5 / 5，且首次启动不弹付费页。
+1. 用付费团队或 Personal Team 在真机安装 1.4，确认首页显示 5 / 5，且首次启动不弹付费页。
 2. 转换 1 张，确认扣到 4 / 5；杀掉 App 重开，确认仍为 4 / 5。
 3. 用损坏 HEIC、JPEG、Live Photo、已含质感照片各试一次，确认全部不扣额度。
-4. 连续转换到第 6 张，确认额度耗尽页；用 3 张批量但只剩 1 张额度，确认只转 1 张。
+4. 连续转换到第 6 张，确认首次用尽只自动弹一次 Pro，重启后再触发只打开安静额度页；用 3 张批量但只剩 1 张额度，确认只转 1 张。
 5. 在 Sandbox 购买 Pro，确认首页切换为无限、重启保持；再测恢复购买与退款。
 6. 用分享扩展和快捷指令各转换 1 张，回到主 App 确认额度同步减少（真机跨进程关键项）。
-7. 在深色、最大 Dynamic Type、Reduce Motion、VoiceOver 下走首页、Pro 页、额度耗尽页。
+7. 在深色、最大 Dynamic Type、Reduce Motion、VoiceOver 下走首页、设置页、Pro 页与额度耗尽页。
 8. 最后补 12MP / 24MP、iCloud、权限拒绝、存储不足、取消 / 重试与横竖屏矩阵。

@@ -1,4 +1,4 @@
-# App Store 发布配置（纹粒 / Texel 1.3）
+# App Store 发布配置（纹粒 / Texel 1.4）
 
 这份文档只描述**若要发布到 App Store**时需要完成的 App Store Connect 与签名配置。
 仓库本身仍然只提供源码，不附带 IPA、TestFlight 包或真实商品。
@@ -89,7 +89,7 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 
 ## 5. 发布前检查清单
 
-- [ ] 版本号 `1.3.0`、Build `4`（或更高）已写入 `project.yml`。
+- [ ] 版本号 `1.4.0`、Build `5`（或更高）已写入 `project.yml`。
 - [ ] `xcodegen generate` 后 Debug scheme 仍带 `Configuration.storekit`。
 - [ ] `LingXiKitTests`、`LingXiPurchaseTests`、`LingXiEngineTests`、`StylePortCoreTests` 全绿。
 - [ ] Release 构建不包含 StoreKit 测试配置。

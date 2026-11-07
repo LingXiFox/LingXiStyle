@@ -83,6 +83,20 @@ struct EmptyStateView: View {
             .padding(.top, Spacing.xxs)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .topTrailing) {
+            Button {
+                model.presentSettings()
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Palette.textSecondary)
+                    .frame(width: Layout.minimumTouchTarget, height: Layout.minimumTouchTarget)
+                    .background(Palette.surface.opacity(0.8), in: Circle())
+                    .overlay(Circle().strokeBorder(Palette.hairline, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "settings.title", defaultValue: "设置"))
+        }
     }
 
     private func miniBadge(_ title: String, systemImage: String) -> some View {
@@ -116,13 +130,6 @@ struct EmptyStateView: View {
                 .stroke(Palette.textSecondary.opacity(0.12), lineWidth: 0.5)
                 .padding(1)
 
-            CornerBrackets()
-                .stroke(LinearGradient(colors: [Palette.accent.opacity(0.8), Palette.accentSecondary.opacity(0.55)],
-                                       startPoint: .topLeading,
-                                       endPoint: .bottomTrailing),
-                        lineWidth: 1.5)
-                .padding(14)
-
             VStack(spacing: isCompact ? Spacing.xs : Spacing.s) {
                 ZStack {
                     Circle()
@@ -153,6 +160,15 @@ struct EmptyStateView: View {
         .frame(maxHeight: isCompact ? 152 : 260)
         .aspectRatio(Layout.heroAspect, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+        .overlay {
+            CornerBrackets()
+                .stroke(LinearGradient(colors: [Palette.accent.opacity(0.8), Palette.accentSecondary.opacity(0.55)],
+                                       startPoint: .topLeading,
+                                       endPoint: .bottomTrailing),
+                        style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+                .padding(18)
+                .allowsHitTesting(false)
+        }
         .overlay(
             RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .strokeBorder(LinearGradient(colors: [Palette.accent.opacity(0.24), Palette.hairline, Palette.accentSecondary.opacity(0.18)],

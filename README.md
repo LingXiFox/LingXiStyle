@@ -14,14 +14,14 @@
 
 ## 状态
 
-- **1.3.0（build 4）**：在 1.2 的免费额度与 Pro 内购之上，完成品牌升级（简体中文「纹粒」，繁体中文 / 英文 / 日文「Texel」）、四语言本地化、5 张 / 日免费额度、StoreKit 价格与购买态打磨，以及 iPhone Duo 折叠屏适配。
+- **1.4.0（build 5）**：在 1.3 的品牌、四语言与 5 张 / 日免费额度之上，新增首页设置入口、应用内语言切换（跟随系统 / 简体中文 / 繁体中文 / English / 日本語，切换后重启生效）、批量超额时只转换剩余额度，以及首次额度用尽时的一次性 Pro 介绍。
 - 免费用户每天可成功转换 5 张 HEIC；失败、跳过、不兼容不扣额度。额度按本地自然日重置，App、分享扩展与快捷指令共用同一账本。
 - Pro 是 StoreKit 2 非消耗型内购，Product ID `com.lingxifox.LingXiStyle.pro`（显示名「纹粒 Pro」/「Texel Pro」）；一次性购买、永久无限，可恢复购买，退款 / 撤销后回到免费额度。
 - 本地化使用 String Catalog，支持简体中文、繁体中文、英文、日文；内部 Bundle ID、Keychain 服务名与 StoreKit Product ID 保持不变，升级不丢购买。
 - 自动化测试：`LingXiKitTests` 27/27、`LingXiPurchaseTests` 21/21（13 个 StoreKit 测试 + 8 个 Keychain 额度测试）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。
 - `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift 源码 warning；签名 Debug 构建与模拟器签名构建通过。
 - 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.2 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过；1.3 沿用同一引擎并在模拟器保存成功。
-- 1.3 已在 iPhone 17（标准 402×874 pt）验收四语言首页、深色与 Pro 页，在 iPhone Duo（折叠 466×678 pt）验收 5/5 免费态与一屏紧凑布局；真实 App Store 交易、真机、分享扩展额度共享、批量超额与其余系统矩阵仍需逐项验证。
+- 1.4 在 1.3 的四语言首页与深色验收基础上，用 1.4 构建在 iPhone 17（标准 402×874 pt）复验简体中文 / 英文首页、设置页、语言切换与 Pro 页；在 iPhone Duo（折叠 466×678 pt）验收 5/5 免费态与一屏紧凑布局；并验收批量超额「仅转换 N 张」、首次额度用尽提示只出现一次、重启后额度耗尽页保持安静。真实 App Store 交易、真机、分享扩展额度共享与其余系统矩阵仍需逐项验证。
 
 ## 它做什么
 
@@ -36,6 +36,8 @@
 - 免费额度 5 张 / 本地自然日，所有入口共享；转换成功并保存后才扣 1 张。
 - 一次性购买「纹粒 Pro」/「Texel Pro」后无限转换；价格来自 `Product.displayPrice`，按当前 App Store 地区显示。
 - 额度耗尽时提供「永久解锁」与「明天继续免费」；批量超出时只处理剩余额度，不静默弹付费墙。
+- 首次额度用尽时展示一次 Pro 介绍；之后只显示安静的额度页，不重复弹付费墙。
+- 首页右上角设置可切换应用语言、查看 Pro 状态与恢复购买；语言切换写入系统 AppleLanguages，重启 App 后生效。
 
 ## 它不做什么
 
@@ -311,7 +313,7 @@ project.yml             XcodeGen 工程定义
 
 ## 已知限制
 
-- 1.3 已完成 Debug / Release、签名 Debug 构建与自动化测试，并在 iPhone 17 / iPhone Duo 模拟器验收四语言首页、5/5 免费态、Pro 页与紧凑布局；48MP 转换与额度扣减沿用 1.2 的端到端证据。真机与系统矩阵仍未逐项验证。
+- 1.4 已完成 Debug / Release、签名 Debug 构建与自动化测试（Kit 27 / Purchase 21 / Engine 2 / Core 14 执行、2 跳过），并在 1.3 四语言验收基础上复验 iPhone 17 的 zh-Hans / en 首页，在 iPhone 17 / iPhone Duo 模拟器验收 5/5 免费态、Pro 页、设置与语言切换、批量超额与首次额度用尽提示；48MP 转换与 11/11 无损校验沿用 1.2 的端到端证据。真机与系统矩阵仍未逐项验证。
 - 真实购买、退款 / 待批准、App 与分享扩展的 Keychain 跨进程共享尚未在真机验证；模拟器只能验证 App 内持久化。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 - 免费 Personal Team 只能使用本地 StoreKit 配置测试；真实内购与上架需要付费 Apple Developer Program、App Store Connect 商品与 Sandbox / 生产环境。
 - `Configuration.storekit` 的 `$2.99` 只是本地测试价；线上价格由 App Store Connect 与 `Product.displayPrice` 决定。

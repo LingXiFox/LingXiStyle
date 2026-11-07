@@ -262,7 +262,7 @@ struct SelectionView: View {
                                     systemImage: "clock.badge.exclamationmark",
                                     isEnabled: model.convertibleCount > 0 && !model.isBusyPreparing,
                                     isWorking: model.isBusyPreparing) {
-                    model.presentQuotaExhausted()
+                    model.presentQuotaLimit()
                 }
                 .padding(.horizontal, margin)
             } else {
