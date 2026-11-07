@@ -164,6 +164,15 @@ final class KeychainQuotaTests: XCTestCase {
         }
     }
 
+    func testAccessGroupRejectsMissingOrUnexpandedValues() {
+        XCTAssertNil(KeychainQuotaStore.accessGroup(from: nil))
+        XCTAssertNil(KeychainQuotaStore.accessGroup(from: ""))
+        XCTAssertNil(KeychainQuotaStore.accessGroup(from: "   "))
+        XCTAssertNil(KeychainQuotaStore.accessGroup(from: "$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared"))
+        XCTAssertEqual(KeychainQuotaStore.accessGroup(from: " 4VXWMYSQG8.com.lingxifox.LingXiStyle.shared "),
+                       "4VXWMYSQG8.com.lingxifox.LingXiStyle.shared")
+    }
+
     func testProBypassesKeychainStore() throws {
         let clock = KeychainTestClock()
         let quota = store(limit: 1, clock: clock)

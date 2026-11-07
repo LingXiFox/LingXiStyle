@@ -89,6 +89,29 @@ final class StoreKitPurchaseTests: XCTestCase {
         XCTAssertEqual(session.allTransactions().filter { $0.productIdentifier == Self.productID }.count, 1)
     }
 
+    // Offer-code purchase options ship with the newer StoreKitTest SDK. The Xcode 16.4 CI
+    // compatibility job still compiles and runs the rest of the purchase suite; the current
+    // SDK jobs run this zero-price entitlement test.
+    #if compiler(>=6.2)
+    func testFreeOfferCodeGrantsVerifiedPro() async throws {
+        let transaction = try await session.buyProduct(
+            identifier: Self.productID,
+            options: [.codeOffer(referenceName: "DEVELOPER_FREE")]
+        )
+        XCTAssertEqual(transaction.productID, Self.productID)
+        XCTAssertEqual(transaction.price, 0, "The offer code must be a 100% free redemption")
+        XCTAssertNil(transaction.revocationDate)
+        XCTAssertNil(transaction.expirationDate)
+
+        let verified = await StoreKitEntitlementProvider().isPro()
+        XCTAssertTrue(verified, "A verified zero-price offer transaction must unlock Pro")
+
+        let manager = PurchaseManager()
+        await manager.start()
+        XCTAssertTrue(manager.isPro)
+    }
+    #endif
+
     func testCancelledPurchaseDoesNotGrantPro() async throws {
         try await session.setSimulatedError(SKTestFailures.Purchase.generic(.userCancelled), forAPI: .purchase)
         let manager = PurchaseManager()

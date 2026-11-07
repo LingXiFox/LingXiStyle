@@ -13,34 +13,24 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  DERIVED_DATA: ${{ github.workspace }}/.build/DerivedData
+
 jobs:
-  build-and-test:
-    name: Build, test, and policy checks
+  policy:
+    name: Policy and project checks
     runs-on: macos-15
-    timeout-minutes: 75
-    env:
-      XCODEGEN_VERSION: "2.46.0"
-      DERIVED_DATA: ${{ github.workspace }}/.build/DerivedData
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Select Xcode
-        run: |
-          sudo xcode-select -s /Applications/Xcode_16.4.app
-          xcodebuild -version
-
-      - name: Install XcodeGen
-        run: |
-          set -euo pipefail
-          curl -fsSL -o /tmp/xcodegen.zip             "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"
-          unzip -q /tmp/xcodegen.zip -d /tmp/xcodegen
-          sudo install -m 755 /tmp/xcodegen/xcodegen/bin/xcodegen /usr/local/bin/xcodegen
-          sudo mkdir -p /usr/local/share
-          sudo cp -R /tmp/xcodegen/xcodegen/share/xcodegen /usr/local/share/
-          xcodegen --version
+      - name: Select Xcode and install XcodeGen
+        uses: ./.github/actions/setup
+        with:
+          xcode: /Applications/Xcode_16.4.app
 
       - name: Validate project.yml and generated project
         run: |
@@ -90,6 +80,33 @@ jobs:
           print("All catalogs have four non-empty localizations and the expected display names.")
           PY
 
+      - name: Validate StoreKit product configuration
+        run: |
+          python3 - <<'PY'
+          import json
+          import sys
+
+          with open("Configuration.storekit", encoding="utf-8") as handle:
+              data = json.load(handle)
+          products = data.get("products", [])
+          if len(products) != 1:
+              sys.exit(f"Expected exactly one StoreKit product, found {len(products)}")
+          product = products[0]
+          if product.get("productID") != "com.lingxifox.LingXiStyle.pro":
+              sys.exit(f"Unexpected product ID: {product.get('productID')!r}")
+          if product.get("type") != "NonConsumable":
+              sys.exit(f"Pro must stay a NonConsumable: {product.get('type')!r}")
+          if product.get("displayPrice") != "2.99":
+              sys.exit(f"Unexpected local test price: {product.get('displayPrice')!r}")
+          offer_codes = product.get("offerCodes", [])
+          if not any(code.get("referenceName") == "DEVELOPER_FREE" and code.get("displayPrice") == "0"
+                     for code in offer_codes):
+              sys.exit("The local DEVELOPER_FREE offer code is missing")
+          if data.get("settings", {}).get("_developerTeamID"):
+              sys.exit("Configuration.storekit must not record a real developer team ID")
+          print("StoreKit product, price, and free offer code match the release policy.")
+          PY
+
       - name: Scan for credentials and signing assets
         run: |
           set -euo pipefail
@@ -110,6 +127,87 @@ jobs:
             exit 1
           fi
           echo "No private keys, signing assets, or recorded team ID found."
+
+  macos-tests:
+    name: macOS unit tests
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Select Xcode and install XcodeGen
+        uses: ./.github/actions/setup
+        with:
+          xcode: /Applications/Xcode_16.4.app
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Run Kit tests
+        run: |
+          set -euo pipefail
+          mkdir -p .build/logs
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme LingXiKitTests -destination 'platform=macOS' \
+            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO test \
+            2>&1 | tee .build/logs/kit-tests.log
+
+      - name: Run Engine tests
+        run: |
+          set -euo pipefail
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme LingXiEngineTests -destination 'platform=macOS' \
+            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO test \
+            2>&1 | tee .build/logs/engine-tests.log
+
+      - name: Run Core tests
+        run: |
+          set -euo pipefail
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme StylePortCoreTests -destination 'platform=macOS' \
+            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO test \
+            2>&1 | tee .build/logs/core-tests.log
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-tests-logs
+          path: .build/logs
+          if-no-files-found: ignore
+
+  ios-build-and-test:
+    name: iOS ${{ matrix.label }}
+    runs-on: macos-15
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: 18.5 compatibility
+            xcode: /Applications/Xcode_16.4.app
+            runtime: iOS-18
+            artifact: ios-18
+          - label: 26.x current
+            xcode: /Applications/Xcode_26.3.app
+            runtime: iOS-26
+            artifact: ios-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Select Xcode and install XcodeGen
+        uses: ./.github/actions/setup
+        with:
+          xcode: ${{ matrix.xcode }}
+
+      - name: Generate project
+        run: xcodegen generate
 
       - name: Build Debug for iOS
         run: |
@@ -140,43 +238,49 @@ jobs:
             exit 1
           fi
 
-      - name: Run Kit tests
+      - name: Select simulator runtime
+        id: simulator
+        env:
+          RUNTIME_PREFIX: ${{ matrix.runtime }}
         run: |
           set -euo pipefail
-          xcodebuild -project LingXiStyle.xcodeproj \
-            -scheme LingXiKitTests -destination 'platform=macOS' \
-            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO test \
-            2>&1 | tee .build/logs/kit-tests.log
+          xcrun simctl list devices available -j > /tmp/simulators.json
+          DEVICE_ID=$(python3 - <<'PY'
+          import json
+          import os
+          import sys
 
-      - name: Run Engine tests
-        run: |
-          set -euo pipefail
-          xcodebuild -project LingXiStyle.xcodeproj \
-            -scheme LingXiEngineTests -destination 'platform=macOS' \
-            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO test \
-            2>&1 | tee .build/logs/engine-tests.log
-
-      - name: Run Core tests
-        run: |
-          set -euo pipefail
-          xcodebuild -project LingXiStyle.xcodeproj \
-            -scheme StylePortCoreTests -destination 'platform=macOS' \
-            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO test \
-            2>&1 | tee .build/logs/core-tests.log
+          prefix = "com.apple.CoreSimulator.SimRuntime." + os.environ["RUNTIME_PREFIX"]
+          with open("/tmp/simulators.json", encoding="utf-8") as handle:
+              data = json.load(handle)
+          candidates = []
+          for runtime, devices in data.get("devices", {}).items():
+              if not runtime.startswith(prefix):
+                  continue
+              for device in devices:
+                  if not device.get("isAvailable", False):
+                      continue
+                  if not device.get("name", "").startswith("iPhone"):
+                      continue
+                  rank = 0 if device["name"].startswith("iPhone 16") else 1
+                  candidates.append((rank, runtime, device["name"], device["udid"]))
+          if not candidates:
+              print("No available iPhone simulator for the requested runtime.", file=sys.stderr)
+              print(json.dumps(data, indent=2), file=sys.stderr)
+              sys.exit(1)
+          chosen = sorted(candidates)[0]
+          print(f"Using {chosen[2]} ({chosen[1]}) {chosen[3]}", file=sys.stderr)
+          print(chosen[3])
+          PY
+          )
+          echo "device_id=$DEVICE_ID" >> "$GITHUB_OUTPUT"
 
       - name: Run purchase and keychain tests
         run: |
           set -euo pipefail
-          DEVICE_ID=$(xcrun simctl list devices available \
-            | sed -n 's/.*iPhone 16 (\([0-9A-F-]\{36\}\)).*/\1/p' | head -1)
-          if [ -z "$DEVICE_ID" ]; then
-            echo "No iPhone 16 simulator available on this runner." >&2
-            xcrun simctl list devices available >&2
-            exit 1
-          fi
           xcodebuild -project LingXiStyle.xcodeproj \
             -scheme LingXiPurchaseTests -configuration Debug \
-            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.device_id }}" \
             -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO test \
             2>&1 | tee .build/logs/purchase-tests.log
 
@@ -184,6 +288,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: ci-logs
+          name: ${{ matrix.artifact }}-logs
           path: .build/logs
           if-no-files-found: ignore

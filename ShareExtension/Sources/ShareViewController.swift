@@ -2,9 +2,12 @@ import SwiftUI
 import UIKit
 import Photos
 import UniformTypeIdentifiers
+import os
 import LingXiKit
 import LingXiEngine
 import LingXiServices
+
+private let shareLogger = Logger(subsystem: "com.lingxifox.LingXiStyle.Share", category: "read")
 
 /// Share-sheet entry point. It copies the shared file into its own sandbox before doing
 /// anything, validates that the bytes are a complete HEIC, then hands the file to the same
@@ -69,6 +72,17 @@ final class ShareModel: ObservableObject {
     private var closeWhenFinished = false
     private var didClose = false
 
+    // Reading state. The provider's file callback can be dropped by the host, so the model
+    // keeps two independent public representations in flight and uses the first complete one.
+    private var pendingProvider: NSItemProvider?
+    private var pendingIdentifier: String?
+    private var pendingSuggestedName: String?
+    private var readFallbackTask: Task<Void, Never>?
+    private var readTimeoutTask: Task<Void, Never>?
+    private var dataReadStarted = false
+    private var fileReadFailed = false
+    private var dataReadFailed = false
+
     var isBusy: Bool {
         switch phase {
         case .reading, .inspecting, .converting, .cancelling: return true
@@ -84,6 +98,7 @@ final class ShareModel: ObservableObject {
 
     func begin(providers: [NSItemProvider]) {
         cleanupStaleWorkDirectories()
+        shareLogger.notice("begin providers=\(providers.count, privacy: .public) types=\(providers.flatMap(\.registeredTypeIdentifiers).joined(separator: ","), privacy: .public)")
         // Photos normally hands over a public.image item. Files hands over a file URL;
         // accepting both still leaves the byte-level HEIC validation in process().
         let provider = providers.first { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier) }
@@ -117,8 +132,13 @@ final class ShareModel: ObservableObject {
     }
 
     func retry() {
-        guard let sharedFile, !isBusy else { return }
-        process(sharedFile)
+        guard !isBusy else { return }
+        if let sharedFile {
+            process(sharedFile)
+            return
+        }
+        guard let pendingProvider, let pendingIdentifier else { return }
+        load(pendingProvider, identifier: pendingIdentifier)
     }
 
     /// Starts work. The caller owns the file until the task reaches a safe boundary, so closing
@@ -138,57 +158,174 @@ final class ShareModel: ObservableObject {
             fail(title: String(localized: "没有收到照片"), message: String(localized: "share.error.notHEIC", defaultValue: "请分享一张 HEIC 原片，或直接在 \(Brand.name) 内从图库选择照片。"), retry: false)
             return
         }
+        load(provider, identifier: identifier)
+    }
+
+    private func load(_ provider: NSItemProvider, identifier: String) {
         phase = .reading
+        title = String(localized: "正在读取分享的照片")
+        message = String(localized: "share.copyHint", defaultValue: "文件会先复制到 \(Brand.name) 的沙盒，再检查结构。")
+        diagnosticCode = nil
+        failureHint = nil
+        canRetry = false
+
         let generation = UUID()
         loadGeneration = generation
-        // Read the suggested name before the @Sendable callback: NSItemProvider is not Sendable.
+        dataReadStarted = false
+        fileReadFailed = false
+        dataReadFailed = false
+        pendingProvider = provider
+        pendingIdentifier = identifier
+        pendingSuggestedName = provider.suggestedName
+        shareLogger.notice("load start identifier=\(identifier, privacy: .public)")
+
+        // The file representation is the preferred path because the provider can stream a large
+        // original without loading it into memory. Some hosts (Photos on iOS 27.3) never call the
+        // completion handler, so a second public representation is started after a short grace
+        // period. Whichever callback produces complete bytes first wins.
         let suggestedName = provider.suggestedName
         provider.loadFileRepresentation(forTypeIdentifier: identifier) { [weak self] url, error in
             guard let self else { return }
-            guard let url else {
-                let detail = error?.localizedDescription ?? String(localized: "share.error.noFile", defaultValue: "系统没有提供可读取的文件副本。请直接在 \(Brand.name) 内从图库选择照片。")
+            if let url {
+                let copied = Self.copyToSandbox(fileURL: url,
+                                                suggestedName: suggestedName,
+                                                typeIdentifier: identifier)
+                Task { @MainActor in
+                    guard self.loadGeneration == generation else {
+                        try? FileManager.default.removeItem(at: copied.directory)
+                        return
+                    }
+                    switch copied.result {
+                    case .success(let destination):
+                        shareLogger.notice("file callback copied bytes=\(Self.fileSize(destination), privacy: .public)")
+                        self.completeRead(directory: copied.directory, destination: destination, generation: generation)
+                    case .failure:
+                        try? FileManager.default.removeItem(at: copied.directory)
+                        self.fileReadFailed = true
+                        shareLogger.error("file callback copy failed")
+                        self.startDataFallback(generation: generation)
+                        self.failIfBothReadsFailed(generation: generation)
+                    }
+                }
+            } else {
+                let detail = error?.localizedDescription ?? "no file URL"
                 Task { @MainActor in
                     guard self.loadGeneration == generation else { return }
-                    self.fail(title: String(localized: "无法读取分享的文件"), message: detail, retry: false)
+                    shareLogger.error("file callback failed error=\(detail, privacy: .public)")
+                    self.fileReadFailed = true
+                    self.startDataFallback(generation: generation)
+                    self.failIfBothReadsFailed(generation: generation)
                 }
-                return
             }
-            // The provider's URL is only valid inside this callback: copy it right away.
-            // Use only the last path component: a provider-supplied name must never escape
-            // the extension's temporary directory.
-            let rawName = (suggestedName ?? url.lastPathComponent) as NSString
-            let candidate = Self.sanitized(rawName.lastPathComponent)
-            let name = candidate.isEmpty || candidate == "." || candidate == ".." ? "SharedPhoto.heic" : candidate
-            let directory = FileManager.default.temporaryDirectory
-                .appendingPathComponent("LingXiShare-\(UUID().uuidString)", isDirectory: true)
-            let destination = directory.appendingPathComponent(name)
+        }
+
+        scheduleReadDeadline(generation, seconds: 3, action: .startDataFallback)
+        scheduleReadDeadline(generation, seconds: 15, action: .fail)
+    }
+
+    private enum ReadDeadlineAction {
+        case startDataFallback
+        case fail
+    }
+
+    private func scheduleReadDeadline(_ generation: UUID, seconds: Double, action: ReadDeadlineAction) {
+        let task = Task { @MainActor [weak self] in
             do {
-                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-                try FileManager.default.copyItem(at: url, to: destination)
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
             } catch {
-                try? FileManager.default.removeItem(at: directory)
+                return
+            }
+            guard let self, self.loadGeneration == generation, self.phase == .reading else { return }
+            switch action {
+            case .startDataFallback:
+                self.startDataFallback(generation: generation)
+            case .fail:
+                shareLogger.error("read deadline expired")
+                self.fail(title: String(localized: "无法读取分享的文件"),
+                          message: String(localized: "share.error.timeout", defaultValue: "系统没有在限定时间内返回照片。请返回系统「照片」重新分享，或直接在 \(Brand.name) 内从图库选择照片。"),
+                          code: "E_SHARE_READ_TIMEOUT",
+                          retry: true)
+            }
+        }
+        if action == .startDataFallback {
+            readFallbackTask?.cancel()
+            readFallbackTask = task
+        } else {
+            readTimeoutTask?.cancel()
+            readTimeoutTask = task
+        }
+    }
+
+    /// Public fallback used when the file representation is dropped by the host. The bytes are
+    /// still copied to the extension's own sandbox and validated as a complete HEIC by the engine;
+    /// a JPEG preview can never be presented as success.
+    private func startDataFallback(generation: UUID) {
+        guard loadGeneration == generation, phase == .reading, !dataReadStarted else { return }
+        guard let provider = pendingProvider, let identifier = pendingIdentifier else { return }
+        let suggestedName = pendingSuggestedName
+        dataReadStarted = true
+        readFallbackTask?.cancel()
+        shareLogger.notice("data fallback start")
+        message = String(localized: "share.reading.fallback", defaultValue: "系统读取文件较慢，正在改用数据方式读取。")
+        provider.loadDataRepresentation(forTypeIdentifier: identifier) { [weak self] data, error in
+            guard let self else { return }
+            guard let data, !data.isEmpty else {
+                let detail = error?.localizedDescription ?? "empty data"
                 Task { @MainActor in
                     guard self.loadGeneration == generation else { return }
-                    self.fail(title: String(localized: "无法复制这个文件"),
-                              message: String(localized: "share.error.noAccess", defaultValue: "分享扩展没有拿到文件的读写权限。请在 \(Brand.name) 内从图库选择照片。"),
-                              retry: false)
+                    shareLogger.error("data fallback failed error=\(detail, privacy: .public)")
+                    self.dataReadFailed = true
+                    self.failIfBothReadsFailed(generation: generation)
                 }
                 return
             }
+            let copied = Self.writeToSandbox(data: data,
+                                             suggestedName: suggestedName,
+                                             typeIdentifier: identifier)
             Task { @MainActor in
-                guard self.loadGeneration == generation, self.phase == .reading else {
-                    try? FileManager.default.removeItem(at: directory)
+                guard self.loadGeneration == generation else {
+                    try? FileManager.default.removeItem(at: copied.directory)
                     return
                 }
-                self.workDirectory = directory
-                self.sharedFile = destination
-                self.process(destination)
+                switch copied.result {
+                case .success(let destination):
+                    shareLogger.notice("data callback copied bytes=\(data.count, privacy: .public)")
+                    self.completeRead(directory: copied.directory, destination: destination, generation: generation)
+                case .failure:
+                    try? FileManager.default.removeItem(at: copied.directory)
+                    self.dataReadFailed = true
+                    self.failIfBothReadsFailed(generation: generation)
+                }
             }
         }
     }
 
+    private func completeRead(directory: URL, destination: URL, generation: UUID) {
+        guard loadGeneration == generation, phase == .reading else {
+            try? FileManager.default.removeItem(at: directory)
+            return
+        }
+        readFallbackTask?.cancel()
+        readTimeoutTask?.cancel()
+        workDirectory = directory
+        sharedFile = destination
+        process(destination)
+    }
+
+    private func failIfBothReadsFailed(generation: UUID) {
+        guard loadGeneration == generation, phase == .reading, fileReadFailed, dataReadFailed else { return }
+        fail(title: String(localized: "无法读取分享的文件"),
+             message: String(localized: "share.error.noFile", defaultValue: "系统没有提供可读取的文件副本。请直接在 \(Brand.name) 内从图库选择照片。"),
+             code: "E_SHARE_READ",
+             retry: true)
+    }
+
     private func process(_ fileURL: URL) {
-        guard processingTask == nil, !isBusy else { return }
+        // Reading is still the current phase when the first complete representation arrives;
+        // rejecting busy states here silently dropped the file and left the sheet on the
+        // "reading" spinner forever. Only an in-flight processing task may block a new run.
+        guard processingTask == nil else { return }
+        shareLogger.notice("process start bytes=\(Self.fileSize(fileURL), privacy: .public)")
         let session = UUID()
         sessionID = session
         cancelRequested = false
@@ -324,7 +461,9 @@ final class ShareModel: ObservableObject {
         self.title = title
         self.message = message
         self.diagnosticCode = code
-        self.canRetry = retry && sharedFile != nil
+        // A failed read can be retried even before a file copy exists; the provider is retained
+        // until the user closes the sheet.
+        self.canRetry = retry
         self.failureHint = hint
     }
 
@@ -375,6 +514,16 @@ final class ShareModel: ObservableObject {
     }
 
     private func cleanupInput() {
+        readFallbackTask?.cancel()
+        readFallbackTask = nil
+        readTimeoutTask?.cancel()
+        readTimeoutTask = nil
+        pendingProvider = nil
+        pendingIdentifier = nil
+        pendingSuggestedName = nil
+        dataReadStarted = false
+        fileReadFailed = false
+        dataReadFailed = false
         if let workDirectory {
             try? FileManager.default.removeItem(at: workDirectory)
         }
@@ -402,6 +551,55 @@ final class ShareModel: ObservableObject {
         name.replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: ":", with: "_")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    nonisolated private static func destinationName(suggestedName: String?, typeIdentifier: String) -> String {
+        let fallbackExtension = UTType(typeIdentifier)?.preferredFilenameExtension ?? "heic"
+        guard let suggestedName, !suggestedName.isEmpty else { return "SharedPhoto.\(fallbackExtension)" }
+        let last = (suggestedName as NSString).lastPathComponent
+        let candidate = sanitized(last)
+        guard !candidate.isEmpty, candidate != ".", candidate != ".." else {
+            return "SharedPhoto.\(fallbackExtension)"
+        }
+        return candidate
+    }
+
+    nonisolated private static func copyToSandbox(
+        fileURL: URL,
+        suggestedName: String?,
+        typeIdentifier: String
+    ) -> (directory: URL, result: Result<URL, Error>) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("LingXiShare-\(UUID().uuidString)", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let destination = directory.appendingPathComponent(destinationName(suggestedName: suggestedName, typeIdentifier: typeIdentifier))
+            try FileManager.default.copyItem(at: fileURL, to: destination)
+            return (directory, .success(destination))
+        } catch {
+            return (directory, .failure(error))
+        }
+    }
+
+    nonisolated private static func writeToSandbox(
+        data: Data,
+        suggestedName: String?,
+        typeIdentifier: String
+    ) -> (directory: URL, result: Result<URL, Error>) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("LingXiShare-\(UUID().uuidString)", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let destination = directory.appendingPathComponent(destinationName(suggestedName: suggestedName, typeIdentifier: typeIdentifier))
+            try data.write(to: destination, options: .atomic)
+            return (directory, .success(destination))
+        } catch {
+            return (directory, .failure(error))
+        }
+    }
+
+    nonisolated private static func fileSize(_ url: URL) -> Int {
+        (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
     }
 
     private static func outputName(for url: URL) -> String {

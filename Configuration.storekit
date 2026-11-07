@@ -35,6 +35,15 @@
       ],
       "productID": "com.lingxifox.LingXiStyle.pro",
       "referenceName": "Texel Pro",
+      "offerCodes": [
+        {
+          "displayPrice": "0",
+          "internalID": "C3D4E5F6-7A8B-4C9D-0E1F-2A3B4C5D6E7F",
+          "paymentMode": "free",
+          "referenceName": "DEVELOPER_FREE",
+          "uuid": "D4E5F6A7-8B9C-4D0E-1F2A-3B4C5D6E7F80"
+        }
+      ],
       "type": "NonConsumable"
     }
   ],

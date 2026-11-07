@@ -183,20 +183,22 @@ public final class PurchaseManager: ObservableObject {
 
     private static func message(for error: Error, fallback: String) -> String {
         if let storeError = error as? StoreKitError {
-            switch storeError {
-            case .networkError:
+            // Pattern matching instead of a switch keeps this file buildable with both the
+            // iOS 18.5 SDK (Xcode 16.4) and newer SDKs that add StoreKitError cases such as
+            // invalidPresentationContext. Unknown future cases fall through to the caller copy.
+            if case .networkError = storeError {
                 return String(localized: "网络连接失败，请检查网络后重试。")
-            case .notAvailableInStorefront:
-                return String(localized: "当前 App Store 地区暂不支持这个商品。")
-            case .userCancelled:
-                return String(localized: "购买已取消。")
-            case .systemError:
-                return String(localized: "App Store 暂时不可用，请稍后重试。")
-            case .unknown, .notEntitled, .unsupported, .invalidPresentationContext:
-                return fallback
-            @unknown default:
-                return fallback
             }
+            if case .notAvailableInStorefront = storeError {
+                return String(localized: "当前 App Store 地区暂不支持这个商品。")
+            }
+            if case .userCancelled = storeError {
+                return String(localized: "购买已取消。")
+            }
+            if case .systemError = storeError {
+                return String(localized: "App Store 暂时不可用，请稍后重试。")
+            }
+            return fallback
         }
         if let purchaseError = error as? Product.PurchaseError {
             switch purchaseError {

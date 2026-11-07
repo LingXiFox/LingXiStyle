@@ -14,14 +14,15 @@
 
 ## 状态
 
-- **1.6.0（build 7）**：发布质量收口，保留 1.5 的视觉设计。补齐跨入口额度竞态、分享扩展的失败提示与陈旧临时目录清理、快捷指令的取消 / 重名 / 超额度处理；新增 Keychain 无权限时 fail-closed 测试与 GitHub Actions 持续集成；整理 App Store 发布资料。
+- **1.7.0（build 8）**：发布候选收口。修复 CI 在 Xcode 16.4 / iOS 18.5 SDK 上的编译失败；CI 拆成 iOS 18.5 与 iOS 26.x 两条构建 + 测试矩阵；修掉分享扩展读取完成后不进入处理流程的阻塞缺陷，并补 3 秒数据回退与 15 秒超时；模拟器签名构建实际走共享 Keychain Access Group；新增 100% 免费 Offer Code 的 StoreKit 自动化测试。
 - 免费用户每天可成功转换 5 张 HEIC；失败、跳过、不兼容不扣额度。额度按本地自然日重置，App、分享扩展与快捷指令共用同一账本。
 - Pro 是 StoreKit 2 非消耗型内购，Product ID `com.lingxifox.LingXiStyle.pro`（显示名「纹粒 Pro」/「Texel Pro」）；一次性购买、永久无限，可恢复购买，退款 / 撤销后回到免费额度。
 - 本地化使用 String Catalog，支持简体中文、繁体中文、英文、日文；内部 Bundle ID、Keychain 服务名与 StoreKit Product ID 保持不变，升级不丢购买。
-- 自动化测试：`LingXiKitTests` 28/28、`LingXiPurchaseTests` 22/22（13 个 StoreKit 测试 + 9 个 Keychain 额度测试）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。
+- 自动化测试：`LingXiKitTests` 28/28、`LingXiPurchaseTests` 24/24（14 个 StoreKit 测试 + 10 个 Keychain 额度测试）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。合计执行 68 项，66 项通过，2 项跳过。
 - `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift 源码 warning；签名 Debug 构建与模拟器签名构建通过。
 - 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.2 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过；1.3 沿用同一引擎并在模拟器保存成功。
-- 1.6 在 iPhone 17（402×874 pt）模拟器复验 5/5 → 4/5 额度、48MP 转换、英文批量「仅处理 4 张」、英文额度页、深色首页 / Pro 页；iPhone Duo（466×678 pt）复验 5/5 紧凑首页。分享扩展在模拟器停在读取阶段；权限拒绝页、快捷指令、真实 App Store 交易与真机矩阵仍未验证。
+- 1.7 在同一台 iPhone 17（iOS 27.3）完成分享扩展端到端：从「照片」分享 5,924,047 字节原片，读入、转换、另存成功，额度从 4 / 5 变为 3 / 5；分享已处理过的照片会提示「无需重复处理」且不扣额度。签名模拟器构建的 App 与扩展均生成同一 Keychain Access Group（`4VXWMYSQG8.com.lingxifox.LingXiStyle.shared`）。
+- 兼容性验证边界：本机只有 iOS 27.3 运行时；iOS 18.5 与 iOS 26.x 由 GitHub Actions 构建 + 跑 StoreKit 测试，iOS 18 / 26 真机或本地模拟器未验证，详见 [TEST_REPORT.md](TEST_REPORT.md)。
 
 ## 它做什么
 
@@ -221,11 +222,11 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 槽位时只有一个成功；提交把标记从 `reserved` 改为 `committed`，释放只删除自己创建的
 `reserved` 槽位。30 分钟未提交的预留会被回收，跨天自动从新槽位开始。
 
-- 真机上 App 与分享扩展共享 Keychain Access Group
+- App 与分享扩展共享 Keychain Access Group
   `$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared`，不依赖 App Group。
-- 模拟器签名不带 target entitlements，`KeychainQuotaStore` 在
-  `#if targetEnvironment(simulator)` 下退回进程默认 Keychain 组；模拟器只能验证 App 内持久化，
-  App / 扩展跨进程共享需真机验证。
+- 使用 Xcode 自动签名构建的模拟器产物会生成 `Simulated.xcent`，其中包含同一共享组；
+  1.7 已用该构建验证扩展转换后主 App 额度同步减少。手动 `codesign --deep` 会抹掉模拟授权，
+  不要用它重签 QA 包。真机 distribution 签名下的共享组仍需在真机复验。
 - `QuotaManager` 仍保留 SQLite 实现，供单元测试与未来显式注入 App Group 容器使用；生产默认
   不会走 App Group 分支。
 
@@ -259,9 +260,18 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 在系统「照片」里分享一张 HEIC 到「纹粒」（英文 / 日文 / 繁体界面为「Texel」）：
 
 1. `loadFileRepresentation` 后**立刻**复制到扩展自己的沙盒（回调外 URL 会失效）。
-2. 强制解析并校验完整 HEIC；不是 HEIC 就提示「请在 LingXiStyle 内从图库选择照片」。
-3. 通过后调用同一个 `ConversionService` 保存新照片。处理中只提供「取消」，成功后才显示「完成」；
+2. 3 秒内没有文件回调时并行尝试 `loadDataRepresentation`；15 秒仍无完整文件则报
+   `E_SHARE_READ_TIMEOUT`，不会无限停在读取页。
+3. 强制解析并校验完整 HEIC；不是 HEIC 就提示回主 App 从图库选择。
+4. 通过后调用同一个 `ConversionService` 保存新照片。处理中只提供「取消」，成功后才显示「完成」；
    失败或取消可安全重试，临时文件在关闭时清理。
+
+1.7 修复了读取成功后不进入处理的缺陷：原判断把当前 `reading` 阶段也算作忙碌，
+导致回调已复制完文件却被静默丢弃。现在只阻止重复处理任务，并记录读取字节数。
+
+自动化测试覆盖 100% 免费 Offer Code：本地 StoreKit 配置中的 `DEVELOPER_FREE` 兑换后
+交易价格为 0，仍通过验签并授予 Pro；这证明授权逻辑不依赖价格，但也意味着生产环境必须
+只通过 App Store Connect 官方 Offer Code 发放。
 
 分享面板有时只给 JPEG / 预览图，这时会被拒绝，这是预期行为——转码会破坏原始编码。
 
@@ -306,14 +316,16 @@ ShareExtension/         分享扩展
 Configuration.storekit  本地 StoreKit 测试商品（非线上价格）
 AppStoreRelease.md      App Store Connect / 真实内购发布清单
 Resources/Localization/ String Catalog（zh-Hans / zh-Hant / en / ja）
+.github/workflows/      CI：双 SDK 构建 + 测试矩阵
+.github/actions/setup/   CI 复用 action
 ThirdPartyNotices/      上游 MIT 许可证与 vendor 说明
 project.yml             XcodeGen 工程定义
 ```
 
 ## 已知限制
 
-- 1.6 已完成 Debug / Release、签名 Debug 构建与自动化测试（Kit 28 / Purchase 22 / Engine 2 / Core 14 执行、2 跳过），并在 iPhone 17 模拟器复验 5/5 → 4/5 额度、48MP 转换、英文批量「仅处理 4 张」、英文额度页、深色首页 / Pro 页；iPhone Duo 复验 5/5 紧凑首页。48MP 转换与 11/11 无损校验沿用 1.2 的端到端证据。分享扩展在模拟器停在读取阶段，权限拒绝页、快捷指令、真实交易与真机矩阵仍未逐项验证。
-- 真实购买、退款 / 待批准、App 与分享扩展的 Keychain 跨进程共享尚未在真机验证；模拟器只能验证 App 内持久化。详见 [TEST_REPORT.md](TEST_REPORT.md)。
+- 1.7 已完成 Debug / Release generic iOS 构建与四套自动化测试（Kit 28 / Purchase 24 / Engine 2 / Core 14 执行、2 跳过）；分享扩展在 iPhone 17 模拟器完成读取、转换、保存与额度同步。48MP 转换与 11/11 无损校验沿用 1.2 的端到端证据，1.7 未改编码核心。
+- 真机安装、真实 App Store 交易、iOS 18 / 26 运行时、权限拒绝页、快捷指令 UI、分享扩展的取消 / 超时 / 额度耗尽路径仍未验证。模拟器签名构建能证明材料中的共享组配置，但不能替代真机 distribution 签名。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 - 免费 Personal Team 只能使用本地 StoreKit 配置测试；真实内购与上架需要付费 Apple Developer Program、App Store Connect 商品与 Sandbox / 生产环境。
 - `Configuration.storekit` 的 `$2.99` 只是本地测试价；线上价格由 App Store Connect 与 `Product.displayPrice` 决定。
 - 不同机型 / iOS 版本的 HEIC 可能使用不同的 `iref` 结构；已加 16-bit / 32-bit 回归测试，但仍需更多样本。

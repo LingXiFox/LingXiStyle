@@ -1,0 +1,36 @@
+name: Project toolchain
+description: Select an Xcode toolchain and install the pinned XcodeGen release.
+
+inputs:
+  xcode:
+    description: Path to the Xcode application bundle.
+    required: true
+  xcodegen-version:
+    description: XcodeGen release to install.
+    required: false
+    default: "2.46.0"
+
+runs:
+  using: composite
+  steps:
+    - name: Select Xcode
+      shell: bash
+      run: |
+        set -euo pipefail
+        sudo xcode-select -s "${{ inputs.xcode }}"
+        xcodebuild -version
+        xcrun simctl list runtimes
+
+    - name: Install XcodeGen
+      shell: bash
+      env:
+        XCODEGEN_VERSION: ${{ inputs.xcodegen-version }}
+      run: |
+        set -euo pipefail
+        curl -fsSL -o /tmp/xcodegen.zip \
+          "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+        unzip -q /tmp/xcodegen.zip -d /tmp/xcodegen
+        sudo install -m 755 /tmp/xcodegen/xcodegen/bin/xcodegen /usr/local/bin/xcodegen
+        sudo mkdir -p /usr/local/share
+        sudo cp -R /tmp/xcodegen/xcodegen/share/xcodegen /usr/local/share/
+        xcodegen --version

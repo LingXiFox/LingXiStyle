@@ -1,4 +1,4 @@
-# App Store 发布配置（纹粒 / Texel 1.6）
+# App Store 发布配置（纹粒 / Texel 1.7）
 
 这份文档只描述**若要发布到 App Store**时需要完成的 App Store Connect 与签名配置。
 仓库本身仍然只提供源码，不附带 IPA、TestFlight 包或真实商品。
@@ -75,7 +75,8 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 ```
 
 覆盖商品加载、地区价格、购买成功 / 取消 / 失败、待批准、恢复、重启后权益、
-退款 / 撤销、重复回调、商品加载失败重试与跨入口额度。
+退款 / 撤销、重复回调、商品加载失败重试、跨入口额度，以及 100% 免费 Offer Code
+（`testFreeOfferCodeGrantsVerifiedPro`）。
 
 ### 4.2 真机 Sandbox
 
@@ -84,12 +85,27 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 3. 验证：购买成功、取消、待批准、恢复购买、删除重装后恢复、退款后权益回收。
 4. 退款可在 App Store Connect → 用户与访问 → Sandbox → 交易记录中模拟；或使用
    StoreKitTest 的 `refundTransaction` 做自动化回归。
-5. 真机必须验证 App 与分享扩展共享额度；模拟器签名构建的 entitlements 为空，
-   只能验证 App 进程内的持久化，不能写成跨进程共享已验证。
+5. 真机必须验证 App 与分享扩展共享额度。Xcode 自动签名构建的模拟器产物会生成
+   `*-Simulated.xcent`，1.7 已用它验证 App / 扩展同组同步；但这不等于真机 distribution
+   签名通过，真机仍需复验。
+
+### 4.3 官方 100% Offer Code
+
+1. 在 App Store Connect → App → App 内购买项目 → 选择
+   `com.lingxifox.LingXiStyle.pro` → **Offer Codes / 优惠代码**。
+2. 创建 100% 折扣、免费兑换的代码；设置有效期、兑换上限与分发方式。
+3. 生产环境的 Offer Code 受商品状态与 App 发布状态约束；商品需可售并随版本审核。
+4. 用 Sandbox 账号兑换后，确认 `Transaction.currentEntitlements` 出现该商品、
+   Pro 页显示已解锁，删除重装后「恢复购买」仍能恢复。
+5. 本地 `Configuration.storekit` 的 `DEVELOPER_FREE` 只用于自动化；
+   生产代码不得内置免费解锁旁路、固定兑换码或开发者账号白名单。
+
+授权逻辑不检查交易价格，因此 0 元交易会被接受；这是支持官方 Offer Code 的前提，
+也意味着任何绕过 StoreKit 验签的“免费 Pro”实现都是错误。
 
 ## 5. 发布前检查清单
 
-- [ ] 版本号 `1.6.0`、Build `7`（或更高）已写入 `project.yml`。
+- [ ] 版本号 `1.7.0`、Build `8`（或更高）已写入 `project.yml`。
 - [ ] `xcodegen generate` 后 Debug scheme 仍带 `Configuration.storekit`。
 - [ ] `LingXiKitTests`、`LingXiPurchaseTests`、`LingXiEngineTests`、`StylePortCoreTests` 全绿。
 - [ ] Release 构建不包含 StoreKit 测试配置。
@@ -101,10 +117,10 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 - [ ] 恢复购买、退款 / 撤销、待批准、未完成交易均有本地化提示。
 - [ ] 首次启动不强制弹付费页。
 - [ ] 分享扩展与快捷指令同样受额度约束。
-- [ ] 1.5 / 1.6 视觉：iOS 语义表面、狐橙 `#E8A13A`、每屏最多一个强调填充；无渐变边框 / 扫光 / 呼吸光。
+- [ ] 1.5 / 1.7 视觉：iOS 语义表面、狐橙 `#E8A13A`、每屏最多一个强调填充；无渐变边框 / 扫光 / 呼吸光。
 - [ ] 跨入口额度竞态：另一入口抢走最后额度时，未处理项显示为延后，不记失败。
 - [ ] Keychain 无共享组 entitlement 时 fail-closed，不静默拆成两套账本。
-- [ ] 分享扩展在真机完成一次完整分享转换，不再停在“正在读取分享的照片”。
+- [ ] 分享扩展在真机完成读取、转换、保存；另测取消与 15 秒超时。
 - [ ] GitHub Actions CI 至少成功运行一次，XcodeGen 生成工程与仓库一致。
 - [ ] 设置页 Pro 行只显示「一次购买，永久不限张数。」或已购状态，不显示价格。
 - [ ] 浅色 / 深色、Dynamic Type、Reduce Motion、VoiceOver 通过。
@@ -126,7 +142,9 @@ on the Pro page.
 - 本仓库不分发 IPA；真实商品只在 App Store 生产环境扣款。
 - 免费 Personal Team 的 7 天签名只适合源码自用，不能用于上架或真实内购。
 - 本地 StoreKit 配置的 `$2.99` 只是测试显示，不是定价建议。
-- 1.6 的分享扩展在 iOS 27.3 模拟器上会停在“正在读取分享的照片”，取消可用且不扣额度；
-  未证明是设备问题，也未完成真机端到端验证。上线前必须在真机复验。
+- 1.7 已修复分享扩展读取完成后不进入处理的阻塞缺陷，并在 iOS 27.3 模拟器完成
+  原片 → 读取 → 转换 → 保存 → 额度同步；真机分享扩展仍未验证。
+- 100% Offer Code 的生产兑换依赖 App Store Connect 配置与商品可发放状态；
+  本地配置不能替代生产资格检查。
 - 若未来改用 App Group + SQLite 作为额度存储，必须同时为 App 与扩展申请 App Group，
   并重新验证签名；当前实现不依赖这条路径。

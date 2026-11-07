@@ -3307,6 +3307,35 @@
         }
       }
     },
+    "share.error.timeout": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The system didn’t return the photo in time. Share again from Photos, or select the photo from your library in %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システムが制限時間内に写真を返しませんでした。「写真」から共有し直すか、%@ 内でライブラリから写真を選択してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统没有在限定时间内返回照片。请返回系统「照片」重新分享，或直接在 %@ 内从图库选择照片。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統沒有在限定時間內傳回照片。請返回系統「照片」重新分享，或直接在 %@ 內從圖庫選擇照片。"
+          }
+        }
+      }
+    },
     "share.error.unsupportedDetail": {
       "extractionState": "manual",
       "localizations": {
@@ -3361,6 +3390,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "免費額度會在本地時間 00:00 重置，也可以開啟 %@ 了解 Texel Pro。"
+          }
+        }
+      }
+    },
+    "share.reading.fallback": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The system is taking longer to read the file. Trying a different read method."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルの読み込みに時間がかかっているため、別の方法で読み込みます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统读取文件较慢，正在改用数据方式读取。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統讀取檔案較慢，正在改用資料方式讀取。"
           }
         }
       }

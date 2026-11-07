@@ -51,22 +51,20 @@ final class KeychainQuotaStore: @unchecked Sendable {
     }
 
     /// Reads the team-prefixed group from the target's Info.plist. The build setting expands to
-    /// e.g. TEAMID.com.lingxifox.LingXiStyle.shared; unsigned test builds have no group and
-    /// fall back to the process default Keychain group.
+    /// e.g. TEAMID.com.lingxifox.LingXiStyle.shared; unsigned test builds have no group and fall
+    /// back to the process default Keychain group. Simulator builds signed by Xcode carry the
+    /// same simulated entitlement as device builds, so the production path is exercised there.
     static func defaultAccessGroup(bundle: Bundle = .main) -> String? {
-        #if targetEnvironment(simulator)
-        // Simulator apps are ad-hoc signed without the target entitlements, so asking for a
-        // shared access group fails with errSecMissingEntitlement. The device build uses the
-        // team-prefixed group below; simulator QA falls back to the process default group.
-        return nil
-        #else
-        guard let raw = bundle.object(forInfoDictionaryKey: "LingXiKeychainGroup") as? String else {
-            return nil
-        }
+        accessGroup(from: bundle.object(forInfoDictionaryKey: "LingXiKeychainGroup") as? String)
+    }
+
+    /// An unexpanded build setting is not a usable access group. Returning nil is safer than
+    /// asking the Keychain for a group the target cannot access.
+    static func accessGroup(from raw: String?) -> String? {
+        guard let raw else { return nil }
         let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !value.isEmpty, !value.contains("$(") else { return nil }
         return value
-        #endif
     }
 
     // MARK: Public API
