@@ -23,12 +23,12 @@ struct ConversionSummary {
     }
     var headline: String {
         if savedCount > 0 {
-            if failedCount > 0 { return "已保存 \(savedCount) 张，\(failedCount) 张未完成" }
-            return savedCount > 1 ? "已保存 \(savedCount) 张新照片" : "已保存新照片"
+            if failedCount > 0 { return String(localized: "summary.savedPartial", defaultValue: "已保存 \(savedCount) 张，\(failedCount) 张未完成") }
+            return savedCount > 1 ? String(localized: "summary.savedMany", defaultValue: "已保存 \(savedCount) 张新照片") : String(localized: "已保存新照片")
         }
-        if failedCount > 0 { return "这次没有保存成功" }
-        if cancelledCount > 0 { return "已取消，没有保存新照片" }
-        return "没有需要转换的照片"
+        if failedCount > 0 { return String(localized: "这次没有保存成功") }
+        if cancelledCount > 0 { return String(localized: "已取消，没有保存新照片") }
+        return String(localized: "没有需要转换的照片")
     }
 
     init(items: [PhotoItem]) {

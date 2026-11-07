@@ -62,7 +62,7 @@ struct UnlockTextureIntent: AppIntent {
                 try Self.copy(file, to: source)
             } catch {
                 failed += 1
-                firstFailure = firstFailure ?? "\(name)：无法读取文件"
+                firstFailure = firstFailure ?? String(localized: "intent.error.unreadable", defaultValue: "\(name)：无法读取文件")
                 continue
             }
 
@@ -102,7 +102,7 @@ struct UnlockTextureIntent: AppIntent {
                         let data = try Data(contentsOf: outputURL)
                         outputs.append(IntentFile(data: data, filename: preferredName, type: .heic))
                     } catch {
-                        firstFailure = firstFailure ?? "\(preferredName)：无法读取转换结果"
+                        firstFailure = firstFailure ?? String(localized: "intent.error.unreadableOutput", defaultValue: "\(preferredName)：无法读取转换结果")
                     }
                     let parent = outputURL.deletingLastPathComponent()
                     if parent.lastPathComponent.hasPrefix("LingXiOutput-") {
@@ -111,22 +111,22 @@ struct UnlockTextureIntent: AppIntent {
                 }
             } catch let failure as ConversionFailure {
                 failed += 1
-                firstFailure = firstFailure ?? "\(name)：\(failure.message)"
+                firstFailure = firstFailure ?? String(localized: "intent.error.conversion", defaultValue: "\(name)：\(failure.message)")
             } catch let failure as PhotoLibraryError {
                 failed += 1
-                firstFailure = firstFailure ?? "\(name)：\(failure.errorDescription ?? "保存失败")"
+                firstFailure = firstFailure ?? String(localized: "intent.error.library", defaultValue: "\(name)：\(failure.errorDescription ?? String(localized: "保存失败"))")
             } catch {
                 failed += 1
-                firstFailure = firstFailure ?? "\(name)：\(error.localizedDescription)"
+                firstFailure = firstFailure ?? String(localized: "intent.error.generic", defaultValue: "\(name)：\(error.localizedDescription)")
             }
         }
 
         let dialog: String
         if checkOnly {
-            dialog = "可解锁 \(ready) 张，跳过 \(skipped) 张，失败 \(failed) 张。"
+            dialog = String(localized: "intent.dialog.check", defaultValue: "可解锁 \(ready) 张，跳过 \(skipped) 张，失败 \(failed) 张。")
         } else {
-            dialog = "已转换 \(converted) 张，其中 \(savedToLibrary) 张已存入相册；跳过 \(skipped) 张，失败 \(failed) 张。"
-                + (firstFailure.map { "\n第一处问题：\($0)" } ?? "")
+            dialog = String(localized: "intent.dialog.convert", defaultValue: "已转换 \(converted) 张，其中 \(savedToLibrary) 张已存入相册；跳过 \(skipped) 张，失败 \(failed) 张。")
+                + (firstFailure.map { String(localized: "intent.dialog.firstFailure", defaultValue: "\n第一处问题：\($0)") } ?? "")
         }
 
         return .result(value: outputs, dialog: IntentDialog(stringLiteral: dialog))
@@ -166,8 +166,8 @@ struct UnlockTextureIntent: AppIntent {
 
         var errorDescription: String? {
             switch self {
-            case .noInput: return "请先选择至少一张 HEIC 照片。"
-            case .noOutput: return "请至少打开「保存到相册」或「返回转换后的文件」。"
+            case .noInput: return String(localized: "请先选择至少一张 HEIC 照片。")
+            case .noOutput: return String(localized: "请至少打开「保存到相册」或「返回转换后的文件」。")
             }
         }
     }
@@ -176,8 +176,7 @@ struct UnlockTextureIntent: AppIntent {
 struct LingXiShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(intent: UnlockTextureIntent(),
-                    phrases: ["用 \(.applicationName) 解锁第三代摄影风格",
-                              "让 \(.applicationName) 给照片加上第三代质感"],
+                    phrases: ["用 \(.applicationName) 解锁第三代摄影风格"],
                     shortTitle: "解锁第三代风格",
                     systemImageName: "camera.filters")
     }

@@ -15,7 +15,7 @@ struct QuotaExhaustedView: View {
 
             VStack(spacing: 0) {
                 HStack {
-                    Text("LINGXI STYLE")
+                    Text(Brand.name.uppercased())
                         .font(.system(.caption2, design: .default, weight: .semibold))
                         .tracking(2.4)
                         .foregroundStyle(Palette.accentText)
@@ -54,7 +54,7 @@ struct QuotaExhaustedView: View {
                     .padding(.top, Spacing.m)
                     .accessibilityAddTraits(.isHeader)
 
-                Text("每天 00:00 按本地时间重置，明天会恢复 \(limit) 张免费额度。")
+                Text(String(localized: "quota.resetNote", defaultValue: "每天 00:00 按本地时间重置，明天会恢复 \(limit) 张免费额度。"))
                     .font(Typography.body)
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
@@ -62,10 +62,10 @@ struct QuotaExhaustedView: View {
                     .padding(.top, Spacing.s)
 
                 VStack(spacing: Spacing.s) {
-                    PrimaryActionButton(title: "永久解锁无限转换", systemImage: "sparkles") {
+                    PrimaryActionButton(title: String(localized: "永久解锁无限转换"), systemImage: "sparkles") {
                         onUpgrade()
                     }
-                    SecondaryActionButton(title: "明天继续免费使用", systemImage: "sunrise") {
+                    SecondaryActionButton(title: String(localized: "明天继续免费使用"), systemImage: "sunrise") {
                         onDismiss()
                     }
                 }

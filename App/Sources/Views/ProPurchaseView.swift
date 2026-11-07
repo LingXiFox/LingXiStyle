@@ -12,11 +12,13 @@ struct ProPurchaseView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var purchaseTitle: String {
-        if purchases.isPro { return "LingXiStyle Pro 已解锁" }
+        if purchases.isPro { return String(localized: "pro.owner.title", defaultValue: "\(Brand.proName) 已解锁") }
         if let product = purchases.product {
-            return "永久解锁 · \(product.displayPrice)"
+            return String(localized: "pro.purchase.price", defaultValue: "永久解锁 · \(product.displayPrice)")
         }
-        return purchases.isLoadingProduct ? "正在读取 App Store 价格…" : "永久解锁"
+        return purchases.isLoadingProduct
+            ? String(localized: "正在读取 App Store 价格…")
+            : String(localized: "永久解锁")
     }
 
     private var canPurchase: Bool {
@@ -69,12 +71,12 @@ struct ProPurchaseView: View {
             if isPro { onEntitlementChanged() }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("LingXiStyle Pro 购买页")
+        .accessibilityLabel(String(localized: "pro.page.accessibility", defaultValue: "\(Brand.proName) 购买页"))
     }
 
     private var topBar: some View {
         HStack {
-            Text("LINGXI STYLE")
+            Text(Brand.name.uppercased())
                 .font(.system(.caption2, design: .default, weight: .semibold))
                 .tracking(2.4)
                 .foregroundStyle(Palette.accentText)
@@ -109,7 +111,7 @@ struct ProPurchaseView: View {
             }
             .accessibilityHidden(true)
 
-            Text("LingXiStyle Pro")
+            Text(Brand.proName)
                 .font(.system(.title, design: .default, weight: .semibold))
                 .foregroundStyle(Palette.textPrimary)
                 .accessibilityAddTraits(.isHeader)
@@ -124,13 +126,21 @@ struct ProPurchaseView: View {
 
     private var benefits: some View {
         VStack(spacing: 0) {
-            benefit("无限张数", detail: "不再受每天 10 张免费额度限制", symbol: "infinity")
+            benefit(String(localized: "无限张数"),
+                    detail: String(localized: "pro.benefit.unlimited.detail", defaultValue: "不再受每天 \(QuotaConfiguration.freeDailyLimit) 张免费额度限制"),
+                    symbol: "infinity")
             Divider().overlay(Palette.hairline)
-            benefit("一次购买，永久使用", detail: "非订阅，不会按月扣费", symbol: "checkmark.seal")
+            benefit(String(localized: "一次购买，永久使用"),
+                    detail: String(localized: "非订阅，不会按月扣费"),
+                    symbol: "checkmark.seal")
             Divider().overlay(Palette.hairline)
-            benefit("本职不变", detail: "只补第三代纹理与颗粒，原图始终保留", symbol: "photo.badge.checkmark")
+            benefit(String(localized: "本职不变"),
+                    detail: String(localized: "只补第三代纹理与颗粒，原图始终保留"),
+                    symbol: "photo.badge.checkmark")
             Divider().overlay(Palette.hairline)
-            benefit("免费仍可用", detail: "不购买也可以每天转换 10 张照片", symbol: "gift")
+            benefit(String(localized: "免费仍可用"),
+                    detail: String(localized: "pro.benefit.free.detail", defaultValue: "不购买也可以每天转换 \(QuotaConfiguration.freeDailyLimit) 张照片"),
+                    symbol: "gift")
         }
         .padding(.horizontal, Spacing.m)
         .background(Palette.surface.opacity(0.72), in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
@@ -180,8 +190,8 @@ struct ProPurchaseView: View {
                     .foregroundStyle(Palette.textSecondary.opacity(0.8))
             } else {
                 InlineErrorNotice(
-                    message: purchases.productLoadError ?? "暂时无法加载商品信息，请稍后重试。",
-                    actionTitle: "重新加载"
+                    message: purchases.productLoadError ?? String(localized: "暂时无法加载商品信息，请稍后重试。"),
+                    actionTitle: String(localized: "重新加载")
                 ) {
                     Task { await purchases.loadProduct() }
                 }
@@ -199,7 +209,10 @@ struct ProPurchaseView: View {
     private var purchaseArea: some View {
         VStack(spacing: Spacing.s) {
             if purchases.isPro {
-                statusCard("已解锁 LingXiStyle Pro", detail: "无限转换已生效。感谢支持独立开发。", symbol: "checkmark.seal.fill", tint: Palette.success)
+                statusCard(String(localized: "pro.owner.card", defaultValue: "已解锁 \(Brand.proName)"),
+                       detail: String(localized: "pro.owner.detail", defaultValue: "无限转换已生效。感谢支持独立开发。"),
+                       symbol: "checkmark.seal.fill",
+                       tint: Palette.success)
             } else {
                 PrimaryActionButton(
                     title: purchaseTitle,
@@ -212,13 +225,22 @@ struct ProPurchaseView: View {
 
                 switch purchases.purchaseState {
                 case .awaitingApproval:
-                    statusCard("等待批准", detail: "购买正在等待 App Store 批准。批准后会自动解锁，不需要重复购买。", symbol: "hourglass", tint: Palette.warning)
+                    statusCard(String(localized: "等待批准"),
+                       detail: String(localized: "购买正在等待 App Store 批准。批准后会自动解锁，不需要重复购买。"),
+                       symbol: "hourglass",
+                       tint: Palette.warning)
                 case .cancelled:
-                    statusCard("购买已取消", detail: "没有产生扣款，你可以随时回来再购买。", symbol: "xmark.circle", tint: Palette.textSecondary)
+                    statusCard(String(localized: "购买已取消"),
+                       detail: String(localized: "没有产生扣款，你可以随时回来再购买。"),
+                       symbol: "xmark.circle",
+                       tint: Palette.textSecondary)
                 case .failed(let message):
                     InlineErrorNotice(message: message)
                 case .success:
-                    statusCard("购买完成", detail: "已验证交易，Pro 权益已生效。", symbol: "checkmark.circle.fill", tint: Palette.success)
+                    statusCard(String(localized: "购买完成"),
+                       detail: String(localized: "已验证交易，Pro 权益已生效。"),
+                       symbol: "checkmark.circle.fill",
+                       tint: Palette.success)
                 case .idle, .purchasing:
                     EmptyView()
                 }
@@ -228,7 +250,10 @@ struct ProPurchaseView: View {
 
     private var restoreArea: some View {
         VStack(spacing: Spacing.xs) {
-            SecondaryActionButton(title: purchases.isRestoring ? "正在恢复…" : "恢复购买", systemImage: "arrow.clockwise") {
+            SecondaryActionButton(title: purchases.isRestoring
+                                  ? String(localized: "正在恢复…")
+                                  : String(localized: "恢复购买"),
+                                  systemImage: "arrow.clockwise") {
                 Task { await purchases.restore() }
             }
             .disabled(purchases.isRestoring)
@@ -246,7 +271,7 @@ struct ProPurchaseView: View {
     private var legal: some View {
         VStack(spacing: Spacing.xs) {
             Text("一次性非消耗型内购，不是订阅。购买后会向 App Store 验证交易，只有验证通过的权益才会解锁。")
-            Text("免费用户每天仍可转换 10 张照片，额度按本地自然日重置。")
+            Text(String(localized: "pro.legal.freeLimit", defaultValue: "免费用户每天仍可转换 \(QuotaConfiguration.freeDailyLimit) 张照片，额度按本地自然日重置。"))
         }
         .font(Typography.micro)
         .foregroundStyle(Palette.textSecondary.opacity(0.8))

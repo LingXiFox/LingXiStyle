@@ -4,7 +4,7 @@ import SQLite3
 /// Central, testable policy values. The daily allowance lives here so raising it later is one
 /// edit rather than a hunt through UI copy.
 public enum QuotaConfiguration {
-    public static let freeDailyLimit = 10
+    public static let freeDailyLimit = 5
     public static let appGroupIdentifier = "group.com.lingxifox.LingXiStyle"
     /// A reservation older than this is treated as abandoned. Conversions normally finish in
     /// seconds; the window only protects against a crash between reserve and commit.
@@ -51,7 +51,7 @@ public struct QuotaStatus: Sendable, Equatable {
         !isPro && isAvailable && remaining <= 0
     }
 
-    /// A finite number for the home-screen "10 / 10" badge; Pro uses its own label.
+    /// A finite number for the home-screen "5 / 5" badge; Pro uses its own label.
     public var remainingForDisplay: Int {
         isPro ? limit : remaining
     }
@@ -65,11 +65,11 @@ public enum QuotaError: Error, LocalizedError, Sendable, Equatable {
     public var errorDescription: String? {
         switch self {
         case .exhausted:
-            return "今日免费额度已用完。明天会按本地时间重置，也可以永久解锁无限转换。"
+            return String(localized: "今日免费额度已用完。明天会按本地时间重置，也可以永久解锁无限转换。")
         case .unavailable:
-            return "暂时无法读取今日免费额度，请稍后重试。"
+            return String(localized: "暂时无法读取今日免费额度，请稍后重试。")
         case .database:
-            return "额度存储出现异常，请稍后重试。"
+            return String(localized: "额度存储出现异常，请稍后重试。")
         }
     }
 
@@ -124,6 +124,7 @@ public final class QuotaManager: QuotaManaging, @unchecked Sendable {
     public let storageKind: QuotaStorageKind
     public let limit: Int
     private let calendar: Calendar
+    private let fixedTimeZone: TimeZone?
     private let now: @Sendable () -> Date
     private let keychainStore: KeychainQuotaStore?
     private let lock = NSLock()
@@ -132,6 +133,7 @@ public final class QuotaManager: QuotaManaging, @unchecked Sendable {
     public init(databaseURL: URL? = nil,
                 limit: Int = QuotaConfiguration.freeDailyLimit,
                 calendar: Calendar = .current,
+                timeZone: TimeZone? = nil,
                 now: @escaping @Sendable () -> Date = { Date() }) {
         let resolved: (url: URL?, usesAppGroup: Bool, kind: QuotaStorageKind)
         if let databaseURL {
@@ -146,9 +148,10 @@ public final class QuotaManager: QuotaManaging, @unchecked Sendable {
         self.storageKind = resolved.kind
         self.limit = max(1, limit)
         self.calendar = calendar
+        self.fixedTimeZone = timeZone
         self.now = now
         if resolved.kind == .keychain {
-            self.keychainStore = KeychainQuotaStore(limit: self.limit, calendar: calendar, now: now)
+            self.keychainStore = KeychainQuotaStore(limit: self.limit, calendar: calendar, timeZone: timeZone, now: now)
         } else {
             self.keychainStore = nil
             if let url = resolved.url {
@@ -436,7 +439,9 @@ public final class QuotaManager: QuotaManaging, @unchecked Sendable {
 
     private func dayKey(for date: Date) -> String {
         var calendar = calendar
-        calendar.timeZone = calendar.timeZone
+        // Reading the zone on every lookup keeps the daily boundary correct if the device
+        // travels across time zones while the process stays alive. Tests pin a zone explicitly.
+        calendar.timeZone = fixedTimeZone ?? .current
         let components = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d",
                       components.year ?? 0,

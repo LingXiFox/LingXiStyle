@@ -13,13 +13,27 @@ public enum ConversionStage: String, Sendable, CaseIterable, Equatable {
 
     public var title: String {
         switch self {
-        case .readingOriginal: return "读取原片"
-        case .inspecting: return "检查结构"
-        case .converting: return "追加质感"
-        case .verifying: return "无损校验"
-        case .saving: return "写入相册"
-        case .finished: return "完成"
-        case .failed: return "未完成"
+        case .readingOriginal: return String(localized: "读取原片")
+        case .inspecting: return String(localized: "检查结构")
+        case .converting: return String(localized: "追加质感")
+        case .verifying: return String(localized: "无损校验")
+        case .saving: return String(localized: "写入相册")
+        case .finished: return String(localized: "完成")
+        case .failed: return String(localized: "未完成")
+        }
+    }
+
+    /// Verb phrase for "currently doing X" labels. Keeping a separate string avoids the
+    /// English/Japanese word-order problems of prefixing a localized noun with "正在".
+    public var inProgressTitle: String {
+        switch self {
+        case .readingOriginal: return String(localized: "正在读取原片")
+        case .inspecting: return String(localized: "正在检查结构")
+        case .converting: return String(localized: "正在追加质感")
+        case .verifying: return String(localized: "正在无损校验")
+        case .saving: return String(localized: "正在写入相册")
+        case .finished: return String(localized: "正在完成")
+        case .failed: return String(localized: "未完成")
         }
     }
 

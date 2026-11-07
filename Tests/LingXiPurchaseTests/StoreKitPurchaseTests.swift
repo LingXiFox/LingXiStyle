@@ -41,7 +41,7 @@ final class StoreKitPurchaseTests: XCTestCase {
         let product = try await loadProduct()
         XCTAssertEqual(product.id, Self.productID)
         XCTAssertEqual(product.type, .nonConsumable)
-        XCTAssertEqual(product.displayName, "LingXiStyle Pro")
+        XCTAssertEqual(product.displayName, "Texel Pro")
         XCTAssertFalse(product.displayPrice.isEmpty)
         print("USA displayPrice=\(product.displayPrice) currency=\(product.priceFormatStyle.currencyCode)")
     }
@@ -63,6 +63,9 @@ final class StoreKitPurchaseTests: XCTestCase {
             XCTAssertTrue(product.displayPrice.contains(symbol),
                           "\(storefront) price should use \(symbol): \(product.displayPrice)")
             XCTAssertFalse(product.displayPrice.isEmpty)
+            if storefront == "USA" {
+                XCTAssertEqual(product.displayPrice, "$2.99")
+            }
             prices.insert(product.displayPrice)
             print("\(storefront) locale=\(locale) price=\(product.displayPrice) currency=\(product.priceFormatStyle.currencyCode)")
         }
@@ -151,7 +154,7 @@ final class StoreKitPurchaseTests: XCTestCase {
         await second.restore()
 
         XCTAssertTrue(second.isPro)
-        XCTAssertEqual(second.restoreMessage, "已恢复 LingXiStyle Pro 权益。")
+        XCTAssertEqual(second.restoreMessage, "已恢复 纹粒 Pro 权益。")
     }
 
     func testProSurvivesAppRelaunch() async throws {

@@ -8,13 +8,14 @@ options:
   createIntermediateGroups: true
   groupSortPosition: top
   developmentLanguage: zh-Hans
+  knownRegions: [zh-Hans, zh-Hant, en, ja]
 
 settings:
   base:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
-    MARKETING_VERSION: "1.2.0"
-    CURRENT_PROJECT_VERSION: "3"
+    MARKETING_VERSION: "1.3.0"
+    CURRENT_PROJECT_VERSION: "4"
     CODE_SIGN_STYLE: Automatic
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     CLANG_ENABLE_MODULES: YES
@@ -89,6 +90,8 @@ targets:
       - path: App/Sources
       - path: App/Resources
         excludes: ["Info.plist"]
+      - path: Resources/Localization
+        buildPhase: resources
     dependencies:
       - target: StylePortCore
         embed: true
@@ -103,7 +106,7 @@ targets:
     info:
       path: App/Resources/Info.plist
       properties:
-        CFBundleDisplayName: LingXiStyle
+        CFBundleDisplayName: 纹粒
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
@@ -132,6 +135,9 @@ targets:
       - path: ShareExtension/Sources
       - path: ShareExtension/Resources
         excludes: ["Info.plist"]
+      - path: Resources/Localization
+        buildPhase: resources
+        excludes: ["AppShortcuts.xcstrings"]
     dependencies:
       - target: StylePortCore
         embed: true
@@ -144,7 +150,7 @@ targets:
     info:
       path: ShareExtension/Resources/Info.plist
       properties:
-        CFBundleDisplayName: 补质感
+        CFBundleDisplayName: 纹粒
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSPhotoLibraryAddUsageDescription: 用于把补好质感的照片存为相册中的新照片，原照片不会被修改。

@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>LingXiStyle</string>
+	<string>纹粒</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -22,10 +22,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-	<key>LingXiKeychainGroup</key>
-	<string>$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LingXiKeychainGroup</key>
+	<string>$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>用于把补好质感的照片存为相册中的新照片，原照片不会被修改。</string>
 	<key>NSPhotoLibraryUsageDescription</key>

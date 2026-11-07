@@ -16,7 +16,7 @@ final class KeychainQuotaTests: XCTestCase {
         service = nil
     }
 
-    private func store(limit: Int = 10, clock: KeychainTestClock) -> KeychainQuotaStore {
+    private func store(limit: Int = QuotaConfiguration.freeDailyLimit, clock: KeychainTestClock) -> KeychainQuotaStore {
         let store = KeychainQuotaStore(service: service,
                                        accessGroup: nil,
                                        limit: limit,
@@ -25,9 +25,18 @@ final class KeychainQuotaTests: XCTestCase {
         return store
     }
 
+    func testDefaultAllowanceIsFive() throws {
+        let clock = KeychainTestClock()
+        let quota = store(clock: clock)
+        let status = try quota.status(isPro: false)
+        XCTAssertEqual(QuotaConfiguration.freeDailyLimit, 5)
+        XCTAssertEqual(status.limit, 5)
+        XCTAssertEqual(status.remaining, 5)
+    }
+
     func testReserveCommitAndReleaseUseOneSlot() throws {
         let clock = KeychainTestClock()
-        let quota = store(limit: 10, clock: clock)
+        let quota = store(clock: clock)
 
         let reservation = try XCTUnwrap(try quota.reserve(isPro: false))
         XCTAssertEqual(try quota.status(isPro: false).reserved, 1)
@@ -35,19 +44,19 @@ final class KeychainQuotaTests: XCTestCase {
         var status = try quota.status(isPro: false)
         XCTAssertEqual(status.used, 1)
         XCTAssertEqual(status.reserved, 0)
-        XCTAssertEqual(status.remaining, 9)
+        XCTAssertEqual(status.remaining, 4)
 
         let second = try XCTUnwrap(try quota.reserve(isPro: false))
         try quota.release(second)
         status = try quota.status(isPro: false)
         XCTAssertEqual(status.used, 1)
         XCTAssertEqual(status.reserved, 0)
-        XCTAssertEqual(status.remaining, 9)
+        XCTAssertEqual(status.remaining, 4)
     }
 
     func testCommitIsIdempotentAndLateReleaseCannotEraseIt() throws {
         let clock = KeychainTestClock()
-        let quota = store(limit: 10, clock: clock)
+        let quota = store(clock: clock)
         let reservation = try XCTUnwrap(try quota.reserve(isPro: false))
 
         try quota.commit(reservation)
@@ -129,11 +138,11 @@ final class KeychainQuotaTests: XCTestCase {
 
     func testQuotaSurvivesANewStoreInstance() throws {
         let clock = KeychainTestClock()
-        let first = store(limit: 10, clock: clock)
+        let first = store(clock: clock)
         let reservation = try XCTUnwrap(try first.reserve(isPro: false))
         try first.commit(reservation)
 
-        let restarted = store(limit: 10, clock: clock)
+        let restarted = store(clock: clock)
         XCTAssertEqual(try restarted.status(isPro: false).used, 1)
     }
 

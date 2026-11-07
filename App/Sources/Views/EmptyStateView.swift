@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import LingXiKit
 
 struct EmptyStateView: View {
     @ObservedObject var model: AppModel
@@ -10,37 +11,40 @@ struct EmptyStateView: View {
     @State private var appeared = false
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                header
-                    .padding(.top, Spacing.xl)
+        GeometryReader { proxy in
+            let isCompact = proxy.size.height < 760
+            ScrollView {
+                VStack(spacing: 0) {
+                    header
+                        .padding(.top, isCompact ? Spacing.m : Spacing.xl)
 
-                compositionFrame
-                    .padding(.top, Spacing.xl)
+                    compositionFrame(isCompact: isCompact)
+                        .padding(.top, isCompact ? Spacing.m : Spacing.xl)
 
-                Spacer(minLength: Spacing.xl)
+                    Spacer(minLength: isCompact ? Spacing.m : Spacing.xl)
 
-                actions
-                    .padding(.top, Spacing.l)
+                    actions
+                        .padding(.top, isCompact ? Spacing.m : Spacing.l)
 
-                QuotaBadge(quota: model.quota, isPro: model.isPro) {
-                    model.presentPro()
+                    QuotaBadge(quota: model.quota, isPro: model.isPro) {
+                        model.presentPro()
+                    }
+                    .padding(.top, isCompact ? Spacing.s : Spacing.m)
+
+                    privacyLine
+                        .padding(.top, isCompact ? Spacing.s : Spacing.m)
+                        .padding(.bottom, isCompact ? Spacing.s : Spacing.l)
                 }
-                .padding(.top, Spacing.m)
-
-                privacyLine
-                    .padding(.top, Spacing.m)
-                    .padding(.bottom, Spacing.l)
+                .padding(.horizontal, margin)
+                .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, margin)
-            .frame(maxWidth: .infinity)
-        }
-        .scrollBounceBehavior(.basedOnSize)
-        .opacity(appeared || reduceMotion ? 1 : 0)
-        .offset(y: appeared || reduceMotion ? 0 : 8)
-        .onAppear {
-            guard !reduceMotion else { appeared = true; return }
-            withAnimation(Motion.entrance) { appeared = true }
+            .scrollBounceBehavior(.basedOnSize)
+            .opacity(appeared || reduceMotion ? 1 : 0)
+            .offset(y: appeared || reduceMotion ? 0 : 8)
+            .onAppear {
+                guard !reduceMotion else { appeared = true; return }
+                withAnimation(Motion.entrance) { appeared = true }
+            }
         }
     }
 
@@ -52,13 +56,13 @@ struct EmptyStateView: View {
                                          startPoint: .topLeading,
                                          endPoint: .bottomTrailing))
                     .frame(width: 7, height: 7)
-                Text("LINGXI STYLE")
+                Text(Brand.name.uppercased())
                     .font(.system(.caption2, design: .default, weight: .semibold))
                     .tracking(2.4)
                     .foregroundStyle(Palette.accentText)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("LingXiStyle")
+            .accessibilityLabel(Brand.name)
 
             Text("为原片补上\n第三代摄影质感")
                 .font(.system(.largeTitle, design: .default, weight: .semibold))
@@ -73,8 +77,8 @@ struct EmptyStateView: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: Spacing.xs) {
-                miniBadge("HEIC 原片", systemImage: "photo")
-                miniBadge("仅补质感", systemImage: "sparkles")
+                miniBadge(String(localized: "HEIC 原片"), systemImage: "photo")
+                miniBadge(String(localized: "仅补质感"), systemImage: "sparkles")
             }
             .padding(.top, Spacing.xxs)
         }
@@ -91,7 +95,7 @@ struct EmptyStateView: View {
             .overlay(Capsule().strokeBorder(Palette.hairline, lineWidth: 1))
     }
 
-    private var compositionFrame: some View {
+    private func compositionFrame(isCompact: Bool) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .fill(LinearGradient(colors: [Palette.surface, Palette.surfaceElevated.opacity(0.75)],
@@ -119,32 +123,34 @@ struct EmptyStateView: View {
                         lineWidth: 1.5)
                 .padding(14)
 
-            VStack(spacing: Spacing.s) {
+            VStack(spacing: isCompact ? Spacing.xs : Spacing.s) {
                 ZStack {
                     Circle()
                         .fill(Palette.surfaceElevated)
-                        .frame(width: 78, height: 78)
+                        .frame(width: isCompact ? 56 : 78, height: isCompact ? 56 : 78)
                     Circle()
                         .strokeBorder(Palette.accent.opacity(0.24), lineWidth: 1)
-                        .frame(width: 78, height: 78)
+                        .frame(width: isCompact ? 56 : 78, height: isCompact ? 56 : 78)
                     Image(systemName: "camera.filters")
-                        .font(.system(size: 32, weight: .light))
+                        .font(.system(size: isCompact ? 24 : 32, weight: .light))
                         .foregroundStyle(Palette.accent)
                 }
                 .shadow(color: Palette.accent.opacity(0.18), radius: 18)
                 Text("一张原片，一层质感")
                     .font(Typography.status)
                     .foregroundStyle(Palette.textPrimary)
-                Text("保留原始光影，只让质感更接近第三代风格")
-                    .font(Typography.caption)
-                    .foregroundStyle(Palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+                if !isCompact {
+                    Text("保留原始光影，只让质感更接近第三代风格")
+                        .font(Typography.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            .padding(Spacing.l)
+            .padding(isCompact ? Spacing.m : Spacing.l)
 
         }
-        .frame(maxHeight: 300)
+        .frame(maxHeight: isCompact ? 152 : 260)
         .aspectRatio(Layout.heroAspect, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
         .overlay(
@@ -164,12 +170,12 @@ struct EmptyStateView: View {
                          maxSelectionCount: AppModel.maxSelection,
                          matching: .images,
                          photoLibrary: .shared()) {
-                PrimaryActionLabel(title: "选择照片", systemImage: "photo.on.rectangle")
+                PrimaryActionLabel(title: String(localized: "选择照片"), systemImage: "photo.on.rectangle")
             }
             .buttonStyle(.plain)
-            .accessibilityHint("打开系统图库，最多选择 \(AppModel.maxSelection) 张 HEIC 原片")
+            .accessibilityHint(String(localized: "empty.pickerHint", defaultValue: "打开系统图库，最多选择 \(AppModel.maxSelection) 张 HEIC 原片"))
 
-            SecondaryActionButton(title: "从文件导入", systemImage: "folder") {
+            SecondaryActionButton(title: String(localized: "从文件导入"), systemImage: "folder") {
                 model.isImportingFiles = true
             }
         }

@@ -22,17 +22,17 @@ public enum PhotoLibraryError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .noHEICResource(let types):
-            return "这张照片没有 HEIC 原件（\(types.joined(separator: ", "))），请在 LingXiStyle 内从图库选择原片。"
+            return String(localized: "library.error.noHEIC", defaultValue: "这张照片没有 HEIC 原件（\(types.joined(separator: "、"))），请在 \(Brand.name) 内从图库选择原片。")
         case .exportFailed(let detail):
-            return "下载原件失败：\(detail)"
+            return String(localized: "library.error.download", defaultValue: "下载原件失败：\(detail)")
         case .addPermissionDenied:
-            return "没有相册写入权限。请在系统设置中允许 LingXiStyle 添加照片，再回来重试。"
+            return String(localized: "library.error.addPermission", defaultValue: "没有相册写入权限。请在系统设置中允许 \(Brand.name) 添加照片，再回来重试。")
         case .saveFailed(let detail):
-            return "保存到相册失败：\(detail)"
+            return String(localized: "library.error.save", defaultValue: "保存到相册失败：\(detail)")
         case .savedAssetMissing:
-            return "照片已写入，但系统没有返回它的标识。"
+            return String(localized: "照片已写入，但系统没有返回它的标识。")
         case .savedAssetIsNotHEIC(let types):
-            return "保存后的资源不是 HEIC（\(types.joined(separator: ", "))），已停止确认流程。"
+            return String(localized: "library.error.savedNotHEIC", defaultValue: "保存后的资源不是 HEIC（\(types.joined(separator: "、"))），已停止确认流程。")
         }
     }
 
@@ -152,7 +152,7 @@ public struct PhotoLibraryService {
     // MARK: Original export
 
     /// Copies the photo resource's original bytes to disk. Network access lets PhotoKit pull an
-    /// iCloud original, which is why the UI has a real "正在下载原件" phase.
+    /// iCloud original, which is why the UI has a real String(localized: "正在下载原件") phase.
     ///
     /// PhotoKit's writeData API has no cancellable request ID and no synchronous cancellation.
     /// We therefore resume the caller immediately on Task cancellation and clean up the item

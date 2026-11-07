@@ -1,4 +1,4 @@
-# App Store 发布配置（LingXiStyle 1.2）
+# App Store 发布配置（纹粒 / Texel 1.3）
 
 这份文档只描述**若要发布到 App Store**时需要完成的 App Store Connect 与签名配置。
 仓库本身仍然只提供源码，不附带 IPA、TestFlight 包或真实商品。
@@ -11,7 +11,7 @@
 | App Store Sandbox | App Store Connect 商品 + Sandbox 测试账号 | 否 | 真机验证完整 StoreKit 流程 |
 | App Store 生产 | App Store Connect 审核通过的商品 | 是 | 最终用户购买 |
 
-`Configuration.storekit` 里的 `4.99` 只是本地测试价格，不是任何地区的真实售价。
+`Configuration.storekit` 里的 `2.99` 只是本地测试价格，不是任何地区的真实售价。
 UI 与测试都不得把它当作生产价格。
 
 ## 1. 前置条件
@@ -36,12 +36,13 @@ UI 与测试都不得把它当作生产价格。
    com.lingxifox.LingXiStyle.pro
    ```
 
-3. 参考名称：`LingXiStyle Pro`。
-4. 本地化至少填写简体中文；建议同时填写英文、日文、德文：
-   - 简体中文：`LingXiStyle Pro` / `一次购买，永久解锁无限照片转换。`
-   - English: `LingXiStyle Pro` / `One-time purchase. Unlimited photo conversions, forever.`
-   - 日本語：`LingXiStyle Pro` / `買い切りで写真変換が無制限になります。`
-   - Deutsch: `LingXiStyle Pro` / `Einmaliger Kauf. Unbegrenzte Fotokonvertierungen, dauerhaft.`
+3. 参考名称：`Texel Pro`。
+4. 本地化至少填写简体中文；建议同时填写繁体中文、英文、日文，德文可选：
+   - 简体中文：`纹粒 Pro` / `一次购买，永久解锁无限照片转换。`
+   - 繁體中文：`Texel Pro` / `一次購買，永久解鎖無限照片轉換。`
+   - English: `Texel Pro` / `One purchase. Unlimited photo conversions, forever.`
+   - 日本語：`Texel Pro` / `一度の購入で、写真変換はずっと無制限。`
+   - Deutsch（可选）：`Texel Pro` / `Einmal kaufen. Unbegrenzte Fotokonvertierungen, für immer.`
 5. 上传审核截图（Pro 页面 + 购买按钮 + 恢复购买）。
 6. 价格：先设置一个基准地区价格，其他地区使用 Apple 的自动定价，或按地区手动覆盖。
 7. 商品状态必须为 **Ready to Submit / 已准备提交**，并随 App 版本一起提交审核。
@@ -88,16 +89,16 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 
 ## 5. 发布前检查清单
 
-- [ ] 版本号 `1.2.0`、Build `3`（或更高）已写入 `project.yml`。
+- [ ] 版本号 `1.3.0`、Build `4`（或更高）已写入 `project.yml`。
 - [ ] `xcodegen generate` 后 Debug scheme 仍带 `Configuration.storekit`。
 - [ ] `LingXiKitTests`、`LingXiPurchaseTests`、`LingXiEngineTests`、`StylePortCoreTests` 全绿。
 - [ ] Release 构建不包含 StoreKit 测试配置。
 - [ ] 商品 ID、类型、本地化、价格、审核截图已填。
 - [ ] Paid Apps Agreement、税务、银行信息完成。
 - [ ] Pro 页面只显示 `Product.displayPrice`；加载失败显示错误与重试，不显示假价格。
-- [ ] 免费额度 10 张 / 本地自然日；失败、跳过、不兼容不扣额度。
+- [ ] 免费额度 5 张 / 本地自然日；失败、跳过、不兼容不扣额度。
 - [ ] 额度耗尽页可继续免费到明天，也可进入 Pro；批量超额度只转剩余张数。
-- [ ] 恢复购买、退款 / 撤销、待批准、未完成交易均有中文提示。
+- [ ] 恢复购买、退款 / 撤销、待批准、未完成交易均有本地化提示。
 - [ ] 首次启动不强制弹付费页。
 - [ ] 分享扩展与快捷指令同样受额度约束。
 - [ ] 浅色 / 深色、Dynamic Type、Reduce Motion、VoiceOver 通过。
@@ -107,9 +108,9 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 ## 6. 审核备注建议
 
 ```
-LingXiStyle Pro is a one-time non-consumable in-app purchase that removes the
-free daily limit of 10 successful photo conversions. It is not a subscription.
-Free users can keep using 10 conversions per local calendar day. All conversions
+Texel Pro is a one-time non-consumable in-app purchase that removes the
+free daily limit of 5 successful photo conversions. It is not a subscription.
+Free users can keep using 5 conversions per local calendar day. All conversions
 run on-device; no account or server is required. Restore Purchases is available
 on the Pro page.
 ```
@@ -118,6 +119,6 @@ on the Pro page.
 
 - 本仓库不分发 IPA；真实商品只在 App Store 生产环境扣款。
 - 免费 Personal Team 的 7 天签名只适合源码自用，不能用于上架或真实内购。
-- 本地 StoreKit 配置的 `$4.99 / ¥4.99 / ¥5 / 4,99 €` 只是测试显示，不是定价建议。
+- 本地 StoreKit 配置的 `$2.99` 只是测试显示，不是定价建议。
 - 若未来改用 App Group + SQLite 作为额度存储，必须同时为 App 与扩展申请 App Group，
   并重新验证签名；当前实现不依赖这条路径。

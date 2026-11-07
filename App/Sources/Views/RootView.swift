@@ -73,7 +73,7 @@ struct RootView: View {
                     set: { if !$0 { model.batchQuotaPrompt = nil } }
                ),
                presenting: model.batchQuotaPrompt) { prompt in
-            Button("仅转换 \(prompt.available) 张") {
+            Button(String(localized: "batch.convertAvailable", defaultValue: "仅转换 \(prompt.available) 张")) {
                 model.batchQuotaPrompt = nil
                 model.startConversion(clearFailures: prompt.clearFailures, limit: prompt.available)
             }
@@ -85,7 +85,7 @@ struct RootView: View {
                 model.batchQuotaPrompt = nil
             }
         } message: { prompt in
-            Text("已选 \(prompt.requested) 张可转换照片，今日还剩 \(prompt.available) 张免费额度。超出部分不会转换，也不会消耗额度。")
+            Text(String(localized: "batch.message", defaultValue: "已选 \(prompt.requested) 张可转换照片，今日还剩 \(prompt.available) 张免费额度。超出部分不会转换，也不会消耗额度。"))
         }
     }
 
@@ -127,7 +127,7 @@ struct RootView: View {
                 .transition(.opacity)
         case .result:
             ResultView(model: model) {
-                diagnostics = DiagnosticsPayload(text: model.diagnosticsText ?? "暂无诊断信息")
+                diagnostics = DiagnosticsPayload(text: model.diagnosticsText ?? String(localized: "暂无诊断信息"))
             }
             .transition(.opacity)
         case .permissionDenied:

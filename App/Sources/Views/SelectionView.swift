@@ -71,7 +71,7 @@ struct SelectionView: View {
                 .padding(.horizontal, Spacing.xs)
                 .padding(.vertical, 5)
                 .background(Palette.surfaceElevated, in: Capsule())
-                .accessibilityLabel("已选 \(model.items.count) 张，最多 \(AppModel.maxSelection) 张")
+                .accessibilityLabel(String(localized: "selection.countAccessibility", defaultValue: "已选 \(model.items.count) 张，最多 \(AppModel.maxSelection) 张"))
             Button("清空") { model.reset() }
                 .font(Typography.captionEmphasized)
                 .foregroundStyle(Palette.textSecondary)
@@ -200,9 +200,9 @@ struct SelectionView: View {
         if let inspection = item.inspection {
             HStack(spacing: Spacing.xxs) {
                 if inspection.hasHDRGainMap { chip("HDR") }
-                if inspection.hasStyleMetadata { chip("风格") }
+                if inspection.hasStyleMetadata { chip(String(localized: "风格")) }
                 if inspection.hasExif { chip("EXIF") }
-                if inspection.hasThumbnail { chip("缩略图") }
+                if inspection.hasThumbnail { chip(String(localized: "缩略图")) }
                 Spacer(minLength: 0)
             }
             .padding(.top, Spacing.xxs)
@@ -227,7 +227,7 @@ struct SelectionView: View {
                                 canAdd: model.items.count < AppModel.maxSelection)
 
             HStack(spacing: Spacing.xs) {
-                Label("\(model.convertibleCount) 张可解锁", systemImage: "sparkles")
+                Label(String(localized: "selection.convertibleCount", defaultValue: "\(model.convertibleCount) 张可解锁"), systemImage: "sparkles")
                     .font(Typography.captionEmphasized)
                     .foregroundStyle(model.convertibleCount > 0 ? Palette.success : Palette.textSecondary)
                 Spacer(minLength: Spacing.s)
@@ -237,7 +237,7 @@ struct SelectionView: View {
                         .font(Typography.caption)
                         .foregroundStyle(Palette.textSecondary)
                 } else if model.skippedCount > 0 {
-                    Text("\(model.skippedCount) 张会跳过")
+                    Text(String(localized: "selection.skippedCount", defaultValue: "\(model.skippedCount) 张会跳过"))
                         .font(Typography.caption)
                         .foregroundStyle(Palette.textSecondary)
                 }
@@ -258,7 +258,7 @@ struct SelectionView: View {
             .padding(.horizontal, margin)
 
             if let quota = model.quota, !model.isPro, quota.isAvailable, quota.remaining == 0 {
-                PrimaryActionButton(title: "今日免费额度已用完",
+                PrimaryActionButton(title: String(localized: "今日免费额度已用完"),
                                     systemImage: "clock.badge.exclamationmark",
                                     isEnabled: model.convertibleCount > 0 && !model.isBusyPreparing,
                                     isWorking: model.isBusyPreparing) {

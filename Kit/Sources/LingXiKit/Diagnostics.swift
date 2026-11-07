@@ -12,7 +12,7 @@ public enum DiagnosticsFormatter {
                               integrity: IntegrityReport?,
                               failure: String? = nil) -> String {
         var lines: [String] = []
-        lines.append("LingXiStyle \(appVersion) (\(build))")
+        lines.append("\(Brand.name) \(appVersion) (\(build))")
         lines.append("system: \(systemVersion) · \(deviceModel)")
         if let inspection {
             lines.append("container: \(inspection.container.rawValue) · \(inspection.fileByteCount) bytes")

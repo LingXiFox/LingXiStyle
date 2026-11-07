@@ -88,7 +88,7 @@ struct ConvertingView: View {
                 .font(Typography.captionEmphasized)
                 .foregroundStyle(Palette.textSecondary)
                 .monospacedDigit()
-                .accessibilityLabel("已完成 \(completedCount) 张，共 \(model.items.count) 张")
+                .accessibilityLabel(String(localized: "converting.completedAccessibility", defaultValue: "已完成 \(completedCount) 张，共 \(model.items.count) 张"))
         }
     }
 

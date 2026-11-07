@@ -52,8 +52,8 @@ final class ShareModel: ObservableObject {
     }
 
     @Published private(set) var phase: Phase = .reading
-    @Published private(set) var title = "正在读取分享的照片"
-    @Published private(set) var message = "文件会先复制到 LingXiStyle 的沙盒，再检查结构。"
+    @Published private(set) var title = String(localized: "正在读取分享的照片")
+    @Published private(set) var message = String(localized: "share.copyHint", defaultValue: "文件会先复制到 \(Brand.name) 的沙盒，再检查结构。")
     @Published private(set) var diagnosticCode: String?
     @Published private(set) var canRetry = false
 
@@ -83,7 +83,7 @@ final class ShareModel: ObservableObject {
 
     func begin(providers: [NSItemProvider]) {
         guard let provider = providers.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier) }) else {
-            fail(title: "没有收到照片", message: "请回到系统「照片」重新分享，或直接在 LingXiStyle 内从图库选择照片。", retry: false)
+            fail(title: String(localized: "没有收到照片"), message: String(localized: "share.error.noProviders", defaultValue: "请回到系统「照片」重新分享，或直接在 \(Brand.name) 内从图库选择照片。"), retry: false)
             return
         }
         load(provider)
@@ -99,7 +99,7 @@ final class ShareModel: ObservableObject {
     private func load(_ provider: NSItemProvider) {
         let identifiers = [UTType.heic.identifier, UTType.heif.identifier, UTType.image.identifier]
         guard let identifier = identifiers.first(where: { provider.hasItemConformingToTypeIdentifier($0) }) else {
-            fail(title: "没有收到照片", message: "请分享一张 HEIC 原片，或直接在 LingXiStyle 内从图库选择照片。", retry: false)
+            fail(title: String(localized: "没有收到照片"), message: String(localized: "share.error.notHEIC", defaultValue: "请分享一张 HEIC 原片，或直接在 \(Brand.name) 内从图库选择照片。"), retry: false)
             return
         }
         phase = .reading
@@ -110,10 +110,10 @@ final class ShareModel: ObservableObject {
         provider.loadFileRepresentation(forTypeIdentifier: identifier) { [weak self] url, error in
             guard let self else { return }
             guard let url else {
-                let detail = error?.localizedDescription ?? "系统没有提供可读取的文件副本。请直接在 LingXiStyle 内从图库选择照片。"
+                let detail = error?.localizedDescription ?? String(localized: "share.error.noFile", defaultValue: "系统没有提供可读取的文件副本。请直接在 \(Brand.name) 内从图库选择照片。")
                 Task { @MainActor in
                     guard self.loadGeneration == generation else { return }
-                    self.fail(title: "无法读取分享的文件", message: detail, retry: false)
+                    self.fail(title: String(localized: "无法读取分享的文件"), message: detail, retry: false)
                 }
                 return
             }
@@ -133,8 +133,8 @@ final class ShareModel: ObservableObject {
                 try? FileManager.default.removeItem(at: directory)
                 Task { @MainActor in
                     guard self.loadGeneration == generation else { return }
-                    self.fail(title: "无法复制这个文件",
-                              message: "分享扩展没有拿到文件的读写权限。请在 LingXiStyle 内从图库选择照片。",
+                    self.fail(title: String(localized: "无法复制这个文件"),
+                              message: String(localized: "share.error.noAccess", defaultValue: "分享扩展没有拿到文件的读写权限。请在 \(Brand.name) 内从图库选择照片。"),
                               retry: false)
                 }
                 return
@@ -160,8 +160,8 @@ final class ShareModel: ObservableObject {
         canRetry = false
         diagnosticCode = nil
         phase = .inspecting
-        title = "正在检查 HEIC 结构"
-        message = "确认这是完整原片，并检查是否已经带有第三代质感。"
+        title = String(localized: "正在检查 HEIC 结构")
+        message = String(localized: "确认这是完整原片，并检查是否已经带有第三代质感。")
 
         processingTask = Task { [weak self] in
             await self?.run(fileURL: fileURL, session: session)
@@ -187,8 +187,8 @@ final class ShareModel: ObservableObject {
         } catch {
             guard sessionID == session else { return }
             let failure = error as? ConversionFailure
-            fail(title: "这不是可处理的 HEIC 原片",
-                 message: "请在 LingXiStyle 内从图库选择照片。分享面板有时会转成 JPEG 或只给出预览图，这时无法保留原始编码。",
+            fail(title: String(localized: "这不是可处理的 HEIC 原片"),
+                 message: String(localized: "share.error.unsupportedDetail", defaultValue: "请在 \(Brand.name) 内从图库选择照片。分享面板有时会转成 JPEG 或只给出预览图，这时无法保留原始编码。"),
                  code: failure?.diagnosticCode,
                  retry: false)
             return
@@ -197,7 +197,7 @@ final class ShareModel: ObservableObject {
         guard sessionID == session else { return }
         guard outcome.verdict.isReady else {
             fail(title: outcome.verdict.headline,
-                 message: outcome.verdict.detail + " 请在 LingXiStyle 内从图库选择照片。",
+                 message: String(localized: "share.unsupported.message", defaultValue: "\(outcome.verdict.detail) 请在 \(Brand.name) 内从图库选择照片。"),
                  code: outcome.verdict.issues.map(\.rawValue).joined(separator: ","),
                  retry: false)
             return
@@ -206,8 +206,8 @@ final class ShareModel: ObservableObject {
         do {
             try Task.checkCancellation()
             phase = .converting(.readingOriginal)
-            title = "正在补上第三代质感"
-            message = "照片保持清晰，只处理纹理与颗粒层。"
+            title = String(localized: "正在补上第三代质感")
+            message = String(localized: "照片保持清晰，只处理纹理与颗粒层。")
 
             let request = ConversionService.Request(
                 fileURL: fileURL,
@@ -220,24 +220,24 @@ final class ShareModel: ObservableObject {
                 Task { @MainActor [weak self] in
                     guard let self, self.sessionID == session, !self.cancelRequested else { return }
                     self.phase = .converting(stage)
-                    self.title = stage == .finished ? "正在完成保存" : "正在\(stage.title)"
+                    self.title = stage.inProgressTitle
                     self.message = Self.message(for: stage)
                 }
             }
             guard sessionID == session else { return }
             phase = .done
-            title = "已保存新照片"
+            title = String(localized: "已保存新照片")
             message = cancelRequested
-                ? "取消请求到达时，这张照片已经写入相册，已保留。原照片没有被修改。"
-                : "原照片没有被修改。新照片已出现在系统「照片」中，可以继续编辑。"
+                ? String(localized: "取消请求到达时，这张照片已经写入相册，已保留。原照片没有被修改。")
+                : String(localized: "原照片没有被修改。新照片已出现在系统「照片」中，可以继续编辑。")
             diagnosticCode = result.savedAssetIdentifier.map { "SAVED:\($0)" }
             canRetry = false
             cleanupInput()
         } catch is CancellationError {
             guard sessionID == session else { return }
             phase = .cancelled
-            title = "已取消，没有保存新照片"
-            message = "没有写入相册，原照片保持不变。"
+            title = String(localized: "已取消，没有保存新照片")
+            message = String(localized: "没有写入相册，原照片保持不变。")
             diagnosticCode = nil
             canRetry = sharedFile != nil
         } catch {
@@ -248,19 +248,19 @@ final class ShareModel: ObservableObject {
 
     private func present(_ error: Error) {
         if let failure = error as? ConversionFailure {
-            fail(title: "转换没有完成", message: failure.message, code: failure.diagnosticCode, retry: true)
+            fail(title: String(localized: "转换没有完成"), message: failure.message, code: failure.diagnosticCode, retry: true)
         } else if let libraryError = error as? PhotoLibraryError {
             let denied: Bool
             switch libraryError {
             case .addPermissionDenied: denied = true
             default: denied = false
             }
-            fail(title: denied ? "没有相册写入权限" : "保存到相册失败",
+            fail(title: denied ? String(localized: "没有相册写入权限") : String(localized: "保存到相册失败"),
                  message: libraryError.localizedDescription,
                  code: libraryError.diagnosticCode,
                  retry: true)
         } else {
-            fail(title: "转换没有完成", message: error.localizedDescription, code: nil, retry: true)
+            fail(title: String(localized: "转换没有完成"), message: error.localizedDescription, code: nil, retry: true)
         }
     }
 
@@ -279,15 +279,15 @@ final class ShareModel: ObservableObject {
         case .reading:
             loadGeneration = UUID()
             phase = .cancelled
-            title = "已取消"
-            message = "没有读取或保存任何照片。"
+            title = String(localized: "已取消")
+            message = String(localized: "没有读取或保存任何照片。")
             canRetry = false
             cleanupInput()
         case .inspecting, .converting:
             cancelRequested = true
             phase = .cancelling
-            title = "正在取消"
-            message = "已保存的照片会保留；正在写入的照片会先完成保存。"
+            title = String(localized: "正在取消")
+            message = String(localized: "已保存的照片会保留；正在写入的照片会先完成保存。")
             processingTask?.cancel()
         case .cancelling:
             break
@@ -332,13 +332,13 @@ final class ShareModel: ObservableObject {
 
     private static func message(for stage: ConversionStage) -> String {
         switch stage {
-        case .readingOriginal: return "正在读取原始 HEIC，照片内容不会被改动。"
-        case .inspecting: return "正在确认主图、HDR、EXIF 与风格元数据。"
-        case .converting: return "只追加纹理与颗粒层，主图编码保持原样。"
-        case .verifying: return "正在逐项比对转换前后的完整性。"
-        case .saving: return "正在把新照片写入系统相册。"
-        case .finished: return "新照片已经保存，原照片保留。"
-        case .failed: return "这一步没有完成，请重试。"
+        case .readingOriginal: return String(localized: "正在读取原始 HEIC，照片内容不会被改动。")
+        case .inspecting: return String(localized: "正在确认主图、HDR、EXIF 与风格元数据。")
+        case .converting: return String(localized: "只追加纹理与颗粒层，主图编码保持原样。")
+        case .verifying: return String(localized: "正在逐项比对转换前后的完整性。")
+        case .saving: return String(localized: "正在把新照片写入系统相册。")
+        case .finished: return String(localized: "新照片已经保存，原照片保留。")
+        case .failed: return String(localized: "这一步没有完成，请重试。")
         }
     }
 
@@ -421,7 +421,7 @@ struct ShareFlowView: View {
                 .font(.footnote.weight(.medium))
                 .foregroundStyle(SharePalette.textSecondary)
         case .failed:
-            Text(model.canRetry ? "可以重试，不会覆盖原照片。" : "请返回主 App 重新选择这张照片。")
+            Text(model.canRetry ? String(localized: "可以重试，不会覆盖原照片。") : String(localized: "请返回主 App 重新选择这张照片。"))
                 .font(.caption)
                 .foregroundStyle(SharePalette.textSecondary)
         case .cancelling:
@@ -458,7 +458,7 @@ struct ShareFlowView: View {
                         .controlSize(.large)
                         .frame(maxWidth: .infinity)
                 }
-                Button(model.phase == .done ? "完成" : "关闭") { model.close() }
+                Button(model.phase == .done ? String(localized: "完成") : String(localized: "关闭")) { model.close() }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     .frame(maxWidth: .infinity)
@@ -507,11 +507,17 @@ private struct ShareStageRail: View {
                             Capsule().strokeBorder(SharePalette.accent.opacity(0.35), lineWidth: 1)
                         }
                     }
-                    .accessibilityLabel("\(step.title)\(index < currentIndex ? "，已完成" : index == currentIndex ? "，进行中" : "")")
+                    .accessibilityLabel(Text(String(localized: "share.stage.accessibility", defaultValue: "\(step.title)\(stepSuffix(index))")))
             }
         }
         .frame(maxWidth: 220)
         .accessibilityElement(children: .contain)
+    }
+
+    private func stepSuffix(_ index: Int) -> String {
+        if index < currentIndex { return String(localized: "stage.done", defaultValue: "，已完成") }
+        if index == currentIndex { return String(localized: "stage.current", defaultValue: "，进行中") }
+        return ""
     }
 }
 

@@ -28,7 +28,7 @@ struct StageProgressView: View {
                     .font(Typography.status)
                     .foregroundStyle(Palette.textPrimary)
                 Spacer(minLength: Spacing.s)
-                Text("第 \(photoIndex) / \(photoTotal) 张")
+                Text(String(localized: "progress.photoCounter", defaultValue: "第 \(photoIndex) / \(photoTotal) 张"))
                     .font(Typography.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .monospacedDigit()
@@ -56,10 +56,10 @@ struct StageProgressView: View {
     }
 
     private var statusText: String {
-        if failed { return "这一步没有完成" }
-        guard let stage else { return "准备中" }
-        if stage == .finished { return "已保存新照片" }
-        return "正在\(stage.title)"
+        if failed { return String(localized: "这一步没有完成") }
+        guard let stage else { return String(localized: "准备中") }
+        if stage == .finished { return String(localized: "已保存新照片") }
+        return stage.inProgressTitle
     }
 
     @ViewBuilder
@@ -67,6 +67,11 @@ struct StageProgressView: View {
         let done = (currentIndex ?? -1) > index || stage == .finished
         let isCurrent = currentIndex == index && !failed
         let isFailedHere = failed && currentIndex == index
+        let suffix = done
+            ? String(localized: "stage.done", defaultValue: "，已完成")
+            : isFailedHere
+                ? String(localized: "stage.failed", defaultValue: "，失败")
+                : isCurrent ? String(localized: "stage.current", defaultValue: "，进行中") : ""
 
         HStack(spacing: Spacing.s) {
             ZStack {
@@ -93,6 +98,6 @@ struct StageProgressView: View {
                 .foregroundStyle(isCurrent ? Palette.textPrimary : Palette.textSecondary)
             Spacer(minLength: 0)
         }
-        .accessibilityLabel("\(step.title)\(done ? "，已完成" : isFailedHere ? "，失败" : isCurrent ? "，进行中" : "")")
+        .accessibilityLabel(String(localized: "progress.stageAccessibility", defaultValue: "\(step.title)\(suffix)"))
     }
 }

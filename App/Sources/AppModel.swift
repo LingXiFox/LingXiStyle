@@ -80,8 +80,8 @@ final class AppModel: ObservableObject {
     }
 
     var ctaTitle: String {
-        if convertibleCount > 1 { return "解锁 \(convertibleCount) 张照片" }
-        return "解锁第三代摄影风格"
+        if convertibleCount > 1 { return String(localized: "cta.unlockPhotos", defaultValue: "解锁 \(convertibleCount) 张照片") }
+        return String(localized: "解锁第三代摄影风格")
     }
 
     var isBusyPreparing: Bool { items.contains { $0.phase == .preparing } }
@@ -202,7 +202,7 @@ final class AppModel: ObservableObject {
         guard !Task.isCancelled else { return }
         guard status == .authorized || status == .limited else {
             screen = .permissionDenied
-            notice = "需要照片读取权限才能取得原始 HEIC。也可以从文件导入。"
+            notice = String(localized: "需要照片读取权限才能取得原始 HEIC。也可以从文件导入。")
             return
         }
 
@@ -214,7 +214,7 @@ final class AppModel: ObservableObject {
             if let asset = result.firstObject { assets.append(asset) }
         }
         if missing > 0 {
-            notice = "有 \(missing) 张照片拿不到图库原件标识，请在系统相册里重新选择。"
+            notice = String(localized: "notice.missingAssetIdentifiers", defaultValue: "有 \(missing) 张照片拿不到图库原件标识，请在系统相册里重新选择。")
         }
         await enqueue(assets: assets)
     }
@@ -226,7 +226,7 @@ final class AppModel: ObservableObject {
                 await self?.enqueue(fileURLs: urls)
             })
         case .failure(let error):
-            notice = "导入失败：\(error.localizedDescription)"
+            notice = String(localized: "notice.importFailed", defaultValue: "导入失败：\(error.localizedDescription)")
         }
     }
 
@@ -234,7 +234,7 @@ final class AppModel: ObservableObject {
         guard !Task.isCancelled, !assets.isEmpty else { return }
         let room = Self.maxSelection - items.count
         guard room > 0 else {
-            notice = "一次最多处理 \(Self.maxSelection) 张照片。"
+            notice = String(localized: "notice.tooManyPhotos", defaultValue: "一次最多处理 \(Self.maxSelection) 张照片。")
             return
         }
 
@@ -245,19 +245,19 @@ final class AppModel: ObservableObject {
             return true
         }
         if unique.count < assets.count {
-            notice = "已跳过重复选择的照片。"
+            notice = String(localized: "已跳过重复选择的照片。")
         }
         let accepted = Array(unique.prefix(room))
         guard !accepted.isEmpty else { return }
         if unique.count > room {
-            notice = "只加入了前 \(room) 张，一次最多 \(Self.maxSelection) 张。"
+            notice = String(localized: "notice.partialBatch", defaultValue: "只加入了前 \(room) 张，一次最多 \(Self.maxSelection) 张。")
         }
 
         let workspace: SessionWorkspace
         do {
             workspace = try ensureWorkspace()
         } catch {
-            notice = "无法创建临时目录：\(error.localizedDescription)"
+            notice = String(localized: "notice.workspaceFailed", defaultValue: "无法创建临时目录：\(error.localizedDescription)")
             return
         }
         let generation = preparationGeneration
@@ -284,7 +284,7 @@ final class AppModel: ObservableObject {
         guard !Task.isCancelled else { return }
         let room = Self.maxSelection - items.count
         guard room > 0 else {
-            notice = "一次最多处理 \(Self.maxSelection) 张照片。"
+            notice = String(localized: "notice.tooManyPhotos", defaultValue: "一次最多处理 \(Self.maxSelection) 张照片。")
             return
         }
 
@@ -294,7 +294,7 @@ final class AppModel: ObservableObject {
         do {
             workspace = try ensureWorkspace()
         } catch {
-            notice = "无法创建临时目录：\(error.localizedDescription)"
+            notice = String(localized: "notice.workspaceFailed", defaultValue: "无法创建临时目录：\(error.localizedDescription)")
             return
         }
         let generation = preparationGeneration
@@ -309,7 +309,7 @@ final class AppModel: ObservableObject {
             do {
                 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             } catch {
-                notice = "无法导入 \(url.lastPathComponent)：\(error.localizedDescription)"
+                notice = String(localized: "notice.importFileFailed", defaultValue: "无法导入 \(url.lastPathComponent)：\(error.localizedDescription)")
                 continue
             }
             accepted.append((url, directory.appendingPathComponent(url.lastPathComponent), id))
@@ -391,7 +391,7 @@ final class AppModel: ObservableObject {
         } catch is CancellationError {
             guard generation == preparationGeneration else { return }
             updatePreparedItem(id, generation: generation) {
-                $0.phase = .preparingFailed("读取原件已取消")
+                $0.phase = .preparingFailed(String(localized: "读取原件已取消"))
                 $0.downloadProgress = nil
             }
         } catch {
@@ -431,7 +431,7 @@ final class AppModel: ObservableObject {
         } catch is CancellationError {
             guard generation == preparationGeneration else { return }
             updatePreparedItem(itemID, generation: generation) {
-                $0.phase = .preparingFailed("导入已取消")
+                $0.phase = .preparingFailed(String(localized: "导入已取消"))
             }
         } catch {
             guard generation == preparationGeneration else { return }
@@ -481,11 +481,11 @@ final class AppModel: ObservableObject {
     func startConversion(clearFailures: Bool = false, limit: Int? = nil) {
         guard !isStartingConversion, run == nil, conversionTask == nil else { return }
         guard !isBusyPreparing else {
-            notice = "还在读取原件，读完后再开始。"
+            notice = String(localized: "还在读取原件，读完后再开始。")
             return
         }
         guard convertibleCount > 0 else {
-            notice = "当前没有可解锁的照片。"
+            notice = String(localized: "当前没有可解锁的照片。")
             return
         }
         isStartingConversion = true
@@ -510,7 +510,7 @@ final class AppModel: ObservableObject {
         addPermissionDenied = addStatus == .denied || addStatus == .restricted
         permissionStatus = PhotoLibraryService.readAuthorizationStatus
         guard addStatus == .authorized || addStatus == .limited else {
-            notice = "没有相册写入权限。请在系统设置中允许 LingXiStyle 添加照片，再回来开始。"
+            notice = String(localized: "notice.addPermission", defaultValue: "没有相册写入权限。请在系统设置中允许 \(Brand.name) 添加照片，再回来开始。")
             return
         }
         guard startToken == token,
@@ -524,7 +524,7 @@ final class AppModel: ObservableObject {
                 if case .failed? = item.outcome { return item.isConvertible }
                 return false
             }) else {
-                notice = "没有可以重试的照片。"
+                notice = String(localized: "没有可以重试的照片。")
                 return
             }
         }
@@ -539,12 +539,12 @@ final class AppModel: ObservableObject {
 
         let requested = items.filter(\.isConvertible).count
         guard requested > 0 else {
-            notice = "当前没有可解锁的照片。"
+            notice = String(localized: "当前没有可解锁的照片。")
             return
         }
         if !status.isPro {
             guard status.isAvailable else {
-                notice = "暂时无法读取今日免费额度，请稍后重试。"
+                notice = String(localized: "暂时无法读取今日免费额度，请稍后重试。")
                 return
             }
             if status.remaining <= 0 {
@@ -574,7 +574,7 @@ final class AppModel: ObservableObject {
         do {
             workspace = try ensureWorkspace()
         } catch {
-            notice = "无法创建临时目录：\(error.localizedDescription)"
+            notice = String(localized: "notice.workspaceFailed", defaultValue: "无法创建临时目录：\(error.localizedDescription)")
             return
         }
 
@@ -590,7 +590,7 @@ final class AppModel: ObservableObject {
             }
         }
         guard convertibleCount > 0 else {
-            notice = "当前没有可解锁的照片。"
+            notice = String(localized: "当前没有可解锁的照片。")
             return
         }
 
@@ -702,7 +702,7 @@ final class AppModel: ObservableObject {
                         message = failure.message
                         code = failure.diagnosticCode
                     } else if let libraryError = error as? PhotoLibraryError {
-                        message = libraryError.errorDescription ?? "保存失败"
+                        message = libraryError.errorDescription ?? String(localized: "保存失败")
                         code = libraryError.diagnosticCode
                     } else {
                         message = error.localizedDescription

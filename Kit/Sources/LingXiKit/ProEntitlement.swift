@@ -4,8 +4,8 @@ import StoreKit
 
 public enum ProProduct {
     public static let identifier = "com.lingxifox.LingXiStyle.pro"
-    public static let displayName = "LingXiStyle Pro"
-    public static let description = "一次购买，永久解锁无限照片转换。"
+    public static var displayName: String { Brand.proName }
+    public static var description: String { String(localized: "一次购买，永久解锁无限照片转换。") }
 }
 
 /// The only source of truth for Pro. A local bool, a button callback, or an unverified JWS can
@@ -100,19 +100,19 @@ public final class PurchaseManager: ObservableObject {
             let products = try await Product.products(for: [productID])
             guard let match = products.first(where: { $0.id == productID }) else {
                 product = nil
-                productLoadError = "App Store 暂时没有返回这个商品，请稍后重试。"
+                productLoadError = String(localized: "App Store 暂时没有返回这个商品，请稍后重试。")
                 return
             }
             product = match
         } catch {
             product = nil
-            productLoadError = Self.message(for: error, fallback: "无法连接 App Store，请检查网络后重试。")
+            productLoadError = Self.message(for: error, fallback: String(localized: "无法连接 App Store，请检查网络后重试。"))
         }
     }
 
     public func purchase() async {
         guard let product else {
-            purchaseState = .failed("商品信息尚未加载，请稍后重试。")
+            purchaseState = .failed(String(localized: "商品信息尚未加载，请稍后重试。"))
             return
         }
         guard purchaseState != .purchasing else { return }
@@ -124,24 +124,24 @@ public final class PurchaseManager: ObservableObject {
                 guard case .verified(let transaction) = verification,
                       transaction.productID == productID,
                       transaction.revocationDate == nil else {
-                    purchaseState = .failed("购买凭证未通过验证，未授予 Pro 权益。")
+                    purchaseState = .failed(String(localized: "购买凭证未通过验证，未授予 Pro 权益。"))
                     return
                 }
                 await transaction.finish()
                 await refreshEntitlement()
-                purchaseState = isPro ? .success : .failed("交易已验证，但权益尚未生效，请稍后重试。")
+                purchaseState = isPro ? .success : .failed(String(localized: "交易已验证，但权益尚未生效，请稍后重试。"))
             case .pending:
                 purchaseState = .awaitingApproval
             case .userCancelled:
                 purchaseState = .cancelled
             @unknown default:
-                purchaseState = .failed("购买返回了未知状态，请稍后重试。")
+                purchaseState = .failed(String(localized: "购买返回了未知状态，请稍后重试。"))
             }
         } catch {
             if let storeError = error as? StoreKitError, case .userCancelled = storeError {
                 purchaseState = .cancelled
             } else {
-                purchaseState = .failed(Self.message(for: error, fallback: "购买未完成，请稍后重试。"))
+                purchaseState = .failed(Self.message(for: error, fallback: String(localized: "购买未完成，请稍后重试。")))
             }
         }
     }
@@ -154,9 +154,11 @@ public final class PurchaseManager: ObservableObject {
         do {
             try await AppStore.sync()
             await refreshEntitlement()
-            restoreMessage = isPro ? "已恢复 LingXiStyle Pro 权益。" : "没有找到可恢复的购买记录。"
+            restoreMessage = isPro
+                ? String(localized: "restore.success", defaultValue: "已恢复 \(Brand.proName) 权益。")
+                : String(localized: "没有找到可恢复的购买记录。")
         } catch {
-            restoreMessage = Self.message(for: error, fallback: "恢复购买失败，请稍后重试。")
+            restoreMessage = Self.message(for: error, fallback: String(localized: "恢复购买失败，请稍后重试。"))
         }
     }
 
@@ -183,13 +185,13 @@ public final class PurchaseManager: ObservableObject {
         if let storeError = error as? StoreKitError {
             switch storeError {
             case .networkError:
-                return "网络连接失败，请检查网络后重试。"
+                return String(localized: "网络连接失败，请检查网络后重试。")
             case .notAvailableInStorefront:
-                return "当前 App Store 地区暂不支持这个商品。"
+                return String(localized: "当前 App Store 地区暂不支持这个商品。")
             case .userCancelled:
-                return "购买已取消。"
+                return String(localized: "购买已取消。")
             case .systemError:
-                return "App Store 暂时不可用，请稍后重试。"
+                return String(localized: "App Store 暂时不可用，请稍后重试。")
             case .unknown, .notEntitled, .unsupported, .invalidPresentationContext:
                 return fallback
             @unknown default:
@@ -199,11 +201,11 @@ public final class PurchaseManager: ObservableObject {
         if let purchaseError = error as? Product.PurchaseError {
             switch purchaseError {
             case .productUnavailable:
-                return "这个商品当前不可购买，请稍后重试。"
+                return String(localized: "这个商品当前不可购买，请稍后重试。")
             case .purchaseNotAllowed:
-                return "当前设备不允许购买，请检查屏幕使用时间或家长控制。"
+                return String(localized: "当前设备不允许购买，请检查屏幕使用时间或家长控制。")
             default:
-                return "购买未完成，请稍后重试。"
+                return String(localized: "购买未完成，请稍后重试。")
             }
         }
         return fallback

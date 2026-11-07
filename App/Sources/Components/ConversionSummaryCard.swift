@@ -30,10 +30,10 @@ struct ConversionSummaryCard: View {
             }
 
             HStack(spacing: Spacing.s) {
-                countPill("成功", value: summary.savedCount, tint: Palette.success)
-                if summary.skippedCount > 0 { countPill("跳过", value: summary.skippedCount, tint: Palette.textSecondary) }
-                if summary.failedCount > 0 { countPill("失败", value: summary.failedCount, tint: Palette.error) }
-                if summary.cancelledCount > 0 { countPill("取消", value: summary.cancelledCount, tint: Palette.warning) }
+                countPill(String(localized: "成功"), value: summary.savedCount, tint: Palette.success)
+                if summary.skippedCount > 0 { countPill(String(localized: "跳过"), value: summary.skippedCount, tint: Palette.textSecondary) }
+                if summary.failedCount > 0 { countPill(String(localized: "失败"), value: summary.failedCount, tint: Palette.error) }
+                if summary.cancelledCount > 0 { countPill(String(localized: "取消"), value: summary.cancelledCount, tint: Palette.warning) }
                 Spacer(minLength: 0)
             }
         }
@@ -62,6 +62,6 @@ struct ConversionSummaryCard: View {
         .padding(.vertical, 7)
         .background(Palette.surfaceElevated, in: Capsule())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title) \(value) 张")
+        .accessibilityLabel(String(localized: "summary.countAccessibility", defaultValue: "\(title) \(value) 张"))
     }
 }

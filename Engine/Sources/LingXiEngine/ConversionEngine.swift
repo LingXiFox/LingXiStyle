@@ -50,7 +50,7 @@ public struct ConversionEngine: Sendable {
             throw ConversionFailure.engineMessage(error.localizedDescription)
         }
         guard result.report.mode == .addTexture, result.report.addedTexture else {
-            throw ConversionFailure.engineMessage("核心没有进入增量注入路径（\(result.report.mode.rawValue)）")
+            throw ConversionFailure.engineMessage(String(localized: "engine.error.unexpectedMode", defaultValue: "核心没有进入增量注入路径（\(result.report.mode.rawValue)）"))
         }
 
         onStage?(.verifying)
@@ -104,7 +104,7 @@ public struct ConversionEngine: Sendable {
         do {
             return try HEICInspector.inspect(data, hashing: true)
         } catch {
-            throw ConversionFailure.corrupted("无法解析 HEIC 结构：\(error)")
+            throw ConversionFailure.corrupted(String(localized: "engine.error.parse", defaultValue: "无法解析 HEIC 结构：\(String(describing: error))"))
         }
     }
 }
@@ -141,18 +141,18 @@ public enum ConversionFailure: Error, Sendable, LocalizedError {
     /// What the user reads. Plain Chinese, no error domain noise.
     public var message: String {
         switch self {
-        case .unreadable: return "无法读取这个文件，它可能已被移动或没有访问权限。"
-        case .corrupted(let detail): return "文件结构无法解析。\(detail)"
+        case .unreadable: return String(localized: "无法读取这个文件，它可能已被移动或没有访问权限。")
+        case .corrupted(let detail): return String(localized: "engine.error.corruptDetail", defaultValue: "文件结构无法解析。\(detail)")
         case .unsupported(let verdict): return verdict.detail
-        case .engine(.alreadyHasTexture): return "这张照片已经带有第三代质感。"
-        case .engine(.originalIsNotHEIC): return "这不是 HEIC 原片，请在 LingXiStyle 中从图库选择原始照片。"
-        case .engine(.invalidData(let detail)): return "核心拒绝了这个文件的布局：\(detail)"
-        case .engine(.missingResource(let name)): return "缺少核心需要的资源：\(name)"
-        case .engine(let error): return "转换核心返回了错误：\(error)"
+        case .engine(.alreadyHasTexture): return String(localized: "这张照片已经带有第三代质感。")
+        case .engine(.originalIsNotHEIC): return String(localized: "engine.error.notHEIC", defaultValue: "这不是 HEIC 原片，请在 \(Brand.name) 中从图库选择原始照片。")
+        case .engine(.invalidData(let detail)): return String(localized: "engine.error.invalidData", defaultValue: "核心拒绝了这个文件的布局：\(detail)")
+        case .engine(.missingResource(let name)): return String(localized: "engine.error.missingResource", defaultValue: "缺少核心需要的资源：\(name)")
+        case .engine(let error): return String(localized: "engine.error.other", defaultValue: "转换核心返回了错误：\(String(describing: error))")
         case .engineMessage(let text): return text
-        case .verificationFailed(let report): return "输出没通过无损校验：\(report.summary)"
-        case .writeFailed(let detail): return "写入临时文件失败：\(detail)"
-        case .quota(let error): return error.errorDescription ?? "今日免费额度不可用。"
+        case .verificationFailed(let report): return String(localized: "engine.error.verification", defaultValue: "输出没通过无损校验：\(report.summary)")
+        case .writeFailed(let detail): return String(localized: "engine.error.write", defaultValue: "写入临时文件失败：\(detail)")
+        case .quota(let error): return error.errorDescription ?? String(localized: "今日免费额度不可用。")
         }
     }
 

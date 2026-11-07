@@ -10,7 +10,7 @@ import Security
 /// can show the same numbers as the SQLite store.
 ///
 /// The store deliberately keeps item values tiny (one short pipe-separated record). Keychain is
-/// not a general-purpose database, but ten slots per day is well within its intended use.
+/// not a general-purpose database, but five slots per day is well within its intended use.
 final class KeychainQuotaStore: @unchecked Sendable {
     static let defaultService = "com.lingxifox.LingXiStyle.quota"
 
@@ -32,6 +32,7 @@ final class KeychainQuotaStore: @unchecked Sendable {
     private let accessGroup: String?
     private let limit: Int
     private let calendar: Calendar
+    private let fixedTimeZone: TimeZone?
     private let now: @Sendable () -> Date
     private let lock = NSLock()
 
@@ -39,11 +40,13 @@ final class KeychainQuotaStore: @unchecked Sendable {
          accessGroup: String? = KeychainQuotaStore.defaultAccessGroup(),
          limit: Int = QuotaConfiguration.freeDailyLimit,
          calendar: Calendar = .current,
+         timeZone: TimeZone? = nil,
          now: @escaping @Sendable () -> Date = { Date() }) {
         self.service = service
         self.accessGroup = accessGroup
         self.limit = max(1, limit)
         self.calendar = calendar
+        self.fixedTimeZone = timeZone
         self.now = now
     }
 
@@ -255,6 +258,8 @@ final class KeychainQuotaStore: @unchecked Sendable {
     }
 
     private func dayKey(for date: Date) -> String {
+        var calendar = calendar
+        calendar.timeZone = fixedTimeZone ?? .current
         let components = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d",
                       components.year ?? 0,

@@ -53,7 +53,7 @@ struct ResultView: View {
                 .foregroundStyle(Palette.warning)
             ForEach(warnedItems) { item in
                 if let warning = item.saveWarning {
-                    Text("\(item.displayName)：\(warning)")
+                    Text(String(localized: "result.warningLine", defaultValue: "\(item.displayName)：\(warning)"))
                         .font(Typography.caption)
                         .foregroundStyle(Palette.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -142,7 +142,7 @@ struct ResultView: View {
 
     private var deferredCard: some View {
         VStack(alignment: .leading, spacing: Spacing.s) {
-            Label("还有 \(model.deferredCount) 张未处理", systemImage: "clock.badge.exclamationmark")
+            Label(String(localized: "result.deferred", defaultValue: "还有 \(model.deferredCount) 张未处理"), systemImage: "clock.badge.exclamationmark")
                 .font(Typography.captionEmphasized)
                 .foregroundStyle(Palette.warning)
             Text("今日免费额度不足，这些照片没有转换，也没有消耗额度。明天 00:00 后会恢复免费额度。")
@@ -150,11 +150,11 @@ struct ResultView: View {
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             if model.isPro {
-                PrimaryActionButton(title: "继续处理剩余 \(model.deferredCount) 张", systemImage: "sparkles") {
+                PrimaryActionButton(title: String(localized: "result.continueRemaining", defaultValue: "继续处理剩余 \(model.deferredCount) 张"), systemImage: "sparkles") {
                     model.startConversion()
                 }
             } else {
-                SecondaryActionButton(title: "升级 Pro 继续处理", systemImage: "sparkles") {
+                SecondaryActionButton(title: String(localized: "升级 Pro 继续处理"), systemImage: "sparkles") {
                     model.presentPro()
                 }
             }
@@ -170,7 +170,7 @@ struct ResultView: View {
         VStack(spacing: Spacing.xs) {
             if summary.savedCount > 0 {
                 HStack(spacing: Spacing.s) {
-                    PrimaryActionButton(title: "查看成果", systemImage: "photo.stack") {
+                    PrimaryActionButton(title: String(localized: "查看成果"), systemImage: "photo.stack") {
                         viewer = ViewerPayload(index: 0)
                     }
                     if !shareableURLs.isEmpty {
@@ -190,12 +190,12 @@ struct ResultView: View {
                     }
                 }
                 if summary.failedCount > 0 {
-                    SecondaryActionButton(title: "重试失败项", systemImage: "arrow.clockwise") {
+                    SecondaryActionButton(title: String(localized: "重试失败项"), systemImage: "arrow.clockwise") {
                         model.retryFailed()
                     }
                 }
             } else if summary.failedCount > 0 {
-                PrimaryActionButton(title: "重试失败项", systemImage: "arrow.clockwise") {
+                PrimaryActionButton(title: String(localized: "重试失败项"), systemImage: "arrow.clockwise") {
                     model.retryFailed()
                 }
             }
@@ -249,7 +249,9 @@ private struct ResultHeroCard: View {
                     .aspectRatio(4.0 / 3.0, contentMode: .fit)
                     .clipped()
                     .overlay(alignment: .topTrailing) {
-                        Text(savedItems.count > 1 ? "\(savedItems.count) 张" : "新照片")
+                        Text(savedItems.count > 1
+                             ? String(localized: "result.count.photos", defaultValue: "\(savedItems.count) 张")
+                             : String(localized: "新照片"))
                             .font(Typography.micro)
                             .foregroundStyle(Palette.textPrimary)
                             .padding(.horizontal, 10)
@@ -294,10 +296,10 @@ private struct ResultHeroCard: View {
                 }
 
                 HStack(spacing: Spacing.xs) {
-                    countPill("成功", value: summary.savedCount, tint: Palette.success)
-                    if summary.skippedCount > 0 { countPill("跳过", value: summary.skippedCount, tint: Palette.textSecondary) }
-                    if summary.failedCount > 0 { countPill("失败", value: summary.failedCount, tint: Palette.error) }
-                    if summary.cancelledCount > 0 { countPill("取消", value: summary.cancelledCount, tint: Palette.warning) }
+                    countPill(String(localized: "成功"), value: summary.savedCount, tint: Palette.success)
+                    if summary.skippedCount > 0 { countPill(String(localized: "跳过"), value: summary.skippedCount, tint: Palette.textSecondary) }
+                    if summary.failedCount > 0 { countPill(String(localized: "失败"), value: summary.failedCount, tint: Palette.error) }
+                    if summary.cancelledCount > 0 { countPill(String(localized: "取消"), value: summary.cancelledCount, tint: Palette.warning) }
                     Spacer(minLength: 0)
                 }
 
@@ -315,7 +317,7 @@ private struct ResultHeroCard: View {
                                             .strokeBorder(Palette.hairline, lineWidth: 1))
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel("查看第 \(index + 1) 张成果")
+                                .accessibilityLabel(String(localized: "result.viewer.accessibility", defaultValue: "查看第 \(index + 1) 张成果"))
                             }
                         }
                     }
@@ -340,11 +342,11 @@ private struct ResultHeroCard: View {
 
     private var subline: String {
         if summary.savedCount > 0 {
-            return "原图没有被修改，新照片已存入系统相册。"
+            return String(localized: "原图没有被修改，新照片已存入系统相册。")
         }
-        if summary.failedCount > 0 { return "没有写入新照片，原图保持不变。" }
-        if summary.cancelledCount > 0 { return "任务已取消，没有写入新照片。" }
-        return "这些照片不需要生成新副本。"
+        if summary.failedCount > 0 { return String(localized: "没有写入新照片，原图保持不变。") }
+        if summary.cancelledCount > 0 { return String(localized: "任务已取消，没有写入新照片。") }
+        return String(localized: "这些照片不需要生成新副本。")
     }
 
     private func countPill(_ title: String, value: Int, tint: Color) -> some View {
@@ -357,7 +359,7 @@ private struct ResultHeroCard: View {
         .padding(.vertical, 6)
         .background(Palette.surfaceElevated, in: Capsule())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title) \(value) 张")
+        .accessibilityLabel(String(localized: "summary.countAccessibility", defaultValue: "\(title) \(value) 张"))
     }
 }
 
@@ -464,20 +466,20 @@ struct PermissionDeniedView: View {
                     .font(Typography.section)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
-                Text("LingXiStyle 只读取你选中的 HEIC 原片，读取和保存都在这台设备上完成。没有相册权限时，仍然可以从「文件」导入 HEIC。")
+                Text("仅在本机读取你选中的 HEIC 原片，不经过服务器。没有相册权限时，仍然可以从「文件」导入。")
                     .font(Typography.body)
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
 
-                PrimaryActionButton(title: "打开系统设置", systemImage: "gearshape") {
+                PrimaryActionButton(title: String(localized: "打开系统设置"), systemImage: "gearshape") {
                     guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
                     UIApplication.shared.open(url)
                 }
                 .padding(.top, Spacing.s)
 
-                SecondaryActionButton(title: "从文件导入 HEIC", systemImage: "folder", action: onImportFiles)
-                SecondaryActionButton(title: "重新检查", systemImage: "arrow.clockwise", action: onRetry)
+                SecondaryActionButton(title: String(localized: "从文件导入 HEIC"), systemImage: "folder", action: onImportFiles)
+                SecondaryActionButton(title: String(localized: "重新检查"), systemImage: "arrow.clockwise", action: onRetry)
 
                 Text("文件导入不需要相册权限。")
                     .font(Typography.micro)

@@ -16,7 +16,7 @@ final class QuotaTests: XCTestCase {
         databaseURL = nil
     }
 
-    private func manager(limit: Int = 10, clock: TestClock) -> QuotaManager {
+    private func manager(limit: Int = QuotaConfiguration.freeDailyLimit, clock: TestClock) -> QuotaManager {
         QuotaManager(databaseURL: databaseURL, limit: limit, now: { clock.now() })
     }
 
@@ -26,8 +26,9 @@ final class QuotaTests: XCTestCase {
         let status = try quota.status(isPro: false)
         XCTAssertEqual(status.used, 0)
         XCTAssertEqual(status.reserved, 0)
-        XCTAssertEqual(status.limit, 10)
-        XCTAssertEqual(status.remaining, 10)
+        XCTAssertEqual(status.limit, QuotaConfiguration.freeDailyLimit)
+        XCTAssertEqual(QuotaConfiguration.freeDailyLimit, 5)
+        XCTAssertEqual(status.remaining, 5)
         XCTAssertTrue(status.isAvailable)
         XCTAssertFalse(status.isExhausted)
         XCTAssertFalse(quota.usesAppGroupContainer)
@@ -41,7 +42,7 @@ final class QuotaTests: XCTestCase {
         let status = try quota.status(isPro: false)
         XCTAssertEqual(status.used, 1)
         XCTAssertEqual(status.reserved, 0)
-        XCTAssertEqual(status.remaining, 9)
+        XCTAssertEqual(status.remaining, 4)
     }
 
     func testReleasedReservationDoesNotConsumeQuota() throws {
@@ -52,7 +53,7 @@ final class QuotaTests: XCTestCase {
         let status = try quota.status(isPro: false)
         XCTAssertEqual(status.used, 0)
         XCTAssertEqual(status.reserved, 0)
-        XCTAssertEqual(status.remaining, 10)
+        XCTAssertEqual(status.remaining, 5)
     }
 
     func testCommitIsIdempotentForTheSameReservation() throws {
@@ -63,7 +64,28 @@ final class QuotaTests: XCTestCase {
         try quota.commit(reservation)
         let status = try quota.status(isPro: false)
         XCTAssertEqual(status.used, 1)
-        XCTAssertEqual(status.remaining, 9)
+        XCTAssertEqual(status.remaining, 4)
+    }
+
+    func testFifthConversionExhaustsAndSixthIsBlocked() throws {
+        let clock = TestClock()
+        let quota = manager(clock: clock)
+        for _ in 0..<QuotaConfiguration.freeDailyLimit {
+            let reservation = try XCTUnwrap(try quota.reserve(isPro: false))
+            try quota.commit(reservation)
+        }
+        let status = try quota.status(isPro: false)
+        XCTAssertEqual(status.limit, 5)
+        XCTAssertEqual(status.used, 5)
+        XCTAssertEqual(status.remaining, 0)
+        XCTAssertTrue(status.isExhausted)
+
+        XCTAssertThrowsError(try quota.reserve(isPro: false)) { error in
+            guard case QuotaError.exhausted(let limit) = error else {
+                return XCTFail("expected exhausted, got \(error)")
+            }
+            XCTAssertEqual(limit, 5)
+        }
     }
 
     func testAllowanceResetsOnNextLocalDay() throws {

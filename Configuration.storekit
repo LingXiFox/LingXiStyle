@@ -3,33 +3,38 @@
   "nonRenewingSubscriptions": [],
   "products": [
     {
-      "displayPrice": "4.99",
+      "displayPrice": "2.99",
       "familyShareable": false,
       "internalID": "B2C3D4E5-6F7A-4B8C-9D0E-1F2A3B4C5D6E",
       "localizations": [
         {
           "description": "一次购买，永久解锁无限照片转换。",
-          "displayName": "LingXiStyle Pro",
+          "displayName": "纹粒 Pro",
           "locale": "zh_CN"
         },
         {
           "description": "One purchase. Unlimited photo conversions, forever.",
-          "displayName": "LingXiStyle Pro",
+          "displayName": "Texel Pro",
           "locale": "en_US"
         },
         {
-          "description": "一度の購入で、写真変換がずっと無制限。",
-          "displayName": "LingXiStyle Pro",
+          "description": "一度の購入で、写真変換はずっと無制限。",
+          "displayName": "Texel Pro",
           "locale": "ja_JP"
         },
         {
+          "description": "一次購買，永久解鎖無限照片轉換。",
+          "displayName": "Texel Pro",
+          "locale": "zh_TW"
+        },
+        {
           "description": "Einmal kaufen. Unbegrenzte Fotokonvertierungen, für immer.",
-          "displayName": "LingXiStyle Pro",
+          "displayName": "Texel Pro",
           "locale": "de_DE"
         }
       ],
       "productID": "com.lingxifox.LingXiStyle.pro",
-      "referenceName": "LingXiStyle Pro",
+      "referenceName": "Texel Pro",
       "type": "NonConsumable"
     }
   ],

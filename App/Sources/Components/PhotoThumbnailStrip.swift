@@ -62,7 +62,7 @@ struct PhotoThumbnailStrip: View {
                 .opacity(isSelected ? 1 : 0.88)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(item.displayName)，\(item.accessibilityDescription)")
+        .accessibilityLabel(String(localized: "thumbnail.accessibilityLabel", defaultValue: "\(item.displayName)，\(item.accessibilityDescription)"))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .contextMenu {
             Button(role: .destructive) { onRemove(item) } label: {

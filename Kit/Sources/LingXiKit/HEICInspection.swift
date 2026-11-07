@@ -89,7 +89,7 @@ public struct HEICInspection: Sendable, Equatable {
     }
 
     public var pixelSizeDescription: String {
-        pixelWidth > 0 && pixelHeight > 0 ? "\(pixelWidth) × \(pixelHeight)" : "未知尺寸"
+        pixelWidth > 0 && pixelHeight > 0 ? "\(pixelWidth) × \(pixelHeight)" : String(localized: "未知尺寸")
     }
 }
 

@@ -1,4 +1,6 @@
-# LingXiStyle
+# 纹粒 / Texel（LingXiStyle）
+
+公开品牌：简体中文「纹粒」，繁体中文 / 英文 / 日文「Texel」；仓库、Bundle ID 与 StoreKit Product ID 仍沿用 LingXiStyle。
 
 给 iPhone 16 / 17 系列 HEIC 原片追加第三代摄影风格（Texture / Grain），另存为一张新的 HEIC。
 原图不会被覆盖、不会被转码，照片不离开设备。
@@ -12,13 +14,14 @@
 
 ## 状态
 
-- **1.2.0（build 3）**：在 1.1 的任务生命周期、分享扩展、批量转换与视觉升级之上，加入免费额度、LingXiStyle Pro 一次性购买、额度耗尽页与批量超额提示。
-- 免费用户每天可成功转换 10 张 HEIC；失败、跳过、不兼容不扣额度。额度按本地自然日重置，App、分享扩展与快捷指令共用同一账本。
-- Pro 是 StoreKit 2 非消耗型内购，Product ID `com.lingxifox.LingXiStyle.pro`；一次性购买、永久无限，可恢复购买，退款 / 撤销后回到免费额度。
-- 自动化测试：`LingXiKitTests` 26/26、`LingXiPurchaseTests` 20/20（13 个 StoreKit 测试 + 7 个 Keychain 额度测试）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。
-- `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift compiler warning；签名 Debug 构建与模拟器签名构建通过。
-- 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.2 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过，额度从 10/10 变为 9/10，重启后仍为 9/10。
-- 1.2 的免费额度、Pro 页面、额度耗尽页、本地 StoreKit 购买与重启恢复已在模拟器目视验收；批量超额提示、真实 App Store 交易、真机分享扩展额度共享、12/24MP、iCloud、权限、存储、取消等系统矩阵仍需逐项验证。
+- **1.3.0（build 4）**：在 1.2 的免费额度与 Pro 内购之上，完成品牌升级（简体中文「纹粒」，繁体中文 / 英文 / 日文「Texel」）、四语言本地化、5 张 / 日免费额度、StoreKit 价格与购买态打磨，以及 iPhone Duo 折叠屏适配。
+- 免费用户每天可成功转换 5 张 HEIC；失败、跳过、不兼容不扣额度。额度按本地自然日重置，App、分享扩展与快捷指令共用同一账本。
+- Pro 是 StoreKit 2 非消耗型内购，Product ID `com.lingxifox.LingXiStyle.pro`（显示名「纹粒 Pro」/「Texel Pro」）；一次性购买、永久无限，可恢复购买，退款 / 撤销后回到免费额度。
+- 本地化使用 String Catalog，支持简体中文、繁体中文、英文、日文；内部 Bundle ID、Keychain 服务名与 StoreKit Product ID 保持不变，升级不丢购买。
+- 自动化测试：`LingXiKitTests` 27/27、`LingXiPurchaseTests` 21/21（13 个 StoreKit 测试 + 8 个 Keychain 额度测试）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。
+- `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift 源码 warning；签名 Debug 构建与模拟器签名构建通过。
+- 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.2 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过；1.3 沿用同一引擎并在模拟器保存成功。
+- 1.3 已在 iPhone 17（标准 402×874 pt）验收四语言首页、深色与 Pro 页，在 iPhone Duo（折叠 466×678 pt）验收 5/5 免费态与一屏紧凑布局；真实 App Store 交易、真机、分享扩展额度共享、批量超额与其余系统矩阵仍需逐项验证。
 
 ## 它做什么
 
@@ -26,12 +29,12 @@
 - 用 PhotoKit 取出**原始资源文件**（iCloud 原件会真实下载），只追加第三代纹理与颗粒。
 - 输出编码后的主图 payload 逐 item 逐块比对 SHA-256；HDR、EXIF、Styles、缩略图保留。
 - 用 `PHAssetCreationRequest` 另存为相册中的**新照片**，保存后回读确认仍是 HEIC。
-- 提供真实的阶段进度、可取消队列、成功 / 跳过 / 失败统计、中文错误与诊断信息。
+- 提供真实的阶段进度、可取消队列、成功 / 跳过 / 失败统计、本地化错误与诊断信息。
 - 准备阶段最多并发 2 张，单张 iCloud 照片不会阻塞整个队列；下载进度来自 PhotoKit 的真实回调。
 - 转换任务按会话隔离：取消、重试、清空只影响所属批次，已保存照片不会被再次写入。
 - 结果页可在 App 内查看已保存照片，并分享转换后的真实 HEIC；不依赖未公开的系统跳转。
-- 免费额度 10 张 / 本地自然日，所有入口共享；转换成功并保存后才扣 1 张。
-- 一次性购买 LingXiStyle Pro 后无限转换；价格来自 `Product.displayPrice`，按当前 App Store 地区显示。
+- 免费额度 5 张 / 本地自然日，所有入口共享；转换成功并保存后才扣 1 张。
+- 一次性购买「纹粒 Pro」/「Texel Pro」后无限转换；价格来自 `Product.displayPrice`，按当前 App Store 地区显示。
 - 额度耗尽时提供「永久解锁」与「明天继续免费」；批量超出时只处理剩余额度，不静默弹付费墙。
 
 ## 它不做什么
@@ -166,13 +169,13 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 | 已带第三代 Texture Styles | 无需转换 |
 | Live Photo | 暂不支持，跳过并提示；不会处理视频部分 |
 | RAW / RAW+HEIC | 暂不支持 |
-| JPEG / PNG / TIFF / DNG | 拒绝，并给出中文原因 |
+| JPEG / PNG / TIFF / DNG | 拒绝，并给出本地化原因 |
 | 已在系统相册编辑过的 Asset | 提示会基于当前原件另存新照片，不覆盖 |
 | 损坏 / 缺主图 / 缺 Styles | 拒绝，诊断里保留原始错误码 |
 
 ## 四个页面
 
-1. **空状态**：品牌标题、4:5 构图框、主按钮「选择照片」、次级「从文件导入」、隐私文案「仅在本机处理 · 原图始终保留」。
+1. **空状态**：品牌标题、取景构图框、主按钮「选择照片」、次级「从文件导入」、隐私文案「仅在本机处理 · 原图始终保留」。构图框不叠加 `ORIGINAL HEIC` / `4:5` 角落文字。
 2. **已选照片**：大图不裁切、60–72pt 缩略图条、兼容标签、数量与主 CTA。
 3. **转换中**：照片始终清晰，只有边框层承载扫光 / 呼吸光；真实阶段文字与 X/Y；可取消队列。
 4. **结果页**：已保存照片预览、成功 / 跳过 / 失败数量、应用内查看与分享、继续处理、失败重试；原始错误码只放诊断。
@@ -197,11 +200,11 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
   警告而不是把该照片判为失败，从而避免重试重复写入。
 - 准备队列与转换任务分离；关闭选择、清空或重新选片会取消准备任务，而不是让 iCloud 下载在后台空转。
 
-## 免费额度与 LingXiStyle Pro
+## 免费额度与纹粒 Pro
 
 ### 免费额度
 
-- 每天 10 张，按设备本地自然日重置；`QuotaConfiguration.freeDailyLimit` 是唯一配置点。
+- 每天 5 张，按设备本地自然日重置；`QuotaConfiguration.freeDailyLimit` 是唯一配置点，Pro 页与额度文案都从这里插值。
 - 只有**转换成功并完成保存 / 导出**才扣 1 张；兼容性检查失败、已带质感、Live Photo、RAW、
   编码失败、无损校验失败、取消或保存失败都会释放预留，不扣额度。
 - App、分享扩展、快捷指令都调用同一个 `ConversionService`；额度检查、预留、提交、释放都在
@@ -212,7 +215,7 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 
 ### 额度存储
 
-默认使用 `KeychainQuotaStore`：每个本地日有 0..<10 个槽位，账号形如
+默认使用 `KeychainQuotaStore`：每个本地日有 0..<5 个槽位，账号形如
 `slot.<yyyy-MM-dd>.<index>`。预留用 `SecItemAdd` 的唯一性做原子占位，两个进程同时抢最后一个
 槽位时只有一个成功；提交把标记从 `reserved` 改为 `committed`，释放只删除自己创建的
 `reserved` 槽位。30 分钟未提交的预留会被回收，跨天自动从新槽位开始。
@@ -228,7 +231,7 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 ### Pro 购买
 
 - StoreKit 2，非消耗型：`com.lingxifox.LingXiStyle.pro`。
-- 商品加载失败时 Pro 页面显示中文错误与「重试」，不显示任何假价格；成功后只使用
+- 商品加载失败时 Pro 页面显示本地化错误与「重试」，不显示任何假价格；成功后只使用
   `Product.displayPrice`。
 - 购买结果必须经过 `VerificationResult<Transaction>` 验证，并再次读取
   `Transaction.currentEntitlements(for:)` 才把 `isPro` 置为 true；本地布尔值、按钮回调或
@@ -252,7 +255,7 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 
 ## 分享扩展
 
-在系统「照片」里分享一张 HEIC 到「补质感」：
+在系统「照片」里分享一张 HEIC 到「纹粒」（英文 / 日文 / 繁体界面为「Texel」）：
 
 1. `loadFileRepresentation` 后**立刻**复制到扩展自己的沙盒（回调外 URL 会失效）。
 2. 强制解析并校验完整 HEIC；不是 HEIC 就提示「请在 LingXiStyle 内从图库选择照片」。
@@ -283,7 +286,7 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 | `E_QUOTA_STORE` | 额度存储读写失败 |
 
 诊断页会附上文件结构、item 布局、校验结果与脱敏后的系统信息；原始码只出现在诊断里，
-主界面只显示中文解释。
+主界面只显示本地化解释。
 
 ## 目录
 
@@ -301,16 +304,17 @@ Tests/PurchaseHost/     仅用于承载 StoreKit 测试的最小 App
 ShareExtension/         分享扩展
 Configuration.storekit  本地 StoreKit 测试商品（非线上价格）
 AppStoreRelease.md      App Store Connect / 真实内购发布清单
+Resources/Localization/ String Catalog（zh-Hans / zh-Hant / en / ja）
 ThirdPartyNotices/      上游 MIT 许可证与 vendor 说明
 project.yml             XcodeGen 工程定义
 ```
 
 ## 已知限制
 
-- 1.2 已完成 Debug / Release、签名 Debug 构建与自动化测试，并在 iPhone 17 模拟器（iOS 27.3）跑通 48MP 主流程、额度扣减 / 重启持久化、额度耗尽 → Pro 切换、本地 StoreKit 购买与购买后重启恢复；真机与系统矩阵仍未逐项验证。
+- 1.3 已完成 Debug / Release、签名 Debug 构建与自动化测试，并在 iPhone 17 / iPhone Duo 模拟器验收四语言首页、5/5 免费态、Pro 页与紧凑布局；48MP 转换与额度扣减沿用 1.2 的端到端证据。真机与系统矩阵仍未逐项验证。
 - 真实购买、退款 / 待批准、App 与分享扩展的 Keychain 跨进程共享尚未在真机验证；模拟器只能验证 App 内持久化。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 - 免费 Personal Team 只能使用本地 StoreKit 配置测试；真实内购与上架需要付费 Apple Developer Program、App Store Connect 商品与 Sandbox / 生产环境。
-- `Configuration.storekit` 的 `$4.99` 只是本地测试价；线上价格由 App Store Connect 与 `Product.displayPrice` 决定。
+- `Configuration.storekit` 的 `$2.99` 只是本地测试价；线上价格由 App Store Connect 与 `Product.displayPrice` 决定。
 - 不同机型 / iOS 版本的 HEIC 可能使用不同的 `iref` 结构；已加 16-bit / 32-bit 回归测试，但仍需更多样本。
 - 分享扩展首次运行时可能拿不到相册写入授权（扩展内不一定能弹权限框）。此时会提示先回 App 授权；这是系统行为，需真机确认具体表现。
 - 分享面板可能把照片转成 JPEG，扩展会拒绝而不是偷偷转码。

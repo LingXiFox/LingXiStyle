@@ -12,11 +12,11 @@ struct CompatibilityBadge: View {
 
         var title: String {
             switch self {
-            case .convertible: return "可解锁"
-            case .noChange: return "无需转换"
-            case .unsupported: return "暂不支持"
-            case .downloading: return "下载原件"
-            case .failed: return "读取失败"
+            case .convertible: return String(localized: "可解锁")
+            case .noChange: return String(localized: "无需转换")
+            case .unsupported: return String(localized: "暂不支持")
+            case .downloading: return String(localized: "下载原件")
+            case .failed: return String(localized: "读取失败")
             }
         }
 

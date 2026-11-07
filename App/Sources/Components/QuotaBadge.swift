@@ -11,11 +11,13 @@ struct QuotaBadge: View {
     var onTap: (() -> Void)?
 
     private var title: String {
-        if isPro || quota?.isPro == true { return "LingXiStyle Pro · 无限转换" }
-        guard let quota else { return "正在读取今日额度" }
-        guard quota.isAvailable else { return "今日额度暂不可用" }
-        if quota.remaining <= 0 { return "今日免费额度已用完" }
-        return "今日剩余 \(quota.remaining) / \(quota.limit) 张"
+        if isPro || quota?.isPro == true {
+            return String(localized: "quota.badge.pro", defaultValue: "\(Brand.proName) · 无限转换")
+        }
+        guard let quota else { return String(localized: "正在读取今日额度") }
+        guard quota.isAvailable else { return String(localized: "今日额度暂不可用") }
+        if quota.remaining <= 0 { return String(localized: "今日免费额度已用完") }
+        return String(localized: "quota.badge.remaining", defaultValue: "今日剩余 \(quota.remaining) / \(quota.limit) 张")
     }
 
     private var symbol: String {
@@ -62,6 +64,8 @@ struct QuotaBadge: View {
         .disabled(onTap == nil)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(title)
-        .accessibilityHint(onTap == nil ? "" : (isPro ? "查看 Pro 权益和恢复购买" : "打开 LingXiStyle Pro"))
+        .accessibilityHint(onTap == nil ? "" : (isPro
+            ? String(localized: "查看 Pro 权益和恢复购买")
+            : String(localized: "quota.badge.openPro", defaultValue: "打开 \(Brand.proName)")))
     }
 }
