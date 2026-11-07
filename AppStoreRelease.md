@@ -131,7 +131,7 @@ Offer Code，代码中不得出现固定兑换码、开发者账号白名单或�
 - [ ] Keychain 无共享组 entitlement 时 fail-closed，不静默拆成两套账本。
 - [ ] 分享扩展在真机完成读取、转换、保存；另测取消与 15 秒超时。
 - [x] GitHub Actions CI 已成功运行：[run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297)
-      （Policy、macOS 单测、iOS 18.5、iOS 26.x 全绿；XcodeGen 生成工程与仓库一致）。
+      （Policy、macOS 单测、iOS 18.5、iOS 26.0 全绿；XcodeGen 生成工程与仓库一致）。
 - [ ] 设置页 Pro 行只显示「一次购买，永久不限张数。」或已购状态，不显示价格。
 - [ ] 浅色 / 深色、Dynamic Type、Reduce Motion、VoiceOver 通过。
 - [ ] 隐私说明、支持 URL、审核备注已填写。

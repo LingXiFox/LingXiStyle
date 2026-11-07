@@ -4,7 +4,7 @@
 - 版本：1.7.0（build 8）
 - 结论：本机 Debug / Release 构建、四套自动化测试与 iOS 27.3 模拟器分享闭环通过；
   GitHub Actions [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297)
-  全绿，iOS 18.5 与 iOS 26.x 均完成 Debug / Release 构建和 StoreKit / Keychain 测试。
+  全绿，iOS 18.5 与 iOS 26.0 均完成 Debug / Release 构建和 StoreKit / Keychain 测试。
   本机没有 iOS 18 / 26 运行时；真机、真实 App Store 交易与部分失败路径仍未验证。
   本报告只记录实际执行过的证据。
 
@@ -63,7 +63,7 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiStyle \
 - `.github/workflows/ci.yml`：
   - `policy`：XcodeGen 生成与仓库一致、四语言完整性、StoreKit 配置校验、凭据扫描。
   - `macos-tests`：Xcode 16.4，Kit / Engine / Core 测试。
-  - `ios-build-and-test` 矩阵：iOS 18.5（Xcode 16.4）与 iOS 26.x（Xcode 26.3），
+  - `ios-build-and-test` 矩阵：iOS 18.5（Xcode 16.4）与 iOS 26.0（Xcode 26.3），
     各自执行 Debug / Release generic 构建和 `LingXiPurchaseTests`。
 - StoreKit 配置校验要求：唯一非消耗型商品 `com.lingxifox.LingXiStyle.pro`、本地测试价
   `2.99`、Offer Code `DEVELOPER_FREE` 为 0 元、`_developerTeamID` 为空。
@@ -122,7 +122,7 @@ CI 运行时差异（同一份测试代码）：
 | CI job | 系统 / Xcode | 购买测试 | 说明 |
 | --- | --- | --- | --- |
 | `iOS 18.5 compatibility` | iPhone 16 模拟器 / Xcode 16.4 | 23 执行，23 通过 | `.codeOffer` 测试由 `#if compiler(>=6.2)` 排除；Ask to Buy 走已验证权益恢复分支 |
-| `iOS 26.x current` | iPhone 16 / 17 模拟器 / Xcode 26.3 | 24 执行，23 通过，1 跳过 | iOS 26 StoreKitTest 不应用本地 Offer Code，测试明确 `XCTSkip`，不是放行失败 |
+| `iOS 26.x current` | iPhone 16 模拟器 / iOS 26.0（26.0.1）/ Xcode 26.3 | 24 执行，23 通过，1 跳过 | iOS 26 StoreKitTest 不应用本地 Offer Code，测试明确 `XCTSkip`，不是放行失败 |
 
 本机 iOS 27.3 的 Offer Code 测试实际执行并通过（0 元交易、验签、授予 Pro）。
 
@@ -228,9 +228,12 @@ StoreKit 授权只接受 `.verified` 交易；未验签、pending、取消、网
 
 | 系统 | 设备 / 环境 | 构建 | 启动 | 主流程 | 已知问题 | 验证方式 |
 | --- | --- | --- | --- | --- | --- | --- |
-| iOS 18.0 | 无 | 🟡 部署目标，CI 用 18.5 SDK 编译 | ⚪ | ⚪ | 无运行时；最低版本仅编译覆盖 | CI `ios-18` |
+| iOS 18.0 | 无 | 🟡 以 iOS 18.5 SDK、部署目标 18.0 编译 | ⚪ | ⚪ | 无运行时；最低版本只有编译覆盖，不等于运行兼容 | CI `ios-18` |
 | iOS 18.5 | CI iPhone 16 模拟器 | ✅ | ⚪ | ⚪ | Debug / Release + 23 项 StoreKit / Keychain 测试通过；Offer Code 测试被旧编译器排除；主流程未跑 | CI `ios-18` |
-| iOS 26.0 – 26.2 | CI iPhone 16 / 17 模拟器 | ✅ | ⚪ | ⚪ | Debug / Release + 24 项测试，23 通过、1 项本地 Offer Code 运行期跳过；主流程未跑 | CI `ios-26` |
+| iOS 18.6 | CI 运行器已安装但未选中 | ⚪ | ⚪ | ⚪ | 未构建、未运行 | 未执行 |
+| iOS 26.0（26.0.1） | CI iPhone 16 模拟器 | ✅ | ⚪ | ⚪ | Debug / Release + 24 项测试，23 通过、1 项本地 Offer Code 运行期跳过；主流程未跑 | CI `ios-26` |
+| iOS 26.1 | CI 运行器已安装但未选中 | ⚪ | ⚪ | ⚪ | 未构建、未运行 | 未执行 |
+| iOS 26.2 | CI 运行器已安装但未选中 | ⚪ | ⚪ | ⚪ | 未构建、未运行 | 未执行 |
 | iOS 27.0 – 27.2 | 无 | ⚪ | ⚪ | ⚪ | 本机无对应运行时 | 未执行 |
 | iOS 27.3 | iPhone 17 模拟器 | ✅ | ✅ | ✅ 选图 / 转换 / 保存 / 分享扩展 | 见第 7 节限制 | 本机签名构建 + 目视 + 统一日志 |
 
@@ -275,8 +278,8 @@ iOS 18 / 26 的启动和主流程没有在本机执行，不能因为 CI 编译�
   - `Policy and project checks`：成功；XcodeGen 一致、四语言、StoreKit 配置、凭据扫描通过。
   - `macOS unit tests`：成功；Kit 28、Engine 2、Core 14（2 跳过）。
   - `iOS 18.5 compatibility`：成功；Debug / Release 构建通过，23 项购买 / Keychain 测试通过。
-  - `iOS 26.x current`：成功；Debug / Release 构建通过，24 项中 23 通过、1 项 Offer Code
-    因运行时限制跳过。
+  - `iOS 26.x current`：成功；在 iPhone 16 / iOS 26.0（26.0.1）上 Debug / Release 构建通过，
+    24 项中 23 通过、1 项 Offer Code 因运行时限制跳过。该 job 没有覆盖 26.1 / 26.2。
 - 前几轮失败已修复：`ProEntitlement.swift` 的 `invalidPresentationContext` 编译错误、
   `PeopleDetection` / `RasterImport` / Core 测试 fixture 在 Xcode 16.4 的类型检查超时，
   以及 StoreKitTest 在 iOS 18 / 26 对取消 / 失败交易和 Ask to Buy 的差异断言。

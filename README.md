@@ -14,15 +14,15 @@
 
 ## 状态
 
-- **1.7.0（build 8）**：发布候选收口。修复 CI 在 Xcode 16.4 / iOS 18.5 SDK 上的编译失败（`StoreKitError` 新 case 的显式匹配，以及 `PeopleDetection` / `RasterImport` 与 Core 测试 fixture 的复杂表达式都改为旧编译器可处理的形式）；CI 拆成 iOS 18.5 与 iOS 26.x 两条构建 + 测试矩阵；修掉分享扩展读取完成后不进入处理流程的阻塞缺陷，并补 3 秒数据回退与 15 秒超时；模拟器签名构建实际走共享 Keychain Access Group；新增 100% 免费 Offer Code 的 StoreKit 自动化测试。
+- **1.7.0（build 8）**：发布候选收口。修复 CI 在 Xcode 16.4 / iOS 18.5 SDK 上的编译失败（`StoreKitError` 新 case 的显式匹配，以及 `PeopleDetection` / `RasterImport` 与 Core 测试 fixture 的复杂表达式都改为旧编译器可处理的形式）；CI 拆成 iOS 18.5 与 iOS 26.0 两条构建 + 测试矩阵；修掉分享扩展读取完成后不进入处理流程的阻塞缺陷，并补 3 秒数据回退与 15 秒超时；模拟器签名构建实际走共享 Keychain Access Group；新增 100% 免费 Offer Code 的 StoreKit 自动化测试。
 - 免费用户每天可成功转换 5 张 HEIC；失败、跳过、不兼容不扣额度。额度按本地自然日重置，App、分享扩展与快捷指令共用同一账本。
 - Pro 是 StoreKit 2 非消耗型内购，Product ID `com.lingxifox.LingXiStyle.pro`（显示名「纹粒 Pro」/「Texel Pro」）；一次性购买、永久无限，可恢复购买，退款 / 撤销后回到免费额度。
 - 本地化使用 String Catalog，支持简体中文、繁体中文、英文、日文；内部 Bundle ID、Keychain 服务名与 StoreKit Product ID 保持不变，升级不丢购买。
-- 自动化测试：本机 `LingXiKitTests` 28/28、`LingXiPurchaseTests` 24/24（14 个 StoreKit 测试 + 10 个 Keychain 额度测试）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。合计执行 68 项，66 项通过，2 项跳过。GitHub Actions [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297) 全绿：iOS 18.5 的 23 项购买 / Keychain 测试全部通过；iOS 26.x 的 24 项中 23 通过、1 项因本地 Offer Code 运行时限制明确跳过。
+- 自动化测试：本机 `LingXiKitTests` 28/28、`LingXiPurchaseTests` 24/24（14 个 StoreKit 测试 + 10 个 Keychain 额度测试）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。合计执行 68 项，66 项通过，2 项跳过。GitHub Actions [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297) 全绿：iOS 18.5 的 23 项购买 / Keychain 测试全部通过；iOS 26.0 的 24 项中 23 通过、1 项因本地 Offer Code 运行时限制明确跳过。
 - `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift 源码 warning；签名 Debug 构建与模拟器签名构建通过。
 - 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.2 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过；1.3 沿用同一引擎并在模拟器保存成功。
 - 1.7 在同一台 iPhone 17（iOS 27.3）完成分享扩展端到端：从「照片」分享 5,924,047 字节原片，读入、转换、另存成功，额度从 4 / 5 变为 3 / 5；分享已处理过的照片会提示「无需重复处理」且不扣额度。签名模拟器构建的 App 与扩展均生成同一 Keychain Access Group（`4VXWMYSQG8.com.lingxifox.LingXiStyle.shared`）。
-- 兼容性验证边界：本机只有 iOS 27.3 运行时；iOS 18.5 与 iOS 26.x 已由 GitHub Actions 完成 Debug / Release 构建和购买 / Keychain 测试，但启动、主流程与 UI 仍未在这些系统上运行；iOS 18 / 26 真机或本地模拟器未验证，详见 [TEST_REPORT.md](TEST_REPORT.md)。
+- 兼容性验证边界：本机只有 iOS 27.3 运行时；iOS 18.5 与 iOS 26.0 已由 GitHub Actions 完成 Debug / Release 构建和购买 / Keychain 测试，但启动、主流程与 UI 仍未在这些系统上运行；iOS 18 / 26 真机或本地模拟器未验证，详见 [TEST_REPORT.md](TEST_REPORT.md)。
 
 ## 它做什么
 
