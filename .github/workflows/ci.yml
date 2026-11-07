@@ -209,35 +209,6 @@ jobs:
       - name: Generate project
         run: xcodegen generate
 
-      - name: Build Debug for iOS
-        run: |
-          set -euo pipefail
-          mkdir -p .build/logs
-          xcodebuild -project LingXiStyle.xcodeproj \
-            -scheme LingXiStyle -configuration Debug \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath "$DERIVED_DATA" \
-            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee .build/logs/debug.log
-          if grep -E 'warning:' .build/logs/debug.log \
-              | grep -vE 'appintentsmetadataprocessor|Metadata extraction skipped'; then
-            echo "Unexpected compiler warning in the Debug build." >&2
-            exit 1
-          fi
-
-      - name: Build Release for iOS
-        run: |
-          set -euo pipefail
-          xcodebuild -project LingXiStyle.xcodeproj \
-            -scheme LingXiStyle -configuration Release \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath "$DERIVED_DATA" \
-            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee .build/logs/release.log
-          if grep -E 'warning:' .build/logs/release.log \
-              | grep -vE 'appintentsmetadataprocessor|Metadata extraction skipped'; then
-            echo "Unexpected compiler warning in the Release build." >&2
-            exit 1
-          fi
-
       - name: Select simulator runtime
         id: simulator
         env:
@@ -275,16 +246,58 @@ jobs:
           )
           echo "device_id=$DEVICE_ID" >> "$GITHUB_OUTPUT"
 
-      - name: Run purchase and keychain tests
+      - name: Start simulator in the background
+        env:
+          DEVICE_ID: ${{ steps.simulator.outputs.device_id }}
+        run: |
+          set -euo pipefail
+          xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
+
+      - name: Build Debug for iOS
+        run: |
+          set -euo pipefail
+          mkdir -p .build/logs
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme LingXiStyle -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee .build/logs/debug.log
+          if grep -E 'warning:' .build/logs/debug.log \
+              | grep -vE 'appintentsmetadataprocessor|Metadata extraction skipped'; then
+            echo "Unexpected compiler warning in the Debug build." >&2
+            exit 1
+          fi
+
+      - name: Build Release for iOS
         run: |
           set -euo pipefail
           xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme LingXiStyle -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee .build/logs/release.log
+          if grep -E 'warning:' .build/logs/release.log \
+              | grep -vE 'appintentsmetadataprocessor|Metadata extraction skipped'; then
+            echo "Unexpected compiler warning in the Release build." >&2
+            exit 1
+          fi
+
+      - name: Run purchase and keychain tests
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          DEVICE_ID="${{ steps.simulator.outputs.device_id }}"
+          xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+          xcodebuild -project LingXiStyle.xcodeproj \
             -scheme LingXiPurchaseTests -configuration Debug \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.device_id }}" \
-            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO test \
-            2>&1 | tee .build/logs/purchase-tests.log
+            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 240 \
+            test 2>&1 | tee .build/logs/purchase-tests.log
 
       - name: Run conversion, share, and shortcut integration tests
+        timeout-minutes: 20
         env:
           DEVICE_ID: ${{ steps.simulator.outputs.device_id }}
         run: |
@@ -300,21 +313,29 @@ jobs:
             -derivedDataPath "$DERIVED_DATA" build-for-testing \
             2>&1 | tee .build/logs/integration-build.log
           HOST_APP="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/LingXiIntegrationHost.app"
+          echo "install start $(date -u +%H:%M:%S)"
           xcrun simctl install "$DEVICE_ID" "$HOST_APP"
-          # Launch once so TCC registers the host before the grant. The host
-          # does not request permission at launch.
-          xcrun simctl launch "$DEVICE_ID" com.lingxifox.LingXiStyle.IntegrationHost || true
-          sleep 2
-          xcrun simctl terminate "$DEVICE_ID" com.lingxifox.LingXiStyle.IntegrationHost || true
+          echo "install done $(date -u +%H:%M:%S)"
           BUNDLE_ID="com.lingxifox.LingXiStyle.IntegrationHost"
-          # The tests run inside the host process, so TCC attributes PhotoKit
-          # access to the host bundle, not the .xctest bundle.
+          TEST_BUNDLE_ID="com.lingxifox.LingXiStyle.IntegrationTests"
+          # TCC attributes access to the host process, but some simulator runtimes
+          # consult the embedded test bundle as the responsible process. Grant both
+          # and do not pre-launch the host, so no stale notDetermined state is cached.
           xcrun simctl privacy "$DEVICE_ID" grant photos "$BUNDLE_ID"
           xcrun simctl privacy "$DEVICE_ID" grant photos-add "$BUNDLE_ID"
+          xcrun simctl privacy "$DEVICE_ID" grant photos "$TEST_BUNDLE_ID" || true
+          xcrun simctl privacy "$DEVICE_ID" grant photos-add "$TEST_BUNDLE_ID" || true
+          xcrun simctl spawn "$DEVICE_ID" launchctl kickstart -k system/com.apple.tccd || true
+          # iOS 26.0.1 can keep returning notDetermined even after the TCC row is
+          # written. Reboot the simulator once so tccd and PhotoKit reload the
+          # granted state before the test process starts.
+          xcrun simctl shutdown "$DEVICE_ID"
+          xcrun simctl boot "$DEVICE_ID"
+          xcrun simctl bootstatus "$DEVICE_ID" -b
           TCC_DB="$HOME/Library/Developer/CoreSimulator/Devices/$DEVICE_ID/data/Library/TCC/TCC.db"
           if [ -f "$TCC_DB" ]; then
             sqlite3 "$TCC_DB" \
-              "SELECT service, client, auth_value, auth_reason FROM access WHERE client = '$BUNDLE_ID' AND service IN ('kTCCServicePhotos', 'kTCCServicePhotosAdd') ORDER BY service, client;" \
+              "SELECT service, client, client_type, auth_value, auth_reason FROM access WHERE client IN ('$BUNDLE_ID', '$TEST_BUNDLE_ID') AND service IN ('kTCCServicePhotos', 'kTCCServicePhotosAdd') ORDER BY service, client;" \
               | tee .build/logs/photo-tcc-before.log || true
           else
             echo "TCC database not found at $TCC_DB" | tee .build/logs/photo-tcc-before.log
@@ -323,6 +344,7 @@ jobs:
             -scheme LingXiIntegrationTests -configuration Debug \
             -destination "platform=iOS Simulator,id=$DEVICE_ID" \
             -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 120 \
             test-without-building \
             2>&1 | tee .build/logs/integration-tests.log
 
@@ -354,6 +376,7 @@ jobs:
           } | tee "$LOG"
 
       - name: Run launch smoke test
+        timeout-minutes: 15
         env:
           DEVICE_ID: ${{ steps.simulator.outputs.device_id }}
         run: |

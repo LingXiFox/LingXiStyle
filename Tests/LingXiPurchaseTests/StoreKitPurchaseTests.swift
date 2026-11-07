@@ -116,6 +116,18 @@ final class StoreKitPurchaseTests: XCTestCase {
     #endif
 
     func testCancelledPurchaseDoesNotGrantPro() async throws {
+        // The first StoreKitTest purchase on the iOS 18.5 runtime can block for
+        // several minutes while its daemon starts, especially for simulated
+        // failures. Warm the purchase path once so this test asserts cancellation
+        // behavior instead of timing out on cold-start overhead.
+        let warmUp = PurchaseManager()
+        await warmUp.start()
+        await warmUp.loadProduct()
+        await warmUp.purchase()
+        XCTAssertEqual(warmUp.purchaseState, .success, "StoreKit warm-up purchase failed")
+        XCTAssertTrue(warmUp.isPro, "StoreKit warm-up did not grant Pro")
+        session.clearTransactions()
+
         try await session.setSimulatedError(SKTestFailures.Purchase.generic(.userCancelled), forAPI: .purchase)
         let manager = PurchaseManager()
         await manager.start()
