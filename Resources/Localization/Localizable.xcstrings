@@ -1741,6 +1741,35 @@
         }
       }
     },
+    "pro.close": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close Pro page"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro ページを閉じる"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭 Pro 页面"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "關閉 Pro 頁面"
+          }
+        }
+      }
+    },
     "pro.legal.freeLimit": {
       "extractionState": "manual",
       "localizations": {

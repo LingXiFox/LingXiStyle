@@ -9,6 +9,58 @@ import LingXiServices
 
 private let shareLogger = Logger(subsystem: "com.lingxifox.LingXiStyle.Share", category: "read")
 
+/// The public surface ShareModel needs from an item provider. NSItemProvider is the production
+/// implementation; tests supply controlled success, failure, delay and cancellation callbacks.
+protocol ShareItemProviding: AnyObject {
+    var registeredTypeIdentifiers: [String] { get }
+    var suggestedName: String? { get }
+    func hasItemConformingToTypeIdentifier(_ typeIdentifier: String) -> Bool
+    @discardableResult
+    func loadFileRepresentation(forTypeIdentifier typeIdentifier: String,
+                                completionHandler: @escaping @Sendable (URL?, Error?) -> Void) -> Progress
+    @discardableResult
+    func loadDataRepresentation(forTypeIdentifier typeIdentifier: String,
+                                completionHandler: @escaping @Sendable (Data?, Error?) -> Void) -> Progress
+}
+
+extension NSItemProvider: ShareItemProviding {}
+
+struct ShareConversionResult: Sendable {
+    let savedAssetIdentifier: String?
+}
+
+/// The conversion surface used by the share flow. Production always routes through
+/// ConversionService; tests can inject failures without fabricating a saved photo.
+protocol ShareConversionRunning: Sendable {
+    func inspect(fileURL: URL, traits: AssetTraits) async throws -> InspectionOutcome
+    func convert(fileURL: URL,
+                 traits: AssetTraits,
+                 preferredName: String,
+                 onStage: @escaping @Sendable (ConversionStage) -> Void) async throws -> ShareConversionResult
+}
+
+struct LiveShareConversionRunner: ShareConversionRunning {
+    func inspect(fileURL: URL, traits: AssetTraits) async throws -> InspectionOutcome {
+        let service = ConversionService.shared
+        return try await Task.detached(priority: .userInitiated) {
+            try service.inspect(fileURL: fileURL, traits: traits)
+        }.value
+    }
+
+    func convert(fileURL: URL,
+                 traits: AssetTraits,
+                 preferredName: String,
+                 onStage: @escaping @Sendable (ConversionStage) -> Void) async throws -> ShareConversionResult {
+        let result = try await ConversionService.shared.convert(.init(fileURL: fileURL,
+                                                                      traits: traits,
+                                                                      preferredName: preferredName,
+                                                                      saveToLibrary: true,
+                                                                      returnsFile: false),
+                                                                 onStage: onStage)
+        return ShareConversionResult(savedAssetIdentifier: result.savedAssetIdentifier)
+    }
+}
+
 /// Share-sheet entry point. It copies the shared file into its own sandbox before doing
 /// anything, validates that the bytes are a complete HEIC, then hands the file to the same
 /// ConversionService the app and shortcuts use. The extension never pretends a running job is
@@ -63,6 +115,21 @@ final class ShareModel: ObservableObject {
 
     var onClose: (() -> Void)?
 
+    private let service: any ShareConversionRunning
+    private let temporaryDirectory: URL
+    private let fallbackDelay: TimeInterval
+    private let readTimeout: TimeInterval
+
+    init(service: any ShareConversionRunning = LiveShareConversionRunner(),
+         temporaryDirectory: URL = FileManager.default.temporaryDirectory,
+         fallbackDelay: TimeInterval = 3,
+         readTimeout: TimeInterval = 15) {
+        self.service = service
+        self.temporaryDirectory = temporaryDirectory
+        self.fallbackDelay = fallbackDelay
+        self.readTimeout = readTimeout
+    }
+
     private var workDirectory: URL?
     private var sharedFile: URL?
     private var processingTask: Task<Void, Never>?
@@ -74,7 +141,7 @@ final class ShareModel: ObservableObject {
 
     // Reading state. The provider's file callback can be dropped by the host, so the model
     // keeps two independent public representations in flight and uses the first complete one.
-    private var pendingProvider: NSItemProvider?
+    private var pendingProvider: (any ShareItemProviding)?
     private var pendingIdentifier: String?
     private var pendingSuggestedName: String?
     private var readFallbackTask: Task<Void, Never>?
@@ -97,12 +164,17 @@ final class ShareModel: ObservableObject {
     }
 
     func begin(providers: [NSItemProvider]) {
+        begin(items: providers)
+    }
+
+    /// Test seam and production overload. The system path enters through `begin(providers:)`.
+    func begin(items: [any ShareItemProviding]) {
         cleanupStaleWorkDirectories()
-        shareLogger.notice("begin providers=\(providers.count, privacy: .public) types=\(providers.flatMap(\.registeredTypeIdentifiers).joined(separator: ","), privacy: .public)")
+        shareLogger.notice("begin providers=\(items.count, privacy: .public) types=\(items.flatMap(\.registeredTypeIdentifiers).joined(separator: ","), privacy: .public)")
         // Photos normally hands over a public.image item. Files hands over a file URL;
         // accepting both still leaves the byte-level HEIC validation in process().
-        let provider = providers.first { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier) }
-            ?? providers.first { $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) }
+        let provider = items.first { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier) }
+            ?? items.first { $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) }
         guard let provider else {
             fail(title: String(localized: "没有收到照片"), message: String(localized: "share.error.noProviders", defaultValue: "请回到系统「照片」重新分享，或直接在 \(Brand.name) 内从图库选择照片。"), retry: false)
             return
@@ -117,7 +189,7 @@ final class ShareModel: ObservableObject {
         let fileManager = FileManager.default
         let keys: Set<URLResourceKey> = [.isDirectoryKey, .contentModificationDateKey]
         guard let entries = try? fileManager.contentsOfDirectory(
-            at: fileManager.temporaryDirectory,
+            at: temporaryDirectory,
             includingPropertiesForKeys: Array(keys),
             options: [.skipsHiddenFiles]
         ) else { return }
@@ -143,7 +215,7 @@ final class ShareModel: ObservableObject {
 
     /// Starts work. The caller owns the file until the task reaches a safe boundary, so closing
     /// the sheet cannot delete a file that PhotoKit or the engine is still reading.
-    private func load(_ provider: NSItemProvider) {
+    private func load(_ provider: any ShareItemProviding) {
         // Ask for the concrete type the provider registered (public.heic, public.jpeg, …).
         // Requesting the abstract public.image can leave some providers without a file
         // representation, which shows up as an endless "reading" spinner.
@@ -161,7 +233,7 @@ final class ShareModel: ObservableObject {
         load(provider, identifier: identifier)
     }
 
-    private func load(_ provider: NSItemProvider, identifier: String) {
+    private func load(_ provider: any ShareItemProviding, identifier: String) {
         phase = .reading
         title = String(localized: "正在读取分享的照片")
         message = String(localized: "share.copyHint", defaultValue: "文件会先复制到 \(Brand.name) 的沙盒，再检查结构。")
@@ -189,7 +261,8 @@ final class ShareModel: ObservableObject {
             if let url {
                 let copied = Self.copyToSandbox(fileURL: url,
                                                 suggestedName: suggestedName,
-                                                typeIdentifier: identifier)
+                                                typeIdentifier: identifier,
+                                                in: temporaryDirectory)
                 Task { @MainActor in
                     guard self.loadGeneration == generation else {
                         try? FileManager.default.removeItem(at: copied.directory)
@@ -219,8 +292,8 @@ final class ShareModel: ObservableObject {
             }
         }
 
-        scheduleReadDeadline(generation, seconds: 3, action: .startDataFallback)
-        scheduleReadDeadline(generation, seconds: 15, action: .fail)
+        scheduleReadDeadline(generation, seconds: fallbackDelay, action: .startDataFallback)
+        scheduleReadDeadline(generation, seconds: readTimeout, action: .fail)
     }
 
     private enum ReadDeadlineAction {
@@ -281,7 +354,8 @@ final class ShareModel: ObservableObject {
             }
             let copied = Self.writeToSandbox(data: data,
                                              suggestedName: suggestedName,
-                                             typeIdentifier: identifier)
+                                             typeIdentifier: identifier,
+                                             in: temporaryDirectory)
             Task { @MainActor in
                 guard self.loadGeneration == generation else {
                     try? FileManager.default.removeItem(at: copied.directory)
@@ -355,9 +429,7 @@ final class ShareModel: ObservableObject {
         let traits = AssetTraits(originalIsHEIC: true)
         let outcome: InspectionOutcome
         do {
-            outcome = try await Task.detached(priority: .userInitiated) { [service = ConversionService.shared] in
-                try service.inspect(fileURL: fileURL, traits: traits)
-            }.value
+            outcome = try await service.inspect(fileURL: fileURL, traits: traits)
         } catch {
             guard sessionID == session else { return }
             let failure = error as? ConversionFailure
@@ -383,14 +455,9 @@ final class ShareModel: ObservableObject {
             title = String(localized: "正在添加纹理与颗粒")
             message = String(localized: "照片保持清晰，只处理纹理与颗粒层。")
 
-            let request = ConversionService.Request(
-                fileURL: fileURL,
-                traits: traits,
-                preferredName: Self.outputName(for: fileURL),
-                saveToLibrary: true,
-                returnsFile: false
-            )
-            let result = try await ConversionService.shared.convert(request) { [weak self] stage in
+            let result = try await service.convert(fileURL: fileURL,
+                                                   traits: traits,
+                                                   preferredName: Self.outputName(for: fileURL)) { [weak self] stage in
                 Task { @MainActor [weak self] in
                     guard let self, self.sessionID == session, !self.cancelRequested else { return }
                     self.phase = .converting(stage)
@@ -414,6 +481,7 @@ final class ShareModel: ObservableObject {
             message = String(localized: "没有写入相册，原照片保持不变。")
             diagnosticCode = nil
             canRetry = sharedFile != nil
+            cleanupInput()
         } catch {
             guard sessionID == session else { return }
             present(error)
@@ -567,9 +635,10 @@ final class ShareModel: ObservableObject {
     nonisolated private static func copyToSandbox(
         fileURL: URL,
         suggestedName: String?,
-        typeIdentifier: String
+        typeIdentifier: String,
+        in root: URL
     ) -> (directory: URL, result: Result<URL, Error>) {
-        let directory = FileManager.default.temporaryDirectory
+        let directory = root
             .appendingPathComponent("LingXiShare-\(UUID().uuidString)", isDirectory: true)
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -584,9 +653,10 @@ final class ShareModel: ObservableObject {
     nonisolated private static func writeToSandbox(
         data: Data,
         suggestedName: String?,
-        typeIdentifier: String
+        typeIdentifier: String,
+        in root: URL
     ) -> (directory: URL, result: Result<URL, Error>) {
-        let directory = FileManager.default.temporaryDirectory
+        let directory = root
             .appendingPathComponent("LingXiShare-\(UUID().uuidString)", isDirectory: true)
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

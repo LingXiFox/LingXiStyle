@@ -15,8 +15,8 @@ settings:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
     SWIFT_EMIT_LOC_STRINGS: YES
-    MARKETING_VERSION: "1.7.0"
-    CURRENT_PROJECT_VERSION: "8"
+    MARKETING_VERSION: "1.7.1"
+    CURRENT_PROJECT_VERSION: "9"
     CODE_SIGN_STYLE: Automatic
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     CLANG_ENABLE_MODULES: YES
@@ -222,6 +222,65 @@ targets:
           - -framework
           - StoreKitTest
 
+  LingXiIntegrationHost:
+    type: application
+    platform: iOS
+    sources:
+      - path: Tests/IntegrationHost
+    dependencies:
+      - target: StylePortCore
+        embed: true
+      - target: LingXiKit
+        embed: true
+      - target: LingXiEngine
+        embed: true
+      - target: LingXiServices
+        embed: true
+    info:
+      path: Tests/IntegrationHost/Info.plist
+      properties:
+        CFBundleDisplayName: Texel Integration Host
+        UILaunchScreen: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.IntegrationHost
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: "1"
+
+  LingXiIntegrationTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/LingXiIntegrationTests
+      - path: ShareExtension/Sources/ShareViewController.swift
+      - path: App/Sources/Integrations/Shortcuts/UnlockTextureIntent.swift
+      - path: Tests/Fixtures/IMG_5296.HEIC
+        buildPhase: resources
+    dependencies:
+      - target: LingXiIntegrationHost
+      - target: LingXiKit
+      - target: LingXiEngine
+      - target: LingXiServices
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.IntegrationTests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/LingXiIntegrationHost.app/LingXiIntegrationHost
+        BUNDLE_LOADER: $(TEST_HOST)
+
+  LingXiUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: Tests/LingXiUITests
+    dependencies:
+      - target: LingXiStyle
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.UITests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: LingXiStyle
+
   LingXiEngineTests:
     type: bundle.unit-test
     platform: macOS
@@ -274,6 +333,24 @@ schemes:
       config: Debug
       targets:
         - LingXiPurchaseTests
+  LingXiIntegrationTests:
+    build:
+      targets:
+        LingXiIntegrationHost: all
+        LingXiIntegrationTests: [test]
+    test:
+      config: Debug
+      targets:
+        - LingXiIntegrationTests
+  LingXiUITests:
+    build:
+      targets:
+        LingXiStyle: all
+        LingXiUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - LingXiUITests
   LingXiEngineTests:
     build:
       targets:

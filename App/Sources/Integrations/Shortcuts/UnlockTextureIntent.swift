@@ -34,6 +34,22 @@ struct UnlockTextureIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<[IntentFile]> & ProvidesDialog {
+        let outcome = try await Self.run(photos: photos,
+                                         saveToLibrary: saveToLibrary,
+                                         returnsFiles: returnsFiles,
+                                         checkOnly: checkOnly,
+                                         service: ConversionService.shared)
+        return .result(value: outcome.outputs, dialog: IntentDialog(stringLiteral: outcome.dialog))
+    }
+
+    /// The orchestration is separate from the AppIntent wrapper so the integration tests can
+    /// exercise the exact request/response path with a controlled or real ConversionService.
+    @MainActor
+    static func run(photos: [IntentFile],
+                    saveToLibrary: Bool,
+                    returnsFiles: Bool,
+                    checkOnly: Bool,
+                    service: any ShortcutConverting) async throws -> ShortcutRunResult {
         guard !photos.isEmpty else {
             throw IntentError.noInput
         }
@@ -77,10 +93,9 @@ struct UnlockTextureIntent: AppIntent {
             let traits = AssetTraits(originalIsHEIC: urlType?.conforms(to: .heic) == true
                                      || urlType?.conforms(to: .heif) == true)
 
-            let service = ConversionService.shared
             do {
                 let outcome = try await Task.detached(priority: .userInitiated) {
-                    try service.inspect(fileURL: source, traits: traits)
+                    try service.inspectForShortcut(fileURL: source, traits: traits)
                 }.value
 
                 if checkOnly {
@@ -94,11 +109,12 @@ struct UnlockTextureIntent: AppIntent {
                 }
 
                 let preferredName = Self.outputName(for: name)
-                let result = try await service.convert(.init(fileURL: source,
-                                                             traits: traits,
-                                                             preferredName: preferredName,
-                                                             saveToLibrary: saveToLibrary,
-                                                             returnsFile: returnsFiles)) { _ in }
+                let result = try await service.convertForShortcut(.init(fileURL: source,
+                                                                        traits: traits,
+                                                                        preferredName: preferredName,
+                                                                        saveToLibrary: saveToLibrary,
+                                                                        returnsFile: returnsFiles),
+                                                                  onStage: { _ in })
                 if saveToLibrary { savedToLibrary += 1 }
                 if returnsFiles {
                     guard let outputURL = result.outputURL else {
@@ -154,7 +170,15 @@ struct UnlockTextureIntent: AppIntent {
                 + (firstFailure.map { String(localized: "intent.dialog.firstFailure", defaultValue: "\n第一处问题：\($0)") } ?? "")
         }
 
-        return .result(value: outputs, dialog: IntentDialog(stringLiteral: dialog))
+        return ShortcutRunResult(outputs: outputs,
+                                 dialog: dialog,
+                                 ready: ready,
+                                 converted: converted,
+                                 savedToLibrary: savedToLibrary,
+                                 skipped: skipped,
+                                 failed: failed,
+                                 unprocessed: unprocessed,
+                                 quotaExhausted: quotaExhausted)
     }
 
     // MARK: Helpers
@@ -190,6 +214,45 @@ struct UnlockTextureIntent: AppIntent {
         return base + ".HEIC"
     }
 
+}
+
+// MARK: - Conversion seam
+
+protocol ShortcutConverting: Sendable {
+    func inspectForShortcut(fileURL: URL, traits: AssetTraits) throws -> InspectionOutcome
+    func convertForShortcut(_ request: ConversionService.Request,
+                            onStage: @escaping @Sendable (ConversionStage) -> Void) async throws -> ShortcutConversionOutcome
+}
+
+struct ShortcutConversionOutcome: Sendable {
+    let outputURL: URL?
+}
+
+extension ConversionService: ShortcutConverting {
+    func inspectForShortcut(fileURL: URL, traits: AssetTraits) throws -> InspectionOutcome {
+        try inspect(fileURL: fileURL, traits: traits)
+    }
+
+    func convertForShortcut(_ request: ConversionService.Request,
+                            onStage: @escaping @Sendable (ConversionStage) -> Void) async throws -> ShortcutConversionOutcome {
+        let result = try await convert(request, onStage: onStage)
+        return ShortcutConversionOutcome(outputURL: result.outputURL)
+    }
+}
+
+struct ShortcutRunResult {
+    let outputs: [IntentFile]
+    let dialog: String
+    let ready: Int
+    let converted: Int
+    let savedToLibrary: Int
+    let skipped: Int
+    let failed: Int
+    let unprocessed: Int
+    let quotaExhausted: Bool
+}
+
+extension UnlockTextureIntent {
     enum IntentError: LocalizedError {
         case noInput
         case noOutput

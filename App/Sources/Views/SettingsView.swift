@@ -27,6 +27,7 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
                         .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                        .accessibilityIdentifier("settings.proRow")
                     }
 
                     Section {
@@ -81,6 +82,7 @@ struct SettingsView: View {
                     Button(String(localized: "完成")) { onClose() }
                         .font(Typography.bodyEmphasized)
                         .foregroundStyle(Palette.accentText)
+                        .accessibilityIdentifier("settings.done")
                 }
             }
         }

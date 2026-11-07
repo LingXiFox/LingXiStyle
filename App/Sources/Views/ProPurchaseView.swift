@@ -95,7 +95,8 @@ struct ProPurchaseView: View {
                 .frame(width: Layout.minimumTouchTarget, height: Layout.minimumTouchTarget)
                 .contentShape(Rectangle())
             }
-            .accessibilityLabel("关闭 Pro 页面")
+            .accessibilityLabel(String(localized: "pro.close", defaultValue: "关闭 Pro 页面"))
+            .accessibilityIdentifier("pro.close")
         }
     }
 

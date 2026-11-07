@@ -284,6 +284,42 @@ jobs:
             -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO test \
             2>&1 | tee .build/logs/purchase-tests.log
 
+      - name: Run conversion, share, and shortcut integration tests
+        env:
+          DEVICE_ID: ${{ steps.simulator.outputs.device_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p .build/logs
+          xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme LingXiIntegrationTests -configuration Debug \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -derivedDataPath "$DERIVED_DATA" build-for-testing CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee .build/logs/integration-build.log
+          xcrun simctl install "$DEVICE_ID" \
+            "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/LingXiIntegrationHost.app"
+          xcrun simctl privacy "$DEVICE_ID" grant photos com.lingxifox.LingXiStyle.IntegrationHost || true
+          xcrun simctl privacy "$DEVICE_ID" grant photos-add com.lingxifox.LingXiStyle.IntegrationHost || true
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme LingXiIntegrationTests -configuration Debug \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO \
+            test-without-building CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee .build/logs/integration-tests.log
+
+      - name: Run launch smoke test
+        env:
+          DEVICE_ID: ${{ steps.simulator.outputs.device_id }}
+        run: |
+          set -euo pipefail
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme LingXiUITests -configuration Debug \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO \
+            test CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee .build/logs/ui-smoke.log
+
       - name: Upload logs
         if: failure()
         uses: actions/upload-artifact@v4

@@ -14,15 +14,16 @@
 
 ## 状态
 
+- **1.7.1（build 9）**：发布验证补强。新增真实 HEIC 端到端集成测试（真实 `ConversionService`、PhotoKit 保存回读、额度扣减与持久化）、分享扩展 12 条异常 / 取消 / 超时 / 重试状态机测试、快捷指令 9 条批量与额度测试，以及 1 条 XCUITest 启动 / 首页 / 设置 / Pro 入口冒烟；CI 增加集成测试与启动冒烟步骤，并预授权模拟器相册权限。1.7.0 的 CI 编译修复、分享扩展阻塞修复、共享 Keychain 组与免费 Offer Code 测试保持不变。
 - **1.7.0（build 8）**：发布候选收口。修复 CI 在 Xcode 16.4 / iOS 18.5 SDK 上的编译失败（`StoreKitError` 新 case 的显式匹配，以及 `PeopleDetection` / `RasterImport` 与 Core 测试 fixture 的复杂表达式都改为旧编译器可处理的形式）；CI 拆成 iOS 18.5 与 iOS 26.0 两条构建 + 测试矩阵；修掉分享扩展读取完成后不进入处理流程的阻塞缺陷，并补 3 秒数据回退与 15 秒超时；模拟器签名构建实际走共享 Keychain Access Group；新增 100% 免费 Offer Code 的 StoreKit 自动化测试。
 - 免费用户每天可成功转换 5 张 HEIC；失败、跳过、不兼容不扣额度。额度按本地自然日重置，App、分享扩展与快捷指令共用同一账本。
 - Pro 是 StoreKit 2 非消耗型内购，Product ID `com.lingxifox.LingXiStyle.pro`（显示名「纹粒 Pro」/「Texel Pro」）；一次性购买、永久无限，可恢复购买，退款 / 撤销后回到免费额度。
 - 本地化使用 String Catalog，支持简体中文、繁体中文、英文、日文；内部 Bundle ID、Keychain 服务名与 StoreKit Product ID 保持不变，升级不丢购买。
-- 自动化测试：本机 `LingXiKitTests` 28/28、`LingXiPurchaseTests` 24/24（14 个 StoreKit 测试 + 10 个 Keychain 额度测试）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。合计执行 68 项，66 项通过，2 项跳过。GitHub Actions [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297) 全绿：iOS 18.5 的 23 项购买 / Keychain 测试全部通过；iOS 26.0 的 24 项中 23 通过、1 项因本地 Offer Code 运行时限制明确跳过。
+- 自动化测试：本机 `LingXiKitTests` 28/28、`LingXiPurchaseTests` 24/24（14 个 StoreKit + 10 个 Keychain）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）、`LingXiIntegrationTests` 29/29（8 真实转换 / PhotoKit、12 分享扩展、9 快捷指令）、`LingXiUITests` 1/1 启动冒烟。合计执行 98 项，96 项通过，2 项跳过。1.7.1 的 GitHub Actions 结果在推送后补充；1.7.0 的 [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297) 曾全绿。
 - `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift 源码 warning；签名 Debug 构建与模拟器签名构建通过。
 - 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.2 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过；1.3 沿用同一引擎并在模拟器保存成功。
-- 1.7 在同一台 iPhone 17（iOS 27.3）完成分享扩展端到端：从「照片」分享 5,924,047 字节原片，读入、转换、另存成功，额度从 4 / 5 变为 3 / 5；分享已处理过的照片会提示「无需重复处理」且不扣额度。签名模拟器构建的 App 与扩展均生成同一 Keychain Access Group（`4VXWMYSQG8.com.lingxifox.LingXiStyle.shared`）。
-- 兼容性验证边界：本机只有 iOS 27.3 运行时；iOS 18.5 与 iOS 26.0 已由 GitHub Actions 完成 Debug / Release 构建和购买 / Keychain 测试，但启动、主流程与 UI 仍未在这些系统上运行；iOS 18 / 26 真机或本地模拟器未验证，详见 [TEST_REPORT.md](TEST_REPORT.md)。
+- 1.7 在同一台 iPhone 17（iOS 27.3）完成分享扩展端到端：从「照片」分享 5,924,047 字节原片，读入、转换、另存成功，额度从 4 / 5 变为 3 / 5；分享已处理过的照片会提示「无需重复处理」且不扣额度。签名模拟器构建的 App 与扩展均生成同一 Keychain Access Group（`$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared`）。
+- 兼容性验证边界：本机只有 iOS 27.3 运行时，已完成安装、启动、首页、设置、Pro、相册导入与真实 HEIC 转换；1.7.1 起 CI 在 iOS 18.5 与 iOS 26.0 上新增集成测试和启动冒烟，但完整 UI 主流程与真机仍未验证；iOS 18.0 只有编译目标，没有运行时证据。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 
 ## 它做什么
 
@@ -101,7 +102,17 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
   -destination 'platform=macOS,arch=arm64' test
 xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
   -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' test
+xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiIntegrationTests \
+  -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' test
+xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiUITests \
+  -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' test
 ```
+
+`LingXiIntegrationTests` 使用仓库内的 48MP HEIC fixture，真实调用 `ConversionService`、PhotoKit
+保存与 Keychain 额度账本；运行前需要给宿主 App 授权相册：
+`xcrun simctl privacy booted grant photos com.lingxifox.LingXiStyle.IntegrationHost` 与
+`xcrun simctl privacy booted grant photos-add ...`。`LingXiUITests` 只验证安装、启动、首页、
+设置与 Pro 入口，不伪造转换结果。
 
 `LingXiPurchaseTests` 是 iPhone Simulator 上由最小宿主 App 承载的单元测试：
 `SKTestSession` 必须在任何 StoreKit 客户端之前初始化，因此宿主刻意不创建 `AppModel`。
@@ -313,6 +324,10 @@ Core/Resources/Profiles 45-15 / 48-12 / live-photo-video
 Kit/Tests/              ISOBox / 兼容性 / 校验 / ConversionRun / Quota 测试
 Engine/Tests/           引擎集成测试
 Tests/LingXiPurchaseTests/  StoreKit 2 + Keychain 额度测试（Simulator）
+Tests/LingXiIntegrationTests/ 真实 HEIC / PhotoKit / 分享扩展 / 快捷指令集成测试
+Tests/LingXiUITests/   安装、启动、首页、设置与 Pro 入口冒烟
+Tests/Fixtures/        48MP 真实 HEIC 测试样张与来源说明
+Tests/IntegrationHost/ 仅用于承载集成测试的最小 App
 Tests/PurchaseHost/     仅用于承载 StoreKit 测试的最小 App
 ShareExtension/         分享扩展
 Configuration.storekit  本地 StoreKit 测试商品（非线上价格）
@@ -326,8 +341,8 @@ project.yml             XcodeGen 工程定义
 
 ## 已知限制
 
-- 1.7 已完成 Debug / Release generic iOS 构建与四套自动化测试（Kit 28 / Purchase 24 / Engine 2 / Core 14 执行、2 跳过）；GitHub Actions run 42371186297 四 job 全绿。分享扩展在 iPhone 17 模拟器完成读取、转换、保存与额度同步。48MP 转换与 11/11 无损校验沿用 1.2 的端到端证据，1.7 未改编码核心。
-- 真机安装、真实 App Store 交易、iOS 18 / 26 运行时、权限拒绝页、快捷指令 UI、分享扩展的取消 / 超时 / 额度耗尽路径仍未验证。模拟器签名构建能证明材料中的共享组配置，但不能替代真机 distribution 签名。详见 [TEST_REPORT.md](TEST_REPORT.md)。
+- 1.7.1 本机已完成 Debug / Release generic iOS 构建与六套自动化测试（Kit 28 / Purchase 24 / Engine 2 / Core 14 执行、2 跳过 / Integration 29 / UI 1），合计 98 项执行、96 项通过、2 项跳过。集成测试真实读取 48MP HEIC、转换、PhotoKit 保存回读并扣减 Keychain 额度；分享扩展状态机覆盖取消、无文件、3 秒回退、15 秒超时、重试、损坏 / 已处理 / 额度耗尽；快捷指令覆盖单张、同名多张、仅检查、仅保存、额度耗尽与 Pro。
+- 真机安装、真实 App Store 交易、iOS 18.0 / 26.1 / 26.2 / 27.0–27.2 运行时、权限拒绝页、快捷指令 UI、Duo 的选片 / 转换 / 结果页仍未验证。模拟器签名构建能证明材料中的共享组配置，但不能替代真机 distribution 签名。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 - 免费 Personal Team 只能使用本地 StoreKit 配置测试；真实内购与上架需要付费 Apple Developer Program、App Store Connect 商品与 Sandbox / 生产环境。
 - `Configuration.storekit` 的 `$2.99` 只是本地测试价；线上价格由 App Store Connect 与 `Product.displayPrice` 决定。
 - 不同机型 / iOS 版本的 HEIC 可能使用不同的 `iref` 结构；已加 16-bit / 32-bit 回归测试，但仍需更多样本。

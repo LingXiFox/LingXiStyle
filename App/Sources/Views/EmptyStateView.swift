@@ -54,6 +54,7 @@ struct EmptyStateView: View {
             .frame(maxWidth: .infinity)
         }
         .scrollBounceBehavior(.basedOnSize)
+        .accessibilityIdentifier("home.root")
         .opacity(appeared || reduceMotion ? 1 : 0)
         .offset(y: appeared || reduceMotion ? 0 : 8)
         .onAppear {
@@ -67,6 +68,7 @@ struct EmptyStateView: View {
             QuotaBadge(quota: model.quota, isPro: model.isPro, compact: true) {
                 model.presentPro()
             }
+            .accessibilityIdentifier("home.quota")
             Spacer(minLength: 0)
             Button {
                 model.presentSettings()
@@ -79,6 +81,7 @@ struct EmptyStateView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(String(localized: "settings.title", defaultValue: "设置"))
+            .accessibilityIdentifier("home.settings")
         }
         .frame(minHeight: Layout.minimumTouchTarget)
     }
@@ -141,10 +144,12 @@ struct EmptyStateView: View {
             }
             .buttonStyle(.plain)
             .accessibilityHint(String(localized: "empty.pickerHint", defaultValue: "打开系统图库，最多选择 \(AppModel.maxSelection) 张 HEIC 原片"))
+            .accessibilityIdentifier("home.selectPhotos")
 
             SecondaryActionButton(title: String(localized: "从「文件」导入"), systemImage: "folder") {
                 model.isImportingFiles = true
             }
+            .accessibilityIdentifier("home.importFiles")
         }
     }
 }

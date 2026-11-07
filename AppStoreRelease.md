@@ -1,4 +1,4 @@
-# App Store 发布配置（纹粒 / Texel 1.7）
+# App Store 发布配置（纹粒 / Texel 1.7.1）
 
 这份文档只描述**若要发布到 App Store**时需要完成的 App Store Connect 与签名配置。
 仓库本身仍然只提供源码，不附带 IPA、TestFlight 包或真实商品。
@@ -94,7 +94,7 @@ Offer Code 测试的运行时限制：
 4. 退款可在 App Store Connect → 用户与访问 → Sandbox → 交易记录中模拟；或使用
    StoreKitTest 的 `refundTransaction` 做自动化回归。
 5. 真机必须验证 App 与分享扩展共享额度。Xcode 自动签名构建的模拟器产物会生成
-   `*-Simulated.xcent`，1.7 已用它验证 App / 扩展同组同步；但这不等于真机 distribution
+   `*-Simulated.xcent`，1.7.1 已用签名模拟器与集成测试验证 App / 扩展同组同步；但这不等于真机 distribution
    签名通过，真机仍需复验。
 
 ### 4.3 官方 100% Offer Code
@@ -114,9 +114,9 @@ Offer Code，代码中不得出现固定兑换码、开发者账号白名单或�
 
 ## 5. 发布前检查清单
 
-- [ ] 版本号 `1.7.0`、Build `8`（或更高）已写入 `project.yml`。
+- [ ] 版本号 `1.7.1`、Build `9`（或更高）已写入 `project.yml`。
 - [ ] `xcodegen generate` 后 Debug scheme 仍带 `Configuration.storekit`。
-- [ ] `LingXiKitTests`、`LingXiPurchaseTests`、`LingXiEngineTests`、`StylePortCoreTests` 全绿。
+- [ ] `LingXiKitTests`、`LingXiPurchaseTests`、`LingXiEngineTests`、`StylePortCoreTests`、`LingXiIntegrationTests`、`LingXiUITests` 全绿。
 - [ ] Release 构建不包含 StoreKit 测试配置。
 - [ ] 商品 ID、类型、本地化、价格、审核截图已填。
 - [ ] Paid Apps Agreement、税务、银行信息完成。
@@ -130,6 +130,8 @@ Offer Code，代码中不得出现固定兑换码、开发者账号白名单或�
 - [ ] 跨入口额度竞态：另一入口抢走最后额度时，未处理项显示为延后，不记失败。
 - [ ] Keychain 无共享组 entitlement 时 fail-closed，不静默拆成两套账本。
 - [ ] 分享扩展在真机完成读取、转换、保存；另测取消与 15 秒超时。
+- [ ] 集成测试宿主已授权相册，29 条真实 HEIC / 分享 / 快捷指令测试通过。
+- [ ] XCUITest 启动冒烟通过（首页、设置、Pro 入口）。
 - [x] GitHub Actions CI 已成功运行：[run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297)
       （Policy、macOS 单测、iOS 18.5、iOS 26.0 全绿；XcodeGen 生成工程与仓库一致）。
 - [ ] 设置页 Pro 行只显示「一次购买，永久不限张数。」或已购状态，不显示价格。
@@ -152,8 +154,10 @@ on the Pro page.
 - 本仓库不分发 IPA；真实商品只在 App Store 生产环境扣款。
 - 免费 Personal Team 的 7 天签名只适合源码自用，不能用于上架或真实内购。
 - 本地 StoreKit 配置的 `$2.99` 只是测试显示，不是定价建议。
-- 1.7 已修复分享扩展读取完成后不进入处理的阻塞缺陷，并在 iOS 27.3 模拟器完成
-  原片 → 读取 → 转换 → 保存 → 额度同步；真机分享扩展仍未验证。
+- 1.7.1 保留分享扩展阻塞修复，并新增 12 条取消 / 超时 / 回退 / 重试状态机测试；
+  1.7.0 已在 iOS 27.3 模拟器完成原片 → 读取 → 转换 → 保存 → 额度同步；真机分享扩展仍未验证。
+- 1.7.1 新增真实 48MP HEIC 端到端集成测试与 XCUITest 启动冒烟；本机六套测试合计
+  98 项执行 / 96 通过 / 2 跳过。Duo 仅验证首页、设置与 Pro 页。
 - 100% Offer Code 的生产兑换依赖 App Store Connect 配置与商品可发放状态；
   本地配置不能替代生产资格检查。
 - 若未来改用 App Group + SQLite 作为额度存储，必须同时为 App 与扩展申请 App Group，
