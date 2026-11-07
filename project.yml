@@ -13,8 +13,8 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
-    MARKETING_VERSION: "1.1.0"
-    CURRENT_PROJECT_VERSION: "2"
+    MARKETING_VERSION: "1.2.0"
+    CURRENT_PROJECT_VERSION: "3"
     CODE_SIGN_STYLE: Automatic
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     CLANG_ENABLE_MODULES: YES
@@ -107,6 +107,7 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
+        LingXiKeychainGroup: $(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared
         LSRequiresIPhoneOS: true
         UILaunchScreen:
           UIColorName: LaunchBackground
@@ -122,6 +123,7 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SUPPORTS_MACCATALYST: NO
+        CODE_SIGN_ENTITLEMENTS: App/Resources/LingXiStyle.entitlements
 
   LingXiStyleShare:
     type: app-extension
@@ -146,6 +148,7 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSPhotoLibraryAddUsageDescription: 用于把补好质感的照片存为相册中的新照片，原照片不会被修改。
+        LingXiKeychainGroup: $(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
@@ -157,6 +160,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.Share
         APPLICATION_EXTENSION_API_ONLY: YES
         SKIP_INSTALL: YES
+        CODE_SIGN_ENTITLEMENTS: ShareExtension/Resources/LingXiStyleShare.entitlements
 
   LingXiKitTests:
     type: bundle.unit-test
@@ -169,6 +173,47 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.LingXiKitTests
         GENERATE_INFOPLIST_FILE: YES
+
+  LingXiPurchaseHost:
+    type: application
+    platform: iOS
+    sources:
+      - path: Tests/PurchaseHost
+    info:
+      path: Tests/PurchaseHost/Info.plist
+      properties:
+        CFBundleDisplayName: LingXiStyle Purchase Host
+        UILaunchScreen: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.PurchaseHost
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: "1"
+
+  LingXiPurchaseTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/LingXiPurchaseTests
+      - path: Configuration.storekit
+        buildPhase: resources
+    dependencies:
+      - target: LingXiPurchaseHost
+      - target: LingXiKit
+      - target: LingXiServices
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.PurchaseTests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/LingXiPurchaseHost.app/LingXiPurchaseHost
+        BUNDLE_LOADER: $(TEST_HOST)
+        FRAMEWORK_SEARCH_PATHS:
+          - $(inherited)
+          - $(PLATFORM_DIR)/Developer/Library/Frameworks
+        OTHER_LDFLAGS:
+          - $(inherited)
+          - -framework
+          - StoreKitTest
 
   LingXiEngineTests:
     type: bundle.unit-test
@@ -201,6 +246,7 @@ schemes:
         LingXiStyle: all
     run:
       config: Debug
+      storeKitConfiguration: Configuration.storekit
     archive:
       config: Release
   LingXiKitTests:
@@ -212,6 +258,15 @@ schemes:
       config: Debug
       targets:
         - LingXiKitTests
+  LingXiPurchaseTests:
+    build:
+      targets:
+        LingXiPurchaseHost: all
+        LingXiPurchaseTests: [test]
+    test:
+      config: Debug
+      targets:
+        - LingXiPurchaseTests
   LingXiEngineTests:
     build:
       targets:

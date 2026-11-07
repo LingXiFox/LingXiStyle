@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
+import LingXiKit
 
 struct RootView: View {
     @StateObject private var model = AppModel()
@@ -27,6 +28,7 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             model.refreshPermissions()
+            Task { await model.refreshQuota() }
         }
         .onChange(of: model.pickerSelection) { _, selection in
             guard !selection.isEmpty else { return }
@@ -39,6 +41,51 @@ struct RootView: View {
         }
         .sheet(item: $diagnostics) { payload in
             DiagnosticsSheet(text: payload.text)
+        }
+        .sheet(item: $model.activeModal) { modal in
+            switch modal {
+            case .pro:
+                ProPurchaseView(
+                    purchases: model.purchases,
+                    onEntitlementChanged: {
+                        Task { await model.refreshQuota() }
+                    },
+                    onClose: { model.dismissModal() }
+                )
+                .presentationDragIndicator(.visible)
+            case .quotaExhausted:
+                QuotaExhaustedView(
+                    limit: QuotaConfiguration.freeDailyLimit,
+                    onUpgrade: { model.activeModal = .pro },
+                    onDismiss: { model.dismissModal() }
+                )
+                .presentationDragIndicator(.visible)
+            }
+        }
+        .onChange(of: model.activeModal) { _, modal in
+            if modal == nil {
+                Task { await model.refreshQuota() }
+            }
+        }
+        .alert("免费额度不足",
+               isPresented: Binding(
+                    get: { model.batchQuotaPrompt != nil },
+                    set: { if !$0 { model.batchQuotaPrompt = nil } }
+               ),
+               presenting: model.batchQuotaPrompt) { prompt in
+            Button("仅转换 \(prompt.available) 张") {
+                model.batchQuotaPrompt = nil
+                model.startConversion(clearFailures: prompt.clearFailures, limit: prompt.available)
+            }
+            Button("升级 Pro") {
+                model.batchQuotaPrompt = nil
+                model.presentPro()
+            }
+            Button("取消", role: .cancel) {
+                model.batchQuotaPrompt = nil
+            }
+        } message: { prompt in
+            Text("已选 \(prompt.requested) 张可转换照片，今日还剩 \(prompt.available) 张免费额度。超出部分不会转换，也不会消耗额度。")
         }
     }
 

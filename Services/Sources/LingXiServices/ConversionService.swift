@@ -44,9 +44,36 @@ public final class ConversionService: @unchecked Sendable {
         public let mode: String
     }
 
-    private let engine = ConversionEngine()
-    private let library = PhotoLibraryService()
+    private let engine: ConversionEngine
+    private let library: PhotoLibraryService
+    private let entitlementProvider: any ProEntitlementProviding
+    private let quotaManager: any QuotaManaging
     private let fileManager = FileManager.default
+
+    public init(engine: ConversionEngine = ConversionEngine(),
+                library: PhotoLibraryService = PhotoLibraryService(),
+                entitlementProvider: any ProEntitlementProviding = StoreKitEntitlementProvider(),
+                quotaManager: any QuotaManaging = QuotaManager.shared) {
+        self.engine = engine
+        self.library = library
+        self.entitlementProvider = entitlementProvider
+        self.quotaManager = quotaManager
+    }
+
+    /// Reads the same allowance the conversion path will enforce. The app uses this for its
+    /// preflight; Share Extension and App Shortcuts get the identical StoreKit-backed answer.
+    public func quotaStatus() async -> QuotaStatus {
+        let isPro = await entitlementProvider.isPro()
+        do {
+            return try quotaManager.status(isPro: isPro)
+        } catch {
+            return .unavailable()
+        }
+    }
+
+    public func entitlementIsPro() async -> Bool {
+        await entitlementProvider.isPro()
+    }
 
     /// Inspects without converting. Used when a photo enters the queue.
     public func inspect(fileURL: URL, traits: AssetTraits) throws -> InspectionOutcome {
@@ -55,6 +82,25 @@ public final class ConversionService: @unchecked Sendable {
 
     public func convert(_ request: Request,
                         onStage: @escaping @Sendable (ConversionStage) -> Void) async throws -> Result {
+        let isPro = await entitlementProvider.isPro()
+        let reservation: QuotaReservation?
+        do {
+            reservation = try quotaManager.reserve(isPro: isPro)
+        } catch let error as QuotaError {
+            throw ConversionFailure.quota(error)
+        } catch {
+            throw ConversionFailure.quota(.database(error.localizedDescription))
+        }
+
+        // A reservation is released on every failure path: incompatible file, engine error,
+        // cancellation, or a failed save. A successful output commits it exactly once.
+        var didCommit = false
+        defer {
+            if !didCommit, let reservation {
+                try? quotaManager.release(reservation)
+            }
+        }
+
         let workDirectory = fileManager.temporaryDirectory
             .appendingPathComponent("LingXiConvert-\(UUID().uuidString)", isDirectory: true)
         try fileManager.createDirectory(at: workDirectory, withIntermediateDirectories: true)
@@ -121,6 +167,14 @@ public final class ConversionService: @unchecked Sendable {
                                                        preferredName: request.preferredName)
             savedIdentifier = saved.identifier
             saveWarning = saved.warning
+        }
+
+        // The photo is already saved at this point. A quota-store failure must not turn a
+        // successful conversion into an error that invites a duplicate retry; the reservation
+        // is left to expire if the commit could not be written.
+        didCommit = true
+        if let reservation {
+            try? quotaManager.commit(reservation)
         }
 
         onStage(.finished)

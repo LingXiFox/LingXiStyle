@@ -12,12 +12,13 @@
 
 ## 状态
 
-- **1.1.0（build 2）**：P0 任务生命周期、分享扩展与结果页；P1 图片加载、批量导入、真实进度与按需权限；P2 四页视觉升级。
-- 自动化测试：`LingXiKitTests` 16/16、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。
-- `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift compiler warning；仅有 App Intents 元数据工具的非阻塞提示。
-- 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.1 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过。
-- 1.1 的空状态、选择页、结果页已在浅色 / 深色与 accessibility-large 下目视验收；主 App 1.0 曾在 iPhone 16 Pro Max 真机安装并跑通主流程。
-- 1.1 真机、分享扩展、快捷指令、12/24MP、iCloud、权限、存储、取消等系统矩阵仍需逐项验证。
+- **1.2.0（build 3）**：在 1.1 的任务生命周期、分享扩展、批量转换与视觉升级之上，加入免费额度、LingXiStyle Pro 一次性购买、额度耗尽页与批量超额提示。
+- 免费用户每天可成功转换 10 张 HEIC；失败、跳过、不兼容不扣额度。额度按本地自然日重置，App、分享扩展与快捷指令共用同一账本。
+- Pro 是 StoreKit 2 非消耗型内购，Product ID `com.lingxifox.LingXiStyle.pro`；一次性购买、永久无限，可恢复购买，退款 / 撤销后回到免费额度。
+- 自动化测试：`LingXiKitTests` 26/26、`LingXiPurchaseTests` 20/20（13 个 StoreKit 测试 + 7 个 Keychain 额度测试）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。
+- `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift compiler warning；签名 Debug 构建与模拟器签名构建通过。
+- 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.2 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过，额度从 10/10 变为 9/10，重启后仍为 9/10。
+- 1.2 的免费额度、Pro 页面、额度耗尽页、本地 StoreKit 购买与重启恢复已在模拟器目视验收；批量超额提示、真实 App Store 交易、真机分享扩展额度共享、12/24MP、iCloud、权限、存储、取消等系统矩阵仍需逐项验证。
 
 ## 它做什么
 
@@ -29,14 +30,18 @@
 - 准备阶段最多并发 2 张，单张 iCloud 照片不会阻塞整个队列；下载进度来自 PhotoKit 的真实回调。
 - 转换任务按会话隔离：取消、重试、清空只影响所属批次，已保存照片不会被再次写入。
 - 结果页可在 App 内查看已保存照片，并分享转换后的真实 HEIC；不依赖未公开的系统跳转。
+- 免费额度 10 张 / 本地自然日，所有入口共享；转换成功并保存后才扣 1 张。
+- 一次性购买 LingXiStyle Pro 后无限转换；价格来自 `Product.displayPrice`，按当前 App Store 地区显示。
+- 额度耗尽时提供「永久解锁」与「明天继续免费」；批量超出时只处理剩余额度，不静默弹付费墙。
 
 ## 它不做什么
 
 - 不覆盖原图，不修改原 Asset，不写回原文件。
 - 不做 Live Photo 视频、ProRAW、JPEG → HEIC 转码、云端上传。
 - 不伪造百分比、不生成虚假的前后对比、不用动画掩盖失败。
-- 不使用私有框架，不依赖 App Group。
-- 不发布 App Store 版本、IPA 或侧载安装包。
+- 不伪造价格、不硬编码美元 / 人民币 / 日元 / 欧元，不把本地 `.storekit` 价格当成线上价格。
+- 不使用私有框架；不依赖 App Group。免费额度默认使用共享 Keychain 槽位账本。
+- 不发布 IPA 或侧载安装包；真实内购需要 App Store 发布环境，仓库只提供源码与本地 StoreKit 测试配置。
 
 ## 环境
 
@@ -44,6 +49,7 @@
 | --- | --- |
 | 开发环境 | macOS + Xcode 16 或更高（作者使用 Xcode 27.3） |
 | 部署目标 | iOS 18.0+ |
+| 内购 | StoreKit 2；本地 `Configuration.storekit`，真实商品需 App Store Connect |
 | 目标设备 | iPhone 16 / 17 系列 HEIC；其他 HEIC 需自行验证 |
 | 工程生成 | [XcodeGen](https://github.com/yonaskolb/XcodeGen) 2.46 |
 | 签名 | 你自己的 Apple Development Team；仓库不含 Team ID |
@@ -87,7 +93,14 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiEngineTests \
   -destination 'platform=macOS,arch=arm64' test
 xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
   -destination 'platform=macOS,arch=arm64' test
+xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
+  -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' test
 ```
+
+`LingXiPurchaseTests` 是 iPhone Simulator 上由最小宿主 App 承载的单元测试：
+`SKTestSession` 必须在任何 StoreKit 客户端之前初始化，因此宿主刻意不创建 `AppModel`。
+它覆盖 StoreKit 2 购买 / 恢复 / 退款与 Keychain 额度；Quota 的 SQLite 测试仍在 macOS
+`LingXiKitTests` 中。
 
 ## 分发方式
 
@@ -114,10 +127,10 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 
 | 层 | 位置 | 职责 |
 | --- | --- | --- |
-| App | `App/Sources` | 四态 UI、DesignSystem、AppModel、快捷指令 |
-| Services | `Services/Sources/LingXiServices` | PhotoKit 适配 + 唯一转换入口，App 与扩展共用同一份二进制 |
+| App | `App/Sources` | 四态 UI、DesignSystem、AppModel、快捷指令、Pro / 额度页面 |
+| Services | `Services/Sources/LingXiServices` | PhotoKit 适配 + 唯一转换入口 + 额度预约 / 提交，App 与扩展共用同一份二进制 |
 | Engine | `Engine/Sources/LingXiEngine` | 读文件 → 检查 → 调核心 → 复审 → 写临时文件 |
-| Kit | `Kit/Sources/LingXiKit` | ISO BMFF / HEIF 解析、兼容性判定、无损校验、任务会话状态机、诊断 |
+| Kit | `Kit/Sources/LingXiKit` | ISO BMFF / HEIF 解析、兼容性判定、无损校验、任务状态机、额度、StoreKit 权益、诊断 |
 | Core | `Core/Sources/StylePortCore` | 上游第三代风格核心（MIT，见 ThirdPartyNotices） |
 
 所有入口（图库、文件导入、快捷指令、分享扩展）最终都调用
@@ -130,13 +143,14 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 
 ### 固定管线
 
-1. `PHAssetResourceManager.writeData` 导出原始资源文件（`isNetworkAccessAllowed = true`）。
-2. `HEICInspector` 解析 `ftyp / meta / iinf / iref / iprp / iloc`，判断 grid、tile、HDR、Styles、EXIF、缩略图。
-3. `CompatibilityEvaluator` 给出 `ready / alreadyEnhanced / unsupported`，UI 只显示真实结论。
-4. `StylePorter.patch` 只追加 Texture / Grain（`analyzePhoto = false`，其余效果关闭）。
-5. 重新解析输出，`IntegrityVerifier` 对主图 payload 逐 item 分块 SHA-256 比对，并检查 HDR、EXIF、Styles、缩略图、Gain Map。
-6. `PHAssetCreationRequest.addResource(with: .photo, fileURL:)` 另存新 Asset，`originalFilename` 形如 `IMG_1234_TextureGrain.HEIC`。
-7. 回读新 Asset 的资源类型，确认仍是 HEIC 才报告成功。
+1. `ConversionService` 读取 StoreKit 权益并预留 1 个免费额度；已有 Pro 权益时直接跳过预留。
+2. `PHAssetResourceManager.writeData` 导出原始资源文件（`isNetworkAccessAllowed = true`）。
+3. `HEICInspector` 解析 `ftyp / meta / iinf / iref / iprp / iloc`，判断 grid、tile、HDR、Styles、EXIF、缩略图。
+4. `CompatibilityEvaluator` 给出 `ready / alreadyEnhanced / unsupported`，UI 只显示真实结论。
+5. `StylePorter.patch` 只追加 Texture / Grain（`analyzePhoto = false`，其余效果关闭）。
+6. 重新解析输出，`IntegrityVerifier` 对主图 payload 逐 item 分块 SHA-256 比对，并检查 HDR、EXIF、Styles、缩略图、Gain Map。
+7. `PHAssetCreationRequest.addResource(with: .photo, fileURL:)` 另存新 Asset，`originalFilename` 形如 `IMG_1234_TextureGrain.HEIC`。
+8. 回读新 Asset 的资源类型，确认仍是 HEIC 才报告成功，然后提交额度；任何失败路径释放预留。
 
 ### 无损的定义
 
@@ -183,6 +197,47 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
   警告而不是把该照片判为失败，从而避免重试重复写入。
 - 准备队列与转换任务分离；关闭选择、清空或重新选片会取消准备任务，而不是让 iCloud 下载在后台空转。
 
+## 免费额度与 LingXiStyle Pro
+
+### 免费额度
+
+- 每天 10 张，按设备本地自然日重置；`QuotaConfiguration.freeDailyLimit` 是唯一配置点。
+- 只有**转换成功并完成保存 / 导出**才扣 1 张；兼容性检查失败、已带质感、Live Photo、RAW、
+  编码失败、无损校验失败、取消或保存失败都会释放预留，不扣额度。
+- App、分享扩展、快捷指令都调用同一个 `ConversionService`；额度检查、预留、提交、释放都在
+  这个共享服务里完成，入口无法绕过。
+- 批量选择超过剩余额度时，App 只转换剩余张数，其余标记为「延后」，并提示升级 Pro 或明天继续；
+  不会在转换中途静默弹出付费墙。
+- 额度耗尽时显示「今日免费额度已用完」，可选择一次性解锁 Pro，或明天继续免费。
+
+### 额度存储
+
+默认使用 `KeychainQuotaStore`：每个本地日有 0..<10 个槽位，账号形如
+`slot.<yyyy-MM-dd>.<index>`。预留用 `SecItemAdd` 的唯一性做原子占位，两个进程同时抢最后一个
+槽位时只有一个成功；提交把标记从 `reserved` 改为 `committed`，释放只删除自己创建的
+`reserved` 槽位。30 分钟未提交的预留会被回收，跨天自动从新槽位开始。
+
+- 真机上 App 与分享扩展共享 Keychain Access Group
+  `$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared`，不依赖 App Group。
+- 模拟器签名不带 target entitlements，`KeychainQuotaStore` 在
+  `#if targetEnvironment(simulator)` 下退回进程默认 Keychain 组；模拟器只能验证 App 内持久化，
+  App / 扩展跨进程共享需真机验证。
+- `QuotaManager` 仍保留 SQLite 实现，供单元测试与未来显式注入 App Group 容器使用；生产默认
+  不会走 App Group 分支。
+
+### Pro 购买
+
+- StoreKit 2，非消耗型：`com.lingxifox.LingXiStyle.pro`。
+- 商品加载失败时 Pro 页面显示中文错误与「重试」，不显示任何假价格；成功后只使用
+  `Product.displayPrice`。
+- 购买结果必须经过 `VerificationResult<Transaction>` 验证，并再次读取
+  `Transaction.currentEntitlements(for:)` 才把 `isPro` 置为 true；本地布尔值、按钮回调或
+  未验证交易都不能解锁。
+- 支持恢复购买、未完成交易、交易监听、待批准、取消、失败、退款 / 撤销；退款后
+  `isPro` 变为 false，免费额度重新生效。
+- 本地测试配置在仓库根目录 `Configuration.storekit`，只在 Debug scheme 生效；
+  Release 构建不包含可购买测试商品。真实商品配置见 [AppStoreRelease.md](AppStoreRelease.md)。
+
 ## 快捷指令
 
 「解锁第三代摄影风格」接受 1–N 个文件，参数：
@@ -223,6 +278,9 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 | `E_PHOTO_ADD_DENIED` | 没有相册写入权限，需在系统设置中允许添加照片 |
 | `E_PHOTO_SAVED_MISSING` | 保存后找不到新 Asset |
 | `E_PHOTO_SAVED_NOT_HEIC` | 保存后回读不是 HEIC |
+| `E_QUOTA_EXHAUSTED` | 今日免费额度已用完；可明天继续或升级 Pro |
+| `E_QUOTA_UNAVAILABLE` | 额度服务不可用（Keychain / 数据库无法读取） |
+| `E_QUOTA_STORE` | 额度存储读写失败 |
 
 诊断页会附上文件结构、item 布局、校验结果与脱敏后的系统信息；原始码只出现在诊断里，
 主界面只显示中文解释。
@@ -236,17 +294,23 @@ Engine/Sources/         LingXiEngine
 Kit/Sources/            LingXiKit（含 ConversionRun 任务会话状态机）
 Core/Sources/           StylePortCore（vendor）
 Core/Resources/Profiles 45-15 / 48-12 / live-photo-video
-Kit/Tests/              ISOBox / 兼容性 / 校验 / ConversionRun 测试
+Kit/Tests/              ISOBox / 兼容性 / 校验 / ConversionRun / Quota 测试
 Engine/Tests/           引擎集成测试
+Tests/LingXiPurchaseTests/  StoreKit 2 + Keychain 额度测试（Simulator）
+Tests/PurchaseHost/     仅用于承载 StoreKit 测试的最小 App
 ShareExtension/         分享扩展
+Configuration.storekit  本地 StoreKit 测试商品（非线上价格）
+AppStoreRelease.md      App Store Connect / 真实内购发布清单
 ThirdPartyNotices/      上游 MIT 许可证与 vendor 说明
 project.yml             XcodeGen 工程定义
 ```
 
 ## 已知限制
 
-- 1.1 已完成 Debug / Release 构建与自动化测试，并在 iPhone 17 模拟器（iOS 27.3）跑通 48MP 主流程与浅 / 深色、大字号检查；真机与系统矩阵仍未逐项验证。
-- 主 App 1.0 曾在真机运行；分享扩展、快捷指令，以及 12/24MP、iCloud、权限、存储、取消等系统矩阵尚未逐项验证。详见 [TEST_REPORT.md](TEST_REPORT.md)。
+- 1.2 已完成 Debug / Release、签名 Debug 构建与自动化测试，并在 iPhone 17 模拟器（iOS 27.3）跑通 48MP 主流程、额度扣减 / 重启持久化、额度耗尽 → Pro 切换、本地 StoreKit 购买与购买后重启恢复；真机与系统矩阵仍未逐项验证。
+- 真实购买、退款 / 待批准、App 与分享扩展的 Keychain 跨进程共享尚未在真机验证；模拟器只能验证 App 内持久化。详见 [TEST_REPORT.md](TEST_REPORT.md)。
+- 免费 Personal Team 只能使用本地 StoreKit 配置测试；真实内购与上架需要付费 Apple Developer Program、App Store Connect 商品与 Sandbox / 生产环境。
+- `Configuration.storekit` 的 `$4.99` 只是本地测试价；线上价格由 App Store Connect 与 `Product.displayPrice` 决定。
 - 不同机型 / iOS 版本的 HEIC 可能使用不同的 `iref` 结构；已加 16-bit / 32-bit 回归测试，但仍需更多样本。
 - 分享扩展首次运行时可能拿不到相册写入授权（扩展内不一定能弹权限框）。此时会提示先回 App 授权；这是系统行为，需真机确认具体表现。
 - 分享面板可能把照片转成 JPEG，扩展会拒绝而不是偷偷转码。
@@ -270,4 +334,5 @@ project.yml             XcodeGen 工程定义
 ## 文档
 
 - [TEST_REPORT.md](TEST_REPORT.md)：构建、测试、模拟器 / 真机验证与未覆盖矩阵。
+- [AppStoreRelease.md](AppStoreRelease.md)：App Store Connect、商品、地区定价、Sandbox 与发布清单。
 - [AGENTS.md](AGENTS.md)：给在本仓库工作的编码代理的约束。

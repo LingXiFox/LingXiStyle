@@ -1,0 +1,50 @@
+{
+  "identifier": "A1B2C3D4-5E6F-4A7B-8C9D-0E1F2A3B4C5D",
+  "nonRenewingSubscriptions": [],
+  "products": [
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "B2C3D4E5-6F7A-4B8C-9D0E-1F2A3B4C5D6E",
+      "localizations": [
+        {
+          "description": "一次购买，永久解锁无限照片转换。",
+          "displayName": "LingXiStyle Pro",
+          "locale": "zh_CN"
+        },
+        {
+          "description": "One purchase. Unlimited photo conversions, forever.",
+          "displayName": "LingXiStyle Pro",
+          "locale": "en_US"
+        },
+        {
+          "description": "一度の購入で、写真変換がずっと無制限。",
+          "displayName": "LingXiStyle Pro",
+          "locale": "ja_JP"
+        },
+        {
+          "description": "Einmal kaufen. Unbegrenzte Fotokonvertierungen, für immer.",
+          "displayName": "LingXiStyle Pro",
+          "locale": "de_DE"
+        }
+      ],
+      "productID": "com.lingxifox.LingXiStyle.pro",
+      "referenceName": "LingXiStyle Pro",
+      "type": "NonConsumable"
+    }
+  ],
+  "settings": {
+    "_applicationInternalID": "1234567890",
+    "_developerTeamID": "",
+    "_failTransactionsEnabled": false,
+    "_lastSynchronizedDate": 0,
+    "_locale": "en_US",
+    "_storefront": "USA",
+    "_storeKitErrors": []
+  },
+  "subscriptionGroups": [],
+  "version": {
+    "major": 3,
+    "minor": 0
+  }
+}

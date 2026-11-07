@@ -26,6 +26,8 @@ struct ResultView: View {
 
                 if !summary.skippedReasons.isEmpty { skippedCard }
 
+                if model.deferredCount > 0 { deferredCard }
+
                 Button(action: onShowDiagnostics) {
                     Label("查看诊断信息", systemImage: "stethoscope")
                         .font(Typography.captionEmphasized)
@@ -136,6 +138,32 @@ struct ResultView: View {
         .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
             .strokeBorder(Palette.hairline, lineWidth: 1))
+    }
+
+    private var deferredCard: some View {
+        VStack(alignment: .leading, spacing: Spacing.s) {
+            Label("还有 \(model.deferredCount) 张未处理", systemImage: "clock.badge.exclamationmark")
+                .font(Typography.captionEmphasized)
+                .foregroundStyle(Palette.warning)
+            Text("今日免费额度不足，这些照片没有转换，也没有消耗额度。明天 00:00 后会恢复免费额度。")
+                .font(Typography.caption)
+                .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if model.isPro {
+                PrimaryActionButton(title: "继续处理剩余 \(model.deferredCount) 张", systemImage: "sparkles") {
+                    model.startConversion()
+                }
+            } else {
+                SecondaryActionButton(title: "升级 Pro 继续处理", systemImage: "sparkles") {
+                    model.presentPro()
+                }
+            }
+        }
+        .padding(Spacing.m)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Palette.warning.opacity(0.08), in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+            .strokeBorder(Palette.warning.opacity(0.24), lineWidth: 1))
     }
 
     private var bottomBar: some View {

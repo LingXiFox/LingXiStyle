@@ -21,6 +21,9 @@ public struct ConversionRun: Sendable, Equatable {
         case unsupported
         /// No usable original file (prepare failed or the item was removed).
         case unavailable
+        /// Deliberately left for a later pass, without recording a user-visible outcome.
+        /// Used when a free user asks to convert only the remaining daily allowance.
+        case deferred
     }
 
     public enum Step: Sendable, Equatable {
@@ -105,7 +108,7 @@ public struct ConversionRun: Sendable, Equatable {
                 states[itemID] = .cancelled
                 cursor += 1
                 return .cancel(itemID)
-            case .saved, .skipped, .failed, .cancelled:
+            case .saved, .skipped, .failed, .cancelled, .deferred:
                 cursor += 1
             }
         }

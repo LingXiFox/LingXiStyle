@@ -134,6 +134,7 @@ public enum ConversionFailure: Error, Sendable, LocalizedError {
     case engineMessage(String)
     case verificationFailed(IntegrityReport)
     case writeFailed(String)
+    case quota(QuotaError)
 
     public var errorDescription: String? { message }
 
@@ -151,6 +152,7 @@ public enum ConversionFailure: Error, Sendable, LocalizedError {
         case .engineMessage(let text): return text
         case .verificationFailed(let report): return "输出没通过无损校验：\(report.summary)"
         case .writeFailed(let detail): return "写入临时文件失败：\(detail)"
+        case .quota(let error): return error.errorDescription ?? "今日免费额度不可用。"
         }
     }
 
@@ -165,6 +167,7 @@ public enum ConversionFailure: Error, Sendable, LocalizedError {
         case .engineMessage(let text): return "E_ENGINE:\(text)"
         case .verificationFailed(let report): return "E_VERIFY:" + report.failures.map(\.id).joined(separator: ",")
         case .writeFailed: return "E_WRITE"
+        case .quota(let error): return error.diagnosticCode
         }
     }
 

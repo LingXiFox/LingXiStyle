@@ -20,6 +20,8 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LingXiKeychainGroup</key>
+	<string>$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionAttributes</key>

@@ -31,8 +31,28 @@ final class AppModel: ObservableObject {
     @Published var isStartingConversion = false
     @Published var permissionStatus: PHAuthorizationStatus = PhotoLibraryService.readAuthorizationStatus
     @Published var addPermissionDenied = false
+    @Published var quota: QuotaStatus?
+    @Published var isPro = false
+    @Published var activeModal: Modal?
+    @Published var batchQuotaPrompt: BatchQuotaPrompt?
 
+    enum Modal: String, Identifiable {
+        case pro
+        case quotaExhausted
+
+        var id: String { rawValue }
+    }
+
+    struct BatchQuotaPrompt: Identifiable, Equatable {
+        let id = UUID()
+        let requested: Int
+        let available: Int
+        let clearFailures: Bool
+    }
+
+    let purchases = PurchaseManager()
     private let library = PhotoLibraryService()
+    private var deferredItemIDs: Set<UUID> = []
     private var workspace: SessionWorkspace?
     private var preparationGeneration = UUID()
     private var conversionTask: Task<Void, Never>?
@@ -68,6 +88,8 @@ final class AppModel: ObservableObject {
 
     var savedItems: [PhotoItem] { items.filter(\.isSaved) }
 
+    var deferredCount: Int { deferredItemIDs.count }
+
     // MARK: Lifecycle
 
     func onAppear() async {
@@ -75,6 +97,40 @@ final class AppModel: ObservableObject {
         // UI remain usable without photo-library access. The permission page appears only when
         // a PhotoKit action actually needs read access.
         refreshPermissions()
+        await purchases.start()
+        await refreshQuota()
+    }
+
+    /// Reads the StoreKit-backed allowance used by every conversion entry point.
+    func refreshQuota() async {
+        let status = await ConversionService.shared.quotaStatus()
+        quota = status
+        isPro = status.isPro
+    }
+
+    func presentPro() {
+        activeModal = .pro
+        Task { [weak self] in
+            guard let self else { return }
+            await self.purchases.start()
+            if self.purchases.product == nil {
+                await self.purchases.loadProduct()
+            }
+        }
+    }
+
+    func presentQuotaExhausted() {
+        activeModal = .quotaExhausted
+    }
+
+    func dismissModal() {
+        activeModal = nil
+        Task { [weak self] in await self?.refreshQuota() }
+    }
+
+    func purchaseFlowFinished() {
+        activeModal = nil
+        Task { [weak self] in await self?.refreshQuota() }
     }
 
     /// Called when the app returns from Settings. Never triggers a permission prompt.
@@ -100,6 +156,7 @@ final class AppModel: ObservableObject {
         startToken = UUID()
         items = []
         selectedID = nil
+        deferredItemIDs = []
         summary = nil
         diagnosticsText = nil
         notice = nil
@@ -421,7 +478,7 @@ final class AppModel: ObservableObject {
 
     // MARK: Conversion
 
-    func startConversion(clearFailures: Bool = false) {
+    func startConversion(clearFailures: Bool = false, limit: Int? = nil) {
         guard !isStartingConversion, run == nil, conversionTask == nil else { return }
         guard !isBusyPreparing else {
             notice = "还在读取原件，读完后再开始。"
@@ -435,11 +492,11 @@ final class AppModel: ObservableObject {
         let token = UUID()
         startToken = token
         Task { [weak self] in
-            await self?.beginConversion(token: token, clearFailures: clearFailures)
+            await self?.beginConversion(token: token, clearFailures: clearFailures, limit: limit)
         }
     }
 
-    private func beginConversion(token: UUID, clearFailures: Bool) async {
+    private func beginConversion(token: UUID, clearFailures: Bool, limit: Int?) async {
         defer {
             if startToken == token { isStartingConversion = false }
         }
@@ -472,6 +529,47 @@ final class AppModel: ObservableObject {
             }
         }
 
+        // The UI checks the same StoreKit-backed allowance that ConversionService enforces.
+        // This is advisory: the service still reserves atomically, so two entry points racing
+        // for the last free photo cannot both succeed.
+        let status = await ConversionService.shared.quotaStatus()
+        guard startToken == token else { return }
+        quota = status
+        isPro = status.isPro
+
+        let requested = items.filter(\.isConvertible).count
+        guard requested > 0 else {
+            notice = "当前没有可解锁的照片。"
+            return
+        }
+        if !status.isPro {
+            guard status.isAvailable else {
+                notice = "暂时无法读取今日免费额度，请稍后重试。"
+                return
+            }
+            if status.remaining <= 0 {
+                presentQuotaExhausted()
+                return
+            }
+            if let limit, limit > status.remaining {
+                batchQuotaPrompt = BatchQuotaPrompt(requested: requested,
+                                                     available: status.remaining,
+                                                     clearFailures: clearFailures)
+                return
+            }
+            if limit == nil, requested > status.remaining {
+                batchQuotaPrompt = BatchQuotaPrompt(requested: requested,
+                                                     available: status.remaining,
+                                                     clearFailures: clearFailures)
+                return
+            }
+        }
+
+        let convertibleIDs = items.filter(\.isConvertible).map(\.id)
+        let allowedCount = status.isPro ? convertibleIDs.count : min(limit ?? convertibleIDs.count, status.remaining)
+        let allowedIDs = Set(convertibleIDs.prefix(allowedCount))
+        deferredItemIDs = Set(convertibleIDs.dropFirst(allowedCount))
+
         let workspace: SessionWorkspace
         do {
             workspace = try ensureWorkspace()
@@ -481,7 +579,7 @@ final class AppModel: ObservableObject {
         }
 
         if clearFailures {
-            for item in items {
+            for item in items where allowedIDs.contains(item.id) {
                 if case .failed? = item.outcome {
                     update(item.id) {
                         $0.outcome = nil
@@ -497,7 +595,10 @@ final class AppModel: ObservableObject {
         }
 
         let entries = items.map { item -> (UUID, ConversionRun.ItemState) in
-            (item.id, Self.initialState(for: item))
+            if item.isConvertible && !allowedIDs.contains(item.id) {
+                return (item.id, .deferred)
+            }
+            return (item.id, Self.initialState(for: item))
         }
         let newRun = ConversionRun(entries: entries)
         workspace.begin()
@@ -631,6 +732,7 @@ final class AppModel: ObservableObject {
         conversionTask = nil
         isCancelling = false
         screen = .result
+        Task { [weak self] in await self?.refreshQuota() }
     }
 
     func retryFailed() {

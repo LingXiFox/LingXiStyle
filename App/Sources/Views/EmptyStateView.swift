@@ -23,6 +23,11 @@ struct EmptyStateView: View {
                 actions
                     .padding(.top, Spacing.l)
 
+                QuotaBadge(quota: model.quota, isPro: model.isPro) {
+                    model.presentPro()
+                }
+                .padding(.top, Spacing.m)
+
                 privacyLine
                     .padding(.top, Spacing.m)
                     .padding(.bottom, Spacing.l)
@@ -138,22 +143,8 @@ struct EmptyStateView: View {
             }
             .padding(Spacing.l)
 
-            VStack {
-                Spacer()
-                HStack {
-                    Text("ORIGINAL HEIC")
-                        .font(Typography.micro)
-                        .tracking(1.2)
-                        .foregroundStyle(Palette.textSecondary)
-                    Spacer(minLength: 0)
-                    Text("FRAME")
-                        .font(Typography.micro)
-                        .foregroundStyle(Palette.textSecondary.opacity(0.7))
-                }
-                .padding(Spacing.m)
-            }
         }
-        .frame(maxHeight: 320)
+        .frame(maxHeight: 300)
         .aspectRatio(Layout.heroAspect, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
         .overlay(

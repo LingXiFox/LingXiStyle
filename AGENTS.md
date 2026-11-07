@@ -6,7 +6,8 @@
 ## 项目一句话
 
 本地 SwiftUI App：读取 PhotoKit 中 iPhone 16/17 的 HEIC **原始资源文件**，只追加第三代
-Texture / Grain，另存为相册新照片。原图不覆盖、不转码、不上传。当前版本 1.1.0（build 2）。
+Texture / Grain，另存为相册新照片。原图不覆盖、不转码、不上传。当前版本 1.2.0（build 3），
+包含免费额度与 StoreKit 2 一次性 Pro 内购。
 
 ## 构建与验证
 
@@ -22,6 +23,8 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiEngineTests \
   -destination 'platform=macOS,arch=arm64' test
 xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
   -destination 'platform=macOS,arch=arm64' test
+xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
+  -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' test
 ```
 
 改了 `project.yml` 或新增文件后必须重新 `xcodegen generate`，否则 target 源列表不会更新
@@ -57,6 +60,20 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
    与已保存 Asset 标识完成查看 / 分享，不依赖跳转系统「照片」。
 13. **图片加载**：`PHImageManager` 只接受非 degraded 的最终图，并处理 error / cancelled；
    缩略图请求要支持任务取消，避免长期停留在低清预览。
+14. **额度唯一入口**：免费额度只能在 `ConversionService` 里检查 / 预留 / 提交 / 释放；
+   App、分享扩展、快捷指令都不得自行计数或绕过。默认每天 10 张，失败、跳过、不兼容、
+   取消、保存失败不扣；只有成功保存或成功导出后才提交。批量超出时只处理剩余额度。
+15. **额度存储**：生产默认 `KeychainQuotaStore` 的槽位账本（`SecItemAdd` 原子占位），
+   跨进程共享靠 Keychain Access Group；不要改回普通 UserDefaults 读改写。SQLite 只用于
+   注入测试或显式 App Group 环境。模拟器无 target entitlement 时退回进程默认 Keychain 组，
+   这只能证明 App 内持久化，不能写成 App / 扩展跨进程已验证。
+16. **内购只认 StoreKit 2 验证**：`isPro` 必须来自已验证的 `Transaction` 与
+   `Transaction.currentEntitlements`；不得用本地 bool、按钮回调、UserDefaults 或
+   `SKTestSession` 结果直接解锁。退款 / 撤销后必须回到免费额度。
+17. **价格只读 `Product.displayPrice`**：UI、测试、文档不得硬编码 USD / CNY / JPY / EUR。
+   商品加载失败显示中文错误与重试，不得显示虚构价格。
+18. **StoreKit 测试配置只在 Debug**：`Configuration.storekit` 绑定到 Debug scheme；
+   Release / 真机生产不得启用本地测试商品或开发购买旁路。
 
 ## 代码约定
 
@@ -72,16 +89,17 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 - 修改 Kit / Engine 必须跑对应 macOS 测试 scheme；修改 App 必须至少做一次
   `generic/platform=iOS` Debug 与 Release 构建。修改任务生命周期必须跑 `ConversionRunTests`。
 - 真机验证状态以 `TEST_REPORT.md` 为准，不得把「编译通过」写成「真机通过」。
-- 1.1 已完成 Debug / Release 构建与自动化测试，并在 iPhone 17 模拟器（iOS 27.3）跑通 48MP 主流程、浅 / 深色与大字号；不得把模拟器通过写成真机通过。
-- 已有 48MP 实拍 HEIC 的引擎层与模拟器 App 端到端验证，记录见 `TEST_REPORT.md`；分享扩展、快捷指令与真机系统权限矩阵仍需确认。
-- 修改 HEIF 解析后必须跑 `LingXiKitTests` 的 `iref` 回归用例。
+- 1.2 已完成 Debug / Release、签名 Debug 构建与自动化测试，并在 iPhone 17 模拟器（iOS 27.3）跑通 48MP 主流程、额度扣减 / 重启持久化、额度耗尽 → Pro 切换、本地 StoreKit 购买与购买后重启恢复；不得把模拟器通过写成真机通过。
+- 已有 48MP 实拍 HEIC 的引擎层与模拟器 App 端到端验证，记录见 `TEST_REPORT.md`；真实 App Store 交易 / 退款、批量超额提示、分享扩展、快捷指令与真机系统权限矩阵仍需确认。
+- 修改 HEIF 解析后必须跑 `LingXiKitTests` 的 `iref` 回归用例；修改额度必须同时跑
+  `QuotaTests` 与 `KeychainQuotaTests`；修改购买必须跑 `LingXiPurchaseTests`。
 
 ## 目录速查
 
 | 路径 | 内容 |
 | --- | --- |
-| `App/Sources/Views` | 四态页面、权限页 |
-| `App/Sources/Components` | PhotoHeroCard、缩略图条、徽章、进度、结果卡、诊断 |
+| `App/Sources/Views` | 四态页面、权限页、Pro 购买页、额度耗尽页 |
+| `App/Sources/Components` | PhotoHeroCard、缩略图条、徽章、进度、结果卡、诊断、额度徽章 |
 | `App/Sources/DesignSystem` | 颜色 / 间距 / 字体 / 动效 |
 | `App/Sources/AppModel.swift` | 任务会话、队列、选择、导入、取消、诊断 |
 | `App/Sources/Integrations/Shortcuts` | AppIntent 与 AppShortcutsProvider |

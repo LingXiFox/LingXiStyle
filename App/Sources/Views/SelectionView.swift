@@ -244,13 +244,36 @@ struct SelectionView: View {
             }
             .padding(.horizontal, margin)
 
-            PrimaryActionButton(title: model.ctaTitle,
-                                systemImage: "sparkles",
-                                isEnabled: model.convertibleCount > 0 && !model.isBusyPreparing,
-                                isWorking: model.isBusyPreparing) {
-                model.startConversion()
+            HStack {
+                QuotaBadge(quota: model.quota, isPro: model.isPro, compact: true) {
+                    model.presentPro()
+                }
+                Spacer(minLength: 0)
+                if let quota = model.quota, !model.isPro, quota.isAvailable, quota.remaining < model.convertibleCount {
+                    Text("超出部分留到明天")
+                        .font(Typography.micro)
+                        .foregroundStyle(Palette.warning)
+                }
             }
             .padding(.horizontal, margin)
+
+            if let quota = model.quota, !model.isPro, quota.isAvailable, quota.remaining == 0 {
+                PrimaryActionButton(title: "今日免费额度已用完",
+                                    systemImage: "clock.badge.exclamationmark",
+                                    isEnabled: model.convertibleCount > 0 && !model.isBusyPreparing,
+                                    isWorking: model.isBusyPreparing) {
+                    model.presentQuotaExhausted()
+                }
+                .padding(.horizontal, margin)
+            } else {
+                PrimaryActionButton(title: model.ctaTitle,
+                                    systemImage: "sparkles",
+                                    isEnabled: model.convertibleCount > 0 && !model.isBusyPreparing,
+                                    isWorking: model.isBusyPreparing) {
+                    model.startConversion()
+                }
+                .padding(.horizontal, margin)
+            }
 
             Text("仅在本机处理 · 原图始终保留")
                 .font(Typography.micro)
