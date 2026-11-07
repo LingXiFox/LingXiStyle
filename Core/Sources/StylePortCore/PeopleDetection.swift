@@ -113,7 +113,11 @@ enum PeopleDetection {
     /// A matte at the photo's aspect with the long edge native mattes have; even sides.
     static func matteSize(width: Int, height: Int) -> (Int, Int) {
         let long = matteLongEdge
-        let short = max(2, Int((Double(long) * Double(min(width, height)) / Double(max(width, height)) / 2).rounded()) * 2)
+        // Keep the arithmetic in small steps: Xcode 16.4's solver times out on the
+        // single-expression form even though newer compilers accept it.
+        let ratio = Double(min(width, height)) / Double(max(width, height))
+        let scaled = Double(long) * ratio / 2
+        let short = max(2, Int(scaled.rounded()) * 2)
         return width >= height ? (long, short) : (short, long)
     }
 
