@@ -20,6 +20,10 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Saves converted HEIC test output to the simulator photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Hosts on-device HEIC conversion tests that read the selected original.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 </dict>

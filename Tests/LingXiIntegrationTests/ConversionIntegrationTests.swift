@@ -198,11 +198,21 @@ final class ConversionIntegrationTests: XCTestCase {
     func testConvertAndSaveToPhotoLibrary() async throws {
         let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
         guard status == .authorized || status == .limited else {
-            throw XCTSkip("PhotoKit read/write permission is not granted to the integration host; CI grants photos and photos-add before the test.")
+            XCTFail("""
+                PhotoKit read/write permission is not granted to the integration host \
+                (status=\(status.rawValue), bundle=\(Bundle.main.bundleIdentifier ?? "nil")). \
+                Grant photos and photos-add to the host before running integration tests.
+                """)
+            return
         }
         let addStatus = PHPhotoLibrary.authorizationStatus(for: .addOnly)
         guard addStatus == .authorized || addStatus == .limited else {
-            throw XCTSkip("PhotoKit add-only permission is not granted; CI grants photos-add before the test.")
+            XCTFail("""
+                PhotoKit add-only permission is not granted to the integration host \
+                (status=\(addStatus.rawValue), bundle=\(Bundle.main.bundleIdentifier ?? "nil")). \
+                Grant photos-add to the host before running integration tests.
+                """)
+            return
         }
 
         let quota = try quotaManager()

@@ -121,11 +121,21 @@ final class ShortcutIntegrationTests: XCTestCase {
     func testSaveOnlyDoesNotReturnAFileButDoesSave() async throws {
         let readStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
         guard readStatus == .authorized || readStatus == .limited else {
-            throw XCTSkip("PhotoKit permission is not granted to the integration host.")
+            XCTFail("""
+                PhotoKit read/write permission is not granted to the integration host \
+                (status=\(readStatus.rawValue), bundle=\(Bundle.main.bundleIdentifier ?? "nil")). \
+                Grant photos and photos-add to the host before running integration tests.
+                """)
+            return
         }
         let addStatus = PHPhotoLibrary.authorizationStatus(for: .addOnly)
         guard addStatus == .authorized || addStatus == .limited else {
-            throw XCTSkip("PhotoKit add-only permission is not granted to the integration host.")
+            XCTFail("""
+                PhotoKit add-only permission is not granted to the integration host \
+                (status=\(addStatus.rawValue), bundle=\(Bundle.main.bundleIdentifier ?? "nil")). \
+                Grant photos-add to the host before running integration tests.
+                """)
+            return
         }
 
         let quota = quotaManager()

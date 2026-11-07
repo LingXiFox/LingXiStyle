@@ -369,4 +369,5 @@ project.yml             XcodeGen 工程定义
 
 - [TEST_REPORT.md](TEST_REPORT.md)：构建、测试、模拟器 / 真机验证与未覆盖矩阵。
 - [AppStoreRelease.md](AppStoreRelease.md)：App Store Connect、商品、地区定价、Sandbox 与发布清单。
+- [docs/app-store/README.md](docs/app-store/README.md)：四语言商店文案、截图规范、中国大陆合规清单，以及可部署的隐私 / 支持页面。
 - [AGENTS.md](AGENTS.md)：给在本仓库工作的编码代理的约束。

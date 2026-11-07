@@ -241,6 +241,8 @@ targets:
       properties:
         CFBundleDisplayName: Texel Integration Host
         UILaunchScreen: {}
+        NSPhotoLibraryUsageDescription: Hosts on-device HEIC conversion tests that read the selected original.
+        NSPhotoLibraryAddUsageDescription: Saves converted HEIC test output to the simulator photo library.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle.IntegrationHost
