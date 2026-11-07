@@ -2,7 +2,7 @@
 
 - 日期：2026-11-07
 - 项目：LingXiStyle 1.1.0（build 2）
-- 结论：**XcodeGen 生成、Debug / Release 构建与全部自动化测试通过；1.0 的 48MP 真实 HEIC 引擎验证仍有效。1.1 的任务生命周期、分享扩展、图片加载、批量并发、真实进度、按需权限与 UI 升级已完成代码与编译验证；当前环境没有 iOS 模拟器 runtime，1.1 UI、分享扩展、快捷指令与系统权限矩阵仍需真机验收。**
+- 结论：**XcodeGen 生成、Debug / Release 构建与全部自动化测试通过；1.1 已在 iPhone 17 模拟器（iOS 27.3）跑通 48MP HEIC 选图 → 转换 → 保存回读 → 结果页，11/11 无损校验通过。分享扩展、快捷指令、真机权限 / iCloud / 取消矩阵仍需验收。**
 
 ## 1. 环境
 
@@ -13,7 +13,7 @@
 | Swift | Swift 5 语言模式（`SWIFT_VERSION=5.0`） |
 | 部署目标 | iOS 18.0 |
 | 签名 | 自动签名；使用开发者自己的 Apple Development Team（仓库不包含 Team ID） |
-| 模拟器 | **无可用 iOS runtime**（`xcrun simctl list runtimes` 为空），未做 UI 运行、截图与 VoiceOver 验收 |
+| 模拟器 | iPhone 17，iOS 27.3；已运行 1.1 主流程与浅 / 深色 / 大字号检查；VoiceOver / Reduce Motion / 横竖屏尚未逐项验收 |
 | 真机 | 1.0 曾在 iPhone 16 Pro Max 安装运行；1.1 未做真机安装 |
 
 ## 2. 构建结果
@@ -37,7 +37,7 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiStyle \
 
 结果：**Debug BUILD SUCCEEDED；Release BUILD SUCCEEDED**，0 error、0 Swift compiler warning。
 
-Release 日志另有 4 条系统工具提示
+构建日志另有 App Intents 元数据工具提示
 `Metadata extraction skipped, no AppIntents.framework dependency found`，来自
 `appintentsmetadataprocessor` 扫描不含快捷指令的 framework；不是 Swift 编译警告，
 不影响 App 的 `Metadata.appintents` 生成，也不影响构建或运行。
@@ -77,6 +77,26 @@ iPhone 16 Pro Max 成功。首次启动被系统拒绝，原因是免费开发�
 
 1.1 没有修改 `StylePortCore` 的纹理 / 颗粒算法，也没有改变固定转换管线；上述结果作为
 引擎基线保留。
+
+### 2.5 1.1 模拟器端到端验收（2026-11-07）
+
+设备：iPhone 17 模拟器，iOS 27.3；Debug 构建，`CODE_SIGNING_ALLOWED=NO`。样本为
+8064 × 6048 iPhone 实拍 HEIC（125 items、54 个主图 tile、15 个 HDR gain-map tile）。
+
+- PhotosPicker → SelectionView 判定「可解锁」；点「解锁第三代摄影风格」后约 4 秒进入结果页
+  「已保存新照片」。
+- 诊断：`container: heic · 5924047 bytes`，`geometry: 8064 × 6048 · rot 0`，
+  `items: 125 · grid true · tiles 54 · hdrTiles 15`，
+  `flags: style true · texture false · exif true · thumb true · gain true · linear true`，
+  `iloc: v1 off4 len4 base0 idx0 · graftable true`，`verdict: ready`，`integrity: pass · 11/11`。
+- 相册回读新 Asset：5,933,004 bytes，仍为 HEIC、8064 × 6048、Display P3；连续两次转换
+  输出 SHA-256 一致（`90939abf...`）；原图 SHA-256（`7edf1625...`）未变。
+- 混合批次（已含质感 + 原图）显示「成功 1 / 跳过 1」，跳过卡说明「已经带有第三代质感」
+  「没有保存副本」。
+- 空状态、选择页、结果页在浅色 / 深色下显示正常；accessibility-large 下可滚动，底部主操作
+  仍可点；应用内成果查看与分享入口可用。
+- 本轮未覆盖：真机、分享扩展、快捷指令、iCloud 实际下载、权限拒绝、存储不足、取消 / 重试、
+  VoiceOver、Reduce Motion、横竖屏。
 
 ## 3. 自动化测试
 
@@ -118,7 +138,7 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 ### 自动化测试盖不到的部分
 
 - PhotoKit 权限、iCloud 下载、相册保存回读、分享扩展授权等系统交互。
-- App 内的完整点击链路与四态 UI 的深浅色、Dynamic Type、Reduce Motion、VoiceOver 表现。
+- 模拟器已覆盖主流程与浅 / 深色、大字号；VoiceOver、Reduce Motion、横竖屏仍未运行。
 - 12MP / 24MP、夜景、人像、Live Photo、RAW 等多场景真机样张。
 - 第三代质感在系统「照片」中的实际视觉呈现（`addTexture` 写的是元数据，`sips` 解码
   不能证明系统相册的渲染效果）。
@@ -126,10 +146,12 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 
 ## 4. 1.1 静态与行为验证
 
-以下项目通过**编译、单元测试或代码审查**确认，不代表真机运行通过：
+以下项目通过**编译、单元测试、代码审查或模拟器运行**确认，不代表真机运行通过：
 
 | 项 | 验证方式 | 结论 |
 | --- | --- | --- |
+| 1.1 主流程 | iPhone 17 模拟器，48MP 实拍 HEIC | ✅ 选图 → 转换 → 保存回读 → 结果页；11/11 校验，原图哈希不变 |
+| 空状态 / 选择页 / 结果页 | iPhone 17 模拟器浅 / 深色、accessibility-large | ✅ 目视验收；双入口、缩略图条、详情卡、结果操作可用 |
 | 任务会话隔离 | `ConversionRunTests` + AppModel 代码审查 | 旧 stage / result 回调有 session token guard；旧 beginConversion 有 startToken guard |
 | 取消保留已保存项 | `ConversionRunTests` + 保存边界审查 | 已写入相册的保留；未开始项转 cancelled；保存开始后不强行中断 |
 | reset 不删除在用文件 | SessionWorkspace 引用计数审查 | reset 只 retire，最后一个活跃操作结束才删除 |
@@ -145,17 +167,17 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 | Reduce Motion | 组件审查 | 循环光、扫边、缩放均受环境值控制 |
 | UI 预览 | PreviewSupport 编译 | 覆盖空状态、单选、多选、下载、转换、保存、成功、部分失败、警告、权限、深浅色、大字体、Reduce Motion |
 
-## 5. 真机测试矩阵
+## 5. 设备测试矩阵（模拟器 / 真机）
 
-状态说明：✅ 已验证（自动化 / 引擎层）；🟡 已实现并通过编译，未真机运行；
-⚪ 未执行。当前没有 iOS 模拟器 runtime，UI 相关项不能以构建通过替代。
+状态说明：✅ 已验证（自动化 / 引擎层 / 模拟器）；🟡 已实现并通过编译，未运行；
+⚪ 未执行。模拟器结果不能替代真机，UI 相关项也不能以构建通过替代。
 
 | # | 场景 | 预期 | 状态 |
 | --- | --- | --- | --- |
 | 1 | 12MP HEIC 原片 | 成功，另存新照片，原图不变 | ⚪ |
 | 2 | 24MP HEIC 原片 | 成功 | ⚪ |
-| 3 | 48MP Pro 原片（多 tile grid） | 成功，逐 tile 无损 | ✅ 引擎层（54 tiles，11/11 校验） |
-| 4 | HDR / Gain Map 照片 | 成功，HDR 元数据保留 | ✅ 引擎层（15 个 gain-map tiles 保留） |
+| 3 | 48MP Pro 原片（多 tile grid） | 成功，逐 tile 无损 | ✅ 模拟器端到端（54 tiles，11/11 校验；另有 1.0 引擎基线） |
+| 4 | HDR / Gain Map 照片 | 成功，HDR 元数据保留 | ✅ 模拟器端到端（15 个 gain-map tiles 保留） |
 | 5 | 夜景 / 人像 | 成功，纹理只追加不替换 | ⚪ |
 | 6 | 已含第三代质感 | 「无需转换」，不写入相册 | ✅ 自动化（重复输出判定 alreadyEnhanced） |
 | 7 | Live Photo | 跳过并提示暂不支持，不处理视频 | ✅ 自动化（CompatibilityTests） |
@@ -171,8 +193,8 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 | 17 | 存储空间不足 | 失败并说明原因，不产生半张照片 | ⚪ |
 | 18 | 批量转换中取消 | 当前张到安全边界；已保存保留；未开始取消 | 🟡 状态机自动化通过，未真机 |
 | 19 | 重试失败项 | 只重转失败项，不重复保存已成功项 | 🟡 ConversionRun 自动化通过，未真机 |
-| 20 | 深色 / 浅色 | 真动态色，对比度 ≥ 4.5:1 | 🟡 代码与预览，未运行 |
-| 21 | Dynamic Type 大字号 | 布局不截断，主按钮仍可点 | 🟡 代码与预览，未运行 |
+| 20 | 深色 / 浅色 | 真动态色，对比度 ≥ 4.5:1 | ✅ 模拟器目视（空状态 / 选择 / 结果） |
+| 21 | Dynamic Type 大字号 | 布局不截断，主按钮仍可点 | ✅ 模拟器 accessibility-large（可滚动，主操作可点） |
 | 22 | Reduce Motion | 关闭扫光 / 呼吸光 / 缩放 | 🟡 代码审查，未运行 |
 | 23 | VoiceOver | 大图、缩略图、进度、错误可读 | ⚪ 未运行 |
 | 24 | 快捷指令（保存 / 返回文件 / 仅检查） | 统计正确，文件可回传 | 🟡 已修复文件生命周期，未真机 |
@@ -190,16 +212,18 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 | P1-2 批量准备有界并发 2、保持顺序 | ✅ 代码审查；真机未验 |
 | P1-3 `.saving` / 真实保存阶段与 iCloud 进度 | ✅ 代码审查；真机未验 |
 | P1-4 按需权限 | ✅ 代码审查；真机未验 |
-| P2 四页视觉升级、真实阶段动效 | 🟡 编译与预览；无运行时目视验收 |
-| 浅 / 深色、Dynamic Type、VoiceOver、Reduce Motion、横竖屏 | 🟡 令牌 / 预览 / 代码；未运行 |
-| 保持 HEIC 原始 payload、HDR、EXIF、Styles | ✅ 1.0 真实 48MP 引擎验证；1.1 未改算法 |
+| P2 四页视觉升级、真实阶段动效 | ✅ 模拟器主流程与浅 / 深色、大字号目视；真机未验 |
+| 浅 / 深色、Dynamic Type | ✅ 模拟器目视；真机未验 |
+| VoiceOver、Reduce Motion、横竖屏 / 窄屏 | 🟡 令牌 / 预览 / 代码；未运行 |
+| 保持 HEIC 原始 payload、HDR、EXIF、Styles | ✅ 1.1 模拟器端到端 11/11；1.0 引擎基线保留 |
 | 不引入第三方依赖 / 私有 API | ✅ 仅系统框架；`photos-redirect` 已移除 |
 | XcodeGen 可生成、Debug / Release 可构建 | ✅ 本轮实测 |
 
 ## 7. 已知风险
 
-1. **最大未覆盖项是 1.1 的真机运行验收。** 当前无 iOS 模拟器 runtime，四页 UI、动效、
-   Dynamic Type、VoiceOver、横竖屏与窄屏布局都只有编译和代码审查，没有运行截图。
+1. **最大未覆盖项是 1.1 的真机运行验收。** 模拟器已跑通主流程、浅 / 深色与大字号；
+   真机相册、分享扩展、快捷指令、iCloud、权限拒绝、取消 / 重试，以及 VoiceOver、Reduce Motion、
+   横竖屏仍需确认。
 2. **分享扩展与快捷指令未跑闭环。** 扩展内相册写入授权、`loadFileRepresentation` 实际
    返回格式、`IntentFile` 回传都需要真机确认。
 3. **iCloud 下载与取消只在代码层接通。** `progressHandler` 与 `PHAssetResource` 取消行为

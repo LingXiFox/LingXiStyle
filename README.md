@@ -15,9 +15,9 @@
 - **1.1.0（build 2）**：P0 任务生命周期、分享扩展与结果页；P1 图片加载、批量导入、真实进度与按需权限；P2 四页视觉升级。
 - 自动化测试：`LingXiKitTests` 16/16、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。
 - `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift compiler warning；仅有 App Intents 元数据工具的非阻塞提示。
-- 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile，11/11 项无损校验通过（1.0 引擎层基线）。
-- 主 App 曾在 iPhone 16 Pro Max 上安装并跑通 1.0 主流程；1.1 的 UI 与交互尚无可用模拟器 runtime，未做运行截图验收。
-- 分享扩展、快捷指令、12/24MP、权限、存储、取消等系统矩阵仍需真机逐项验证。
+- 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.1 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过。
+- 1.1 的空状态、选择页、结果页已在浅色 / 深色与 accessibility-large 下目视验收；主 App 1.0 曾在 iPhone 16 Pro Max 真机安装并跑通主流程。
+- 1.1 真机、分享扩展、快捷指令、12/24MP、iCloud、权限、存储、取消等系统矩阵仍需逐项验证。
 
 ## 它做什么
 
@@ -245,8 +245,8 @@ project.yml             XcodeGen 工程定义
 
 ## 已知限制
 
-- 1.1 的 Debug / Release 构建与自动化测试通过；当前环境没有 iOS 模拟器 runtime，1.1 UI 未做运行截图验收。
-- 主 App 1.0 曾在真机运行；分享扩展、快捷指令，以及 12/24MP、权限、存储、取消等系统矩阵尚未逐项验证。详见 [TEST_REPORT.md](TEST_REPORT.md)。
+- 1.1 已完成 Debug / Release 构建与自动化测试，并在 iPhone 17 模拟器（iOS 27.3）跑通 48MP 主流程与浅 / 深色、大字号检查；真机与系统矩阵仍未逐项验证。
+- 主 App 1.0 曾在真机运行；分享扩展、快捷指令，以及 12/24MP、iCloud、权限、存储、取消等系统矩阵尚未逐项验证。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 - 不同机型 / iOS 版本的 HEIC 可能使用不同的 `iref` 结构；已加 16-bit / 32-bit 回归测试，但仍需更多样本。
 - 分享扩展首次运行时可能拿不到相册写入授权（扩展内不一定能弹权限框）。此时会提示先回 App 授权；这是系统行为，需真机确认具体表现。
 - 分享面板可能把照片转成 JPEG，扩展会拒绝而不是偷偷转码。
@@ -269,5 +269,5 @@ project.yml             XcodeGen 工程定义
 
 ## 文档
 
-- [TEST_REPORT.md](TEST_REPORT.md)：构建、测试、真机验证与未覆盖矩阵。
+- [TEST_REPORT.md](TEST_REPORT.md)：构建、测试、模拟器 / 真机验证与未覆盖矩阵。
 - [AGENTS.md](AGENTS.md)：给在本仓库工作的编码代理的约束。

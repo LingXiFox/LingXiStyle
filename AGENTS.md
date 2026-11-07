@@ -72,8 +72,8 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 - 修改 Kit / Engine 必须跑对应 macOS 测试 scheme；修改 App 必须至少做一次
   `generic/platform=iOS` Debug 与 Release 构建。修改任务生命周期必须跑 `ConversionRunTests`。
 - 真机验证状态以 `TEST_REPORT.md` 为准，不得把「编译通过」写成「真机通过」。
-- 1.1 已完成 Debug / Release 构建与自动化测试；当前环境没有 iOS 模拟器 runtime，1.1 UI 未做运行验收。
-- 已有 48MP 实拍 HEIC 的引擎层验证，记录见 `TEST_REPORT.md`；主 App 1.0 主流程已由机主确认，1.1、分享扩展与快捷指令仍需真机确认，不得把引擎通过写成 App 通过。
+- 1.1 已完成 Debug / Release 构建与自动化测试，并在 iPhone 17 模拟器（iOS 27.3）跑通 48MP 主流程、浅 / 深色与大字号；不得把模拟器通过写成真机通过。
+- 已有 48MP 实拍 HEIC 的引擎层与模拟器 App 端到端验证，记录见 `TEST_REPORT.md`；分享扩展、快捷指令与真机系统权限矩阵仍需确认。
 - 修改 HEIF 解析后必须跑 `LingXiKitTests` 的 `iref` 回归用例。
 
 ## 目录速查

@@ -190,14 +190,6 @@ struct SelectionView: View {
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                if let issue = verdict.issues.first {
-                    Text(issue.guidance)
-                        .font(Typography.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 1)
-                }
-
                 metadataRow(for: item)
             }
         }

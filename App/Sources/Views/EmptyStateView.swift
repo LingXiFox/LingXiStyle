@@ -146,15 +146,15 @@ struct EmptyStateView: View {
                         .tracking(1.2)
                         .foregroundStyle(Palette.textSecondary)
                     Spacer(minLength: 0)
-                    Text("4:5")
+                    Text("FRAME")
                         .font(Typography.micro)
                         .foregroundStyle(Palette.textSecondary.opacity(0.7))
                 }
                 .padding(Spacing.m)
             }
         }
+        .frame(maxHeight: 320)
         .aspectRatio(Layout.heroAspect, contentMode: .fit)
-        .frame(maxHeight: 420)
         .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: Radius.card, style: .continuous)

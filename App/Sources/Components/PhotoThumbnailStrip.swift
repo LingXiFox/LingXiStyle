@@ -27,6 +27,9 @@ struct PhotoThumbnailStrip: View {
             .padding(.horizontal, Spacing.m)
             .padding(.vertical, Spacing.xs)
         }
+        // A horizontal ScrollView is greedy vertically inside a `safeAreaInset`; pin it to the
+        // thumbnail row height so the bottom action bar does not cover the compatibility card.
+        .frame(height: Layout.thumbnailSide + Spacing.xs * 2)
         .scrollClipDisabled()
     }
 

@@ -91,7 +91,9 @@ public struct CompatibilityVerdict: Sendable, Equatable {
         case .alreadyEnhanced:
             return "这张照片已经包含 2026 质感样式数据，重复处理不会带来变化。"
         case .unsupported:
-            return issues.map { "\($0.title)：\($0.guidance)" }.joined(separator: "\n")
+            // The headline already names the first issue; keep this to actionable guidance so
+            // the selection card does not repeat the same sentence three times.
+            return issues.map(\.guidance).joined(separator: "\n")
         }
     }
 }
