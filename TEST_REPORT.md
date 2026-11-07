@@ -76,7 +76,7 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiStyle \
   - 1.7.1 新增“Run launch smoke test”：`LingXiUITests` 启动 / 首页 / 设置 / Pro 入口。
   - 日志写入 `.build/logs/integration-build.log`、`integration-tests.log`、`ui-smoke.log`。
 - 本地已用 Ruby Psych 解析 YAML，并按 CI 的同一顺序预演集成测试：29 / 29 通过。
-- 1.7.1 推送后的 GitHub Actions 结果：待运行补充。
+- 1.7.1 推送后的 GitHub Actions：[run 42378432683](https://github.com/LingXiFox/LingXiStyle/actions/runs/42378432683)，commit `b5e2ace`，**success**。四个 job 全绿；iOS 集成测试两条运行时均 29 项执行 / 2 项跳过 / 0 失败，UI 冒烟均 1/1。跳过项是 1 条 `ConversionIntegrationTests` 与 1 条 `ShortcutIntegrationTests`（宿主环境不具备对应条件）。
 
 ## 3. 模拟器端到端
 
@@ -280,7 +280,7 @@ StoreKit 授权只接受 `.verified` 交易；未验签、pending、取消、网
 | --- | --- | --- |
 | Xcode 16.4 编译失败 | 源码 + CI 构建 | ✅ 移除对 `StoreKitError.invalidPresentationContext` 的直接匹配；旧 SDK 不再报 `_ErrorCodeProtocol` 错误 |
 | Xcode 16.4 类型检查超时 | 源码 + CI 构建 | ✅ `PeopleDetection` 的 `matteSize`、`RasterImport` 的 `appleExif` 与 Core 测试 fixture 拼接拆分，旧编译器通过 |
-| CI 设计 | GitHub Actions + 本地 YAML 解析 | ✅ 双 SDK 矩阵、策略检查、macOS 单测、集成测试与启动冒烟已接入；1.7.1 运行结果待推送后补充 |
+| CI 设计 | GitHub Actions + 本地 YAML 解析 | ✅ 双 SDK 矩阵、策略检查、macOS 单测、集成测试与启动冒烟已接入；1.7.1 run 42378432683 四个 job 全绿 |
 | 分享扩展阻塞 | 源码 + 统一日志 + 模拟器闭环 | ✅ `process` 不再把 `reading` 当忙碌；读取、转换、保存、额度同步全部通过 |
 | 分享读取超时 / 回退 | 自动化 | ✅ 3 秒 data fallback、15 秒 deadline、`E_SHARE_READ_TIMEOUT`；12 条状态机测试通过 |
 | 分享取消 / 重试 | 自动化 | ✅ 取消递增 generation，清理回退 / 超时任务；取消时删除 `LingXiShare-*` 临时目录 |
@@ -302,9 +302,9 @@ StoreKit 授权只接受 `.verified` 交易；未验签、pending、取消、网
 | 系统 | 设备 / 环境 | 构建 | 启动 | 主流程 | 已知问题 | 验证方式 |
 | --- | --- | --- | --- | --- | --- | --- |
 | iOS 18.0 | 无 | 🟡 以 iOS 18.5 SDK、部署目标 18.0 编译 | ⚪ | ⚪ | 无运行时；最低版本只有编译覆盖，不等于运行兼容 | CI `ios-18` |
-| iOS 18.5 | CI iPhone 16 模拟器 | ✅ | ⚪ | ⚪ | Debug / Release + 23 项 StoreKit / Keychain 测试通过；Offer Code 测试被旧编译器排除；主流程未跑 | CI `ios-18` |
+| iOS 18.5 | CI iPhone 16 模拟器 | ✅ | ✅ | ⚪ | Debug / Release + 23 项购买 / Keychain + 29 项集成（2 跳过）+ 1 项 UI 冒烟通过；完整 UI 主流程未人工操作 | CI `ios-18` |
 | iOS 18.6 | CI 运行器已安装但未选中 | ⚪ | ⚪ | ⚪ | 未构建、未运行 | 未执行 |
-| iOS 26.0（26.0.1） | CI iPhone 16 模拟器 | ✅ | ⚪ | ⚪ | Debug / Release + 24 项测试，23 通过、1 项本地 Offer Code 运行期跳过；主流程未跑 | CI `ios-26` |
+| iOS 26.0（26.0.1） | CI iPhone 16 模拟器 | ✅ | ✅ | ⚪ | Debug / Release + 24 项测试（23 通过、1 项本地 Offer Code 运行期跳过）+ 29 项集成（2 跳过）+ 1 项 UI 冒烟通过；完整 UI 主流程未人工操作 | CI `ios-26` |
 | iOS 26.1 | CI 运行器已安装但未选中 | ⚪ | ⚪ | ⚪ | 未构建、未运行 | 未执行 |
 | iOS 26.2 | CI 运行器已安装但未选中 | ⚪ | ⚪ | ⚪ | 未构建、未运行 | 未执行 |
 | iOS 27.0 – 27.2 | 无 | ⚪ | ⚪ | ⚪ | 本机无对应运行时 | 未执行 |
@@ -347,14 +347,22 @@ iOS 18 / 26 的启动和主流程没有在本机执行，不能因为 CI 编译�
 ## 8. GitHub Actions
 
 - 工作流：`.github/workflows/ci.yml`
-- 1.7.0 完整运行：[run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297)
+- 1.7.1 完整运行：[run 42378432683](https://github.com/LingXiFox/LingXiStyle/actions/runs/42378432683)
+  （commit `b5e2ace`）— **success**。
+  - `Policy and project checks`：成功（26s）；XcodeGen 一致、四语言、StoreKit 配置、凭据扫描通过。
+  - `macOS unit tests`：成功（2m21s）；Kit 28、Engine 2、Core 14（2 跳过）。
+  - `iOS 18.5 compatibility`：成功（11m21s）；Debug / Release 构建通过，购买 / Keychain 23/23，
+    集成 29 项执行 / 2 跳过 / 0 失败，UI 冒烟 1/1。
+  - `iOS 26.x current`：成功（14m34s）；Debug / Release 构建通过，购买 / Keychain 24 项执行 /
+    23 通过 / 1 项本地 Offer Code 运行期跳过，集成 29 项执行 / 2 跳过 / 0 失败，UI 冒烟 1/1。
+  - 两条 iOS job 的跳过项均为 1 条 `ConversionIntegrationTests` 与 1 条 `ShortcutIntegrationTests`。
+- 1.7.0 完整运行（历史）：[run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297)
   （commit `24bfa3c`）— **success**。
   - `Policy and project checks`：成功；XcodeGen 一致、四语言、StoreKit 配置、凭据扫描通过。
   - `macOS unit tests`：成功；Kit 28、Engine 2、Core 14（2 跳过）。
   - `iOS 18.5 compatibility`：成功；Debug / Release 构建通过，23 项购买 / Keychain 测试通过。
   - `iOS 26.x current`：成功；在 iPhone 16 / iOS 26.0（26.0.1）上 Debug / Release 构建通过，
     24 项中 23 通过、1 项 Offer Code 因运行时限制跳过。该 job 没有覆盖 26.1 / 26.2。
-- 1.7.1 新增集成测试与启动冒烟后的运行链接：待推送后补充。
 - 前几轮失败已修复：`ProEntitlement.swift` 的 `invalidPresentationContext` 编译错误、
   `PeopleDetection` / `RasterImport` / Core 测试 fixture 在 Xcode 16.4 的类型检查超时，
   以及 StoreKitTest 在 iOS 18 / 26 对取消 / 失败交易和 Ask to Buy 的差异断言。

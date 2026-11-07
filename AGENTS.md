@@ -117,7 +117,7 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiUITests \
   `generic/platform=iOS` Debug 与 Release 构建。修改任务生命周期必须跑 `ConversionRunTests`。
 - 真机验证状态以 `TEST_REPORT.md` 为准，不得把「编译通过」写成「真机通过」。
 - 交付默认：本地 commit 完成后直接 `git push origin main`，不要只留本地提交；推送前仍需确认工作区干净、无凭据与签名资产。
-- 1.7.1 已完成 Debug / Release generic iOS 构建与六套自动化测试：Kit 28、Purchase 24、Engine 2、Core 14 执行（2 跳过）、Integration 29、UI 1，合计 98 项执行 / 96 通过 / 2 跳过。集成测试真实读取 48MP HEIC、调用 ConversionService、PhotoKit 保存回读并扣减 Keychain 额度；分享扩展 12 条异常 / 取消 / 超时 / 重试状态机全部通过；快捷指令 9 条批量、仅检查、仅保存与额度用例全部通过。iPhone 17（iOS 27.3）分享扩展完成读取、转换、保存与额度同步，启动冒烟验证首页 / 设置 / Pro 入口。本机没有 iOS 18 / 26 运行时，启动与主流程未在这些系统验证；真机安装、真实交易、权限拒绝页、快捷指令 UI 与 Duo 的选片 / 转换 / 结果页仍未验证；不得把模拟器或 CI 构建通过写成真机 / 系统兼容通过。
+- 1.7.1 已完成 Debug / Release generic iOS 构建与六套自动化测试：Kit 28、Purchase 24、Engine 2、Core 14 执行（2 跳过）、Integration 29、UI 1，合计 98 项执行 / 96 通过 / 2 跳过。集成测试真实读取 48MP HEIC、调用 ConversionService、PhotoKit 保存回读并扣减 Keychain 额度；分享扩展 12 条异常 / 取消 / 超时 / 重试状态机全部通过；快捷指令 9 条批量、仅检查、仅保存与额度用例全部通过。iPhone 17（iOS 27.3）分享扩展完成读取、转换、保存与额度同步，启动冒烟验证首页 / 设置 / Pro 入口。本机没有 iOS 18 / 26 运行时，启动与主流程未在这些系统验证；真机安装、真实交易、权限拒绝页、快捷指令 UI 与 Duo 的选片 / 转换 / 结果页仍未验证；不得把模拟器或 CI 构建通过写成真机 / 系统兼容通过。1.7.1 的 GitHub Actions [run 42378432683](https://github.com/LingXiFox/LingXiStyle/actions/runs/42378432683) 四个 job 全绿；iOS 18.5 购买 23、集成 29（2 跳过）、UI 1，iOS 26 购买 24（1 跳过）、集成 29（2 跳过）、UI 1。
 - 已有 48MP 实拍 HEIC 的引擎层与 1.2 App 端到端验证，记录见 `TEST_REPORT.md`；1.7 引擎算法未改。真实 App Store 交易 / 退款、真机 Keychain 共享组与系统权限矩阵仍需确认。
 - 语言偏好只写 `LingXiStyle.appLanguage`，非「跟随系统」时再写 `AppleLanguages`；不要让 SwiftUI 预览或测试进程持久化语言设置。
 - 修改 HEIF 解析后必须跑 `LingXiKitTests` 的 `iref` 回归用例；修改额度必须同时跑

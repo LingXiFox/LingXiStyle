@@ -132,8 +132,9 @@ Offer Code，代码中不得出现固定兑换码、开发者账号白名单或�
 - [ ] 分享扩展在真机完成读取、转换、保存；另测取消与 15 秒超时。
 - [ ] 集成测试宿主已授权相册，29 条真实 HEIC / 分享 / 快捷指令测试通过。
 - [ ] XCUITest 启动冒烟通过（首页、设置、Pro 入口）。
-- [x] GitHub Actions CI 已成功运行：[run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297)
-      （Policy、macOS 单测、iOS 18.5、iOS 26.0 全绿；XcodeGen 生成工程与仓库一致）。
+- [x] GitHub Actions CI 已成功运行：[run 42378432683](https://github.com/LingXiFox/LingXiStyle/actions/runs/42378432683)
+      （1.7.1 / commit `b5e2ace`；Policy、macOS 单测、iOS 18.5、iOS 26.x 全绿；XcodeGen 生成工程与仓库一致）。
+      1.7.0 的 [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297) 亦全绿。
 - [ ] 设置页 Pro 行只显示「一次购买，永久不限张数。」或已购状态，不显示价格。
 - [ ] 浅色 / 深色、Dynamic Type、Reduce Motion、VoiceOver 通过。
 - [ ] 隐私说明、支持 URL、审核备注已填写。
