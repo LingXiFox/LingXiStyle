@@ -1,13 +1,12 @@
 import SwiftUI
 
-/// 68pt thumbnails, 2pt selection ring, and an explicit add tile. Swipe-free so it also works
-/// with VoiceOver and large type.
+/// 68pt thumbnails, 10pt gaps, 2pt selection ring, a minus badge for photos that will be
+/// skipped, and an explicit add tile. Swipe-free so it also works with VoiceOver and large type.
 struct PhotoThumbnailStrip: View {
     let items: [PhotoItem]
     @Binding var selectedID: UUID?
     var onRemove: (PhotoItem) -> Void
     var onAdd: () -> Void
-    /// Hidden at the selection limit so the picker can never open on a guaranteed rejection.
     var canAdd: Bool = true
 
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
@@ -16,7 +15,7 @@ struct PhotoThumbnailStrip: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.s) {
+            HStack(spacing: 10) {
                 ForEach(items) { item in
                     thumbnail(for: item)
                 }
@@ -27,8 +26,6 @@ struct PhotoThumbnailStrip: View {
             .padding(.horizontal, Spacing.m)
             .padding(.vertical, Spacing.xs)
         }
-        // A horizontal ScrollView is greedy vertically inside a `safeAreaInset`; pin it to the
-        // thumbnail row height so the bottom action bar does not cover the compatibility card.
         .frame(height: Layout.thumbnailSide + Spacing.xs * 2)
         .scrollClipDisabled()
     }
@@ -52,14 +49,18 @@ struct PhotoThumbnailStrip: View {
                         .strokeBorder(isSelected ? Palette.accent : Palette.hairline,
                                       lineWidth: isSelected ? 2 : 1)
                 )
-                .overlay(alignment: .bottomTrailing) {
-                    Circle()
-                        .fill(dotColor(for: item))
-                        .frame(width: 10, height: 10)
-                        .overlay(Circle().stroke(Palette.surface, lineWidth: 1.5))
-                        .padding(5)
+                .overlay(alignment: .topTrailing) {
+                    if willSkip(item) {
+                        Image(systemName: "minus")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Palette.textSecondary)
+                            .frame(width: 18, height: 18)
+                            .background(Palette.surfaceElevated, in: Circle())
+                            .overlay(Circle().strokeBorder(Palette.hairline, lineWidth: 0.5))
+                            .padding(5)
+                    }
                 }
-                .opacity(isSelected ? 1 : 0.88)
+                .opacity(isSelected ? 1 : 0.9)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(String(localized: "thumbnail.accessibilityLabel", defaultValue: "\(item.displayName)，\(item.accessibilityDescription)"))
@@ -86,13 +87,8 @@ struct PhotoThumbnailStrip: View {
         .accessibilityLabel("继续添加照片")
     }
 
-    private func dotColor(for item: PhotoItem) -> Color {
-        if case .preparingFailed = item.phase { return Palette.error }
-        switch item.verdict?.status {
-        case .ready: return Palette.success
-        case .alreadyEnhanced: return Palette.textSecondary
-        case .unsupported: return Palette.warning
-        case nil: return Palette.accent
-        }
+    private func willSkip(_ item: PhotoItem) -> Bool {
+        guard let verdict = item.verdict else { return false }
+        return !verdict.isReady
     }
 }

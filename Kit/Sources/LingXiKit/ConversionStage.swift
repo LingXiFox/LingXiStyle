@@ -15,7 +15,7 @@ public enum ConversionStage: String, Sendable, CaseIterable, Equatable {
         switch self {
         case .readingOriginal: return String(localized: "读取原片")
         case .inspecting: return String(localized: "检查结构")
-        case .converting: return String(localized: "追加质感")
+        case .converting: return String(localized: "添加纹理与颗粒")
         case .verifying: return String(localized: "无损校验")
         case .saving: return String(localized: "写入相册")
         case .finished: return String(localized: "完成")
@@ -29,7 +29,7 @@ public enum ConversionStage: String, Sendable, CaseIterable, Equatable {
         switch self {
         case .readingOriginal: return String(localized: "正在读取原片")
         case .inspecting: return String(localized: "正在检查结构")
-        case .converting: return String(localized: "正在追加质感")
+        case .converting: return String(localized: "正在添加纹理与颗粒")
         case .verifying: return String(localized: "正在无损校验")
         case .saving: return String(localized: "正在写入相册")
         case .finished: return String(localized: "正在完成")

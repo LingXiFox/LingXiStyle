@@ -8,15 +8,22 @@ struct RootView: View {
     @State private var diagnostics: DiagnosticsPayload?
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.reduceMotionOverride) private var reduceMotionOverride
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.scenePhase) private var scenePhase
     private var reduceMotion: Bool { systemReduceMotion || reduceMotionOverride }
+
+    private var ambient: AmbientIntensity {
+        switch model.screen {
+        case .idle: return .empty
+        case .selecting, .converting, .result, .permissionDenied: return .standard
+        }
+    }
 
     var body: some View {
         GeometryReader { proxy in
             ZStack {
                 Palette.background.ignoresSafeArea()
-                ambientLight
+                AmbientBackdrop(intensity: ambient)
                 content
                     .environment(\.contentMargin, Spacing.margin(for: proxy.size.width))
                     .animation(reduceMotion ? nil : Motion.entrance, value: model.screen)
@@ -52,6 +59,7 @@ struct RootView: View {
                     },
                     onClose: { model.dismissModal() }
                 )
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
             case .quotaExhausted:
                 QuotaExhaustedView(
@@ -59,6 +67,7 @@ struct RootView: View {
                     onUpgrade: { model.activeModal = .pro },
                     onDismiss: { model.dismissModal() }
                 )
+                .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.height(404)])
                 .presentationDragIndicator(.visible)
             case .settings:
                 SettingsView(
@@ -66,6 +75,7 @@ struct RootView: View {
                     purchases: model.purchases,
                     onClose: { model.dismissModal() }
                 )
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
             }
         }
@@ -80,7 +90,7 @@ struct RootView: View {
                     set: { if !$0 { model.batchQuotaPrompt = nil } }
                ),
                presenting: model.batchQuotaPrompt) { prompt in
-            Button(String(localized: "batch.convertAvailable", defaultValue: "仅转换 \(prompt.available) 张")) {
+            Button(String(localized: "batch.convertAvailable", defaultValue: "仅处理 \(prompt.available) 张")) {
                 model.batchQuotaPrompt = nil
                 model.startConversion(clearFailures: prompt.clearFailures, limit: prompt.available)
             }
@@ -92,32 +102,8 @@ struct RootView: View {
                 model.batchQuotaPrompt = nil
             }
         } message: { prompt in
-            Text(String(localized: "batch.message", defaultValue: "已选 \(prompt.requested) 张可转换照片，今日还剩 \(prompt.available) 张免费额度。超出部分不会转换，也不会消耗额度。"))
+            Text(String(localized: "batch.message", defaultValue: "已选 \(prompt.requested) 张可处理照片，今日还剩 \(prompt.available) 张免费额度。超出部分不会处理，也不会消耗额度。"))
         }
-    }
-
-    /// Soft photographic light, kept behind every page. It is decorative only and never touches
-    /// the photo surface; light and dark get separate intensities so the same palette breathes.
-    private var ambientLight: some View {
-        ZStack {
-            RadialGradient(
-                colors: [Palette.accent.opacity(colorScheme == .dark ? 0.16 : 0.09), .clear],
-                center: .topLeading,
-                startRadius: 0,
-                endRadius: 430
-            )
-            .offset(x: -90, y: -120)
-            RadialGradient(
-                colors: [Palette.accentSecondary.opacity(colorScheme == .dark ? 0.11 : 0.06), .clear],
-                center: .bottomTrailing,
-                startRadius: 0,
-                endRadius: 380
-            )
-            .offset(x: 110, y: 160)
-        }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
     }
 
     @ViewBuilder
@@ -150,8 +136,9 @@ struct RootView: View {
     private var noticeBanner: some View {
         if let notice = model.notice {
             HStack(alignment: .top, spacing: Spacing.s) {
-                Image(systemName: "info.circle.fill")
-                    .foregroundStyle(Palette.accent)
+                Image(systemName: "info.circle")
+                    .font(.system(.body, design: .default, weight: .medium))
+                    .foregroundStyle(Palette.info)
                 Text(notice)
                     .font(Typography.caption)
                     .foregroundStyle(Palette.textPrimary)
@@ -170,7 +157,7 @@ struct RootView: View {
             .padding(Spacing.s)
             .background(Palette.surfaceElevated, in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
-                .strokeBorder(Palette.hairline, lineWidth: 1))
+                .strokeBorder(Palette.hairline, lineWidth: 0.5))
             .shadow(color: Palette.shadow, radius: 10, y: 4)
             .padding(.horizontal, Spacing.m)
             .padding(.top, Spacing.xs)

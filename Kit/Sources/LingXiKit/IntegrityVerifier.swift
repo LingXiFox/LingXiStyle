@@ -60,7 +60,7 @@ public enum IntegrityVerifier {
         }
 
         if let style = before.styleMetadataDigest {
-            add("style", String(localized: "摄影风格元数据逐字节一致"), after.styleMetadataDigest == style, after.styleMetadataDigest == nil ? String(localized: "结果缺少风格数据") : String(localized: "摘要一致"))
+            add("style", String(localized: "纹理与颗粒元数据逐字节一致"), after.styleMetadataDigest == style, after.styleMetadataDigest == nil ? String(localized: "结果缺少风格数据") : String(localized: "摘要一致"))
         }
 
         if let thumbnail = before.thumbnailDigest {
@@ -71,7 +71,7 @@ public enum IntegrityVerifier {
             add("gainmap", String(localized: "HDR 增益图条目保留"), after.hasHDRGainMap, after.hasHDRGainMap ? String(localized: "存在") : String(localized: "缺失"))
         }
 
-        add("texture", String(localized: "新增第三代质感数据"), after.hasTextureStyle && !before.hasTextureStyle,
+        add("texture", String(localized: "新增纹理与颗粒数据"), after.hasTextureStyle && !before.hasTextureStyle,
             after.hasTextureStyle ? String(localized: "2026 texture_styles 条目就绪") : String(localized: "未找到 texture_styles 条目"))
 
         add("exifInspection", String(localized: "结果可被系统完整解码"), after.itemCount >= before.itemCount,

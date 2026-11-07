@@ -1,51 +1,88 @@
 import SwiftUI
 import LingXiKit
 
-/// App-level preferences: interface language and the lifetime Pro purchase. It deliberately
-/// does not call the product a subscription; the product is a one-time non-consumable.
+/// Native inset-grouped settings: language, Pro, about. Presented as a large sheet with a
+/// Done action, matching the system Settings language instead of a custom card stack.
 struct SettingsView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var purchases: PurchaseManager
     var onClose: () -> Void
 
-    @Environment(\.colorScheme) private var colorScheme
     @State private var language = AppLanguage.current
     @State private var showLanguageChanged = false
     @State private var showPro = false
 
     var body: some View {
-        ZStack {
-            Palette.background.ignoresSafeArea()
-            ambientLight
+        NavigationStack {
+            ZStack {
+                Palette.background.ignoresSafeArea()
+                AmbientBackdrop(intensity: .quiet)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    topBar
+                Form {
+                    Section {
+                        Button {
+                            showPro = true
+                        } label: {
+                            proRow
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                    }
 
-                    Text(String(localized: "settings.title", defaultValue: "设置"))
-                        .font(.system(.largeTitle, design: .default, weight: .semibold))
-                        .foregroundStyle(Palette.textPrimary)
-                        .padding(.top, Spacing.l)
-                        .accessibilityAddTraits(.isHeader)
+                    Section {
+                        ForEach(AppLanguage.allCases) { option in
+                            Button {
+                                select(option)
+                            } label: {
+                                HStack(spacing: Spacing.s) {
+                                    Text(option.nativeName)
+                                        .font(Typography.body)
+                                        .foregroundStyle(Palette.textPrimary)
+                                    Spacer(minLength: 0)
+                                    if language == option {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundStyle(Palette.accentText)
+                                    }
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityAddTraits(language == option ? .isSelected : [])
+                        }
+                    } header: {
+                        Text(String(localized: "settings.language.section", defaultValue: "语言"))
+                    } footer: {
+                        Text(String(localized: "settings.language.note", defaultValue: "语言只影响界面显示。切换后需要从多任务界面关闭并重新打开 App。"))
+                    }
 
-                    languageSection
-                        .padding(.top, Spacing.xl)
-
-                    proSection
-                        .padding(.top, Spacing.l)
-
-                    Text(String(localized: "settings.footer", defaultValue: "语言只影响界面显示；照片始终只在本机处理。"))
-                        .font(Typography.micro)
-                        .foregroundStyle(Palette.textSecondary.opacity(0.8))
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, Spacing.l)
-                        .padding(.bottom, Spacing.l)
+                    Section {
+                        LabeledContent(String(localized: "settings.about.version", defaultValue: "版本"),
+                                       value: versionText)
+                        NavigationLink(String(localized: "settings.about.privacy", defaultValue: "隐私说明")) {
+                            PrivacyDetailView()
+                        }
+                        NavigationLink(String(localized: "settings.about.licenses", defaultValue: "第三方许可")) {
+                            LicensesDetailView()
+                        }
+                    } header: {
+                        Text(String(localized: "settings.about.section", defaultValue: "关于"))
+                    } footer: {
+                        Text(String(localized: "settings.footer", defaultValue: "照片始终只在本机处理。"))
+                    }
                 }
-                .padding(.horizontal, Spacing.margin(for: 390))
+                .scrollContentBackground(.hidden)
+                .background(Color.clear)
             }
-            .scrollBounceBehavior(.basedOnSize)
+            .navigationTitle(String(localized: "settings.title", defaultValue: "设置"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(String(localized: "完成")) { onClose() }
+                        .font(Typography.bodyEmphasized)
+                        .foregroundStyle(Palette.accentText)
+                }
+            }
         }
         .task {
             if purchases.product == nil { await purchases.loadProduct() }
@@ -70,131 +107,51 @@ struct SettingsView: View {
         .accessibilityLabel(String(localized: "settings.title", defaultValue: "设置"))
     }
 
-    private var topBar: some View {
-        HStack {
-            Text(Brand.name.uppercased())
-                .font(.system(.caption2, design: .default, weight: .semibold))
-                .tracking(2.4)
-                .foregroundStyle(Palette.accentText)
-            Spacer()
-            Button(action: onClose) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 13, weight: .semibold))
+    private var proRow: some View {
+        HStack(spacing: Spacing.s) {
+            BrandMark(size: 44)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(Brand.proName)
+                        .font(Typography.bodyEmphasized)
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("PRO")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(0.6)
+                        .foregroundStyle(Palette.accentText)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Palette.accentSoft, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                }
+                Text(proSubtitle)
+                    .font(Typography.caption)
                     .foregroundStyle(Palette.textSecondary)
-                    .frame(width: Layout.minimumTouchTarget, height: Layout.minimumTouchTarget)
-                    .background(Palette.surface.opacity(0.8), in: Circle())
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .accessibilityLabel(String(localized: "settings.close", defaultValue: "关闭设置"))
+
+            Spacer(minLength: 0)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Palette.textTertiary)
         }
-        .padding(.top, Spacing.s)
-    }
-
-    private var languageSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.s) {
-            sectionLabel(String(localized: "settings.language.section", defaultValue: "语言"))
-
-            VStack(spacing: 0) {
-                ForEach(AppLanguage.allCases) { option in
-                    Button {
-                        select(option)
-                    } label: {
-                        HStack(spacing: Spacing.s) {
-                            Text(option.nativeName)
-                                .font(Typography.body)
-                                .foregroundStyle(Palette.textPrimary)
-                            Spacer(minLength: 0)
-                            if language == option {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(Palette.accent)
-                            }
-                        }
-                        .frame(minHeight: Layout.minimumTouchTarget)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(language == option ? .isSelected : [])
-
-                    if option != AppLanguage.allCases.last {
-                        Divider()
-                            .overlay(Palette.hairline)
-                    }
-                }
-            }
-            .padding(.horizontal, Spacing.m)
-            .background(Palette.surface.opacity(0.72), in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                .strokeBorder(Palette.hairline, lineWidth: 1))
-
-            Text(String(localized: "settings.language.note", defaultValue: "切换语言后，需要重新打开 App 才会生效。"))
-                .font(Typography.caption)
-                .foregroundStyle(Palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var proSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.s) {
-            sectionLabel("PRO")
-
-            Button {
-                showPro = true
-            } label: {
-                HStack(spacing: Spacing.s) {
-                    ZStack {
-                        Circle()
-                            .fill(Palette.accent.opacity(0.12))
-                            .frame(width: 42, height: 42)
-                        Image(systemName: purchases.isPro ? "checkmark.seal.fill" : "sparkles")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundStyle(purchases.isPro ? Palette.success : Palette.accent)
-                    }
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(Brand.proName)
-                            .font(Typography.bodyEmphasized)
-                            .foregroundStyle(Palette.textPrimary)
-                        Text(proSubtitle)
-                            .font(Typography.caption)
-                            .foregroundStyle(Palette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    Spacer(minLength: 0)
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Palette.textSecondary.opacity(0.7))
-                }
-                .padding(Spacing.m)
-                .frame(minHeight: Layout.minimumTouchTarget)
-                .background(Palette.surface.opacity(0.72), in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                    .strokeBorder(Palette.hairline, lineWidth: 1))
-                .contentShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint(String(localized: "settings.pro.action", defaultValue: "查看 Pro"))
-        }
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityHint(String(localized: "settings.pro.action", defaultValue: "查看 Pro"))
     }
 
     private var proSubtitle: String {
         if purchases.isPro {
             return String(localized: "pro.owner.card", defaultValue: "已解锁 \(Brand.proName)")
         }
-        if let product = purchases.product {
-            return String(localized: "pro.purchase.price", defaultValue: "永久解锁 · \(product.displayPrice)")
-        }
-        return String(localized: "settings.pro.subtitle", defaultValue: "一次购买，永久解锁无限照片转换。")
+        return String(localized: "settings.pro.subtitle", defaultValue: "一次购买，永久不限张数。")
     }
 
-    private func sectionLabel(_ title: String) -> some View {
-        Text(title)
-            .font(Typography.captionEmphasized)
-            .foregroundStyle(Palette.textSecondary)
-            .textCase(.uppercase)
-            .tracking(0.8)
-            .padding(.horizontal, Spacing.xxs)
+    private var versionText: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
+        return "\(version) (\(build))"
     }
 
     private func select(_ option: AppLanguage) {
@@ -203,19 +160,51 @@ struct SettingsView: View {
         language = option
         showLanguageChanged = true
     }
+}
 
-    private var ambientLight: some View {
-        ZStack {
-            RadialGradient(colors: [Palette.accent.opacity(colorScheme == .dark ? 0.17 : 0.10), .clear],
-                           center: .topLeading, startRadius: 0, endRadius: 360)
-                .offset(x: -100, y: -130)
-            RadialGradient(colors: [Palette.accentSecondary.opacity(colorScheme == .dark ? 0.12 : 0.07), .clear],
-                           center: .bottomTrailing, startRadius: 0, endRadius: 320)
-                .offset(x: 120, y: 140)
+private struct PrivacyDetailView: View {
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                Text("照片只在本机处理")
+                    .font(Typography.section)
+                    .foregroundStyle(Palette.textPrimary)
+                Text("纹粒读取你选择的 HEIC 原片，只追加纹理与颗粒层，然后把结果保存为一张新照片。原图不会被覆盖或转码。处理过程不上传照片，也不依赖云端服务。")
+                    .font(Typography.body)
+                    .foregroundStyle(Palette.textSecondary)
+                Text("免费额度与 Pro 权益记录在本机钥匙串中；购买交易由 App Store 验证，App 不接触你的支付信息。")
+                    .font(Typography.body)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(Spacing.l)
         }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
+        .background(Palette.background)
+        .navigationTitle(String(localized: "settings.about.privacy", defaultValue: "隐私说明"))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct LicensesDetailView: View {
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                Text("纹理与颗粒渲染")
+                    .font(Typography.status)
+                    .foregroundStyle(Palette.textPrimary)
+                Text("本 App 的 HEIC 纹理补全能力基于 Shalielie 的开源实现，按其许可证使用。完整许可证见仓库 ThirdPartyNotices/Shalielie-LICENSE.txt。")
+                    .font(Typography.body)
+                    .foregroundStyle(Palette.textSecondary)
+                Text("其余界面、状态机与校验逻辑由 LingXiStyle 项目实现。")
+                    .font(Typography.body)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(Spacing.l)
+        }
+        .background(Palette.background)
+        .navigationTitle(String(localized: "settings.about.licenses", defaultValue: "第三方许可"))
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

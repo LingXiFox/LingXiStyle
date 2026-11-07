@@ -1,13 +1,12 @@
 import SwiftUI
 import LingXiKit
 
+/// 1.5 processing page: real stage callbacks, a deterministic 4pt bar, one untouched photo,
+/// and a 44pt stage group. Nothing loops, pulses, or invents progress.
 struct ConvertingView: View {
     @ObservedObject var model: AppModel
     @Environment(\.contentMargin) private var margin
     @Environment(\.verticalSizeClass) private var verticalSizeClass
-    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
-    @Environment(\.reduceMotionOverride) private var reduceMotionOverride
-    private var reduceMotion: Bool { systemReduceMotion || reduceMotionOverride }
 
     private var heroHeight: CGFloat { verticalSizeClass == .compact ? 180 : 300 }
 
@@ -25,44 +24,28 @@ struct ConvertingView: View {
         model.items.filter { $0.outcome != nil }.count
     }
 
+    private var total: Int { max(model.items.count, 1) }
+
     var body: some View {
         ScrollView {
-            VStack(spacing: Spacing.m) {
+            VStack(spacing: Spacing.l) {
                 header
 
-                ZStack {
-                    RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                        .fill(LinearGradient(colors: [Palette.accent.opacity(0.10), Palette.accentSecondary.opacity(0.06)],
-                                             startPoint: .topLeading,
-                                             endPoint: .bottomTrailing))
-                        .blur(radius: 24)
-                        .padding(8)
-                        .accessibilityHidden(true)
-
-                    PhotoHeroCard(image: current?.image,
-                                  isWorking: current?.stage == .readingOriginal,
-                                  isScanning: false,
-                                  badge: .convertible,
-                                  selectionID: current?.id)
-                        .overlay {
-                            ConversionStageAura(stage: current?.stage, reduceMotion: reduceMotion)
-                        }
-                        .frame(height: heroHeight)
-                }
+                PhotoHeroCard(image: current?.image,
+                              badge: nil,
+                              selectionID: current?.id,
+                              statusText: String(localized: "progress.photoCounter", defaultValue: "第 \(currentIndex) / \(total) 张"),
+                              showsRunningDot: true)
+                    .frame(height: heroHeight)
 
                 StageProgressView(stage: current?.stage,
-                                  failed: current?.failedDuringStage ?? false,
-                                  photoIndex: currentIndex,
-                                  photoTotal: max(model.items.count, 1),
-                                  photoName: current?.displayName ?? "")
+                                  failed: current?.failedDuringStage ?? false)
 
-                Label("照片内容保持原样，光效只发生在边框与背景上。",
-                      systemImage: "lock.shield")
+                Text("取消后不会再开始新照片；已经保存的新照片会保留。")
                     .font(Typography.micro)
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, Spacing.s)
             }
             .padding(.horizontal, margin)
             .padding(.top, Spacing.s)
@@ -73,42 +56,40 @@ struct ConvertingView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: Spacing.s) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("正在解锁第三代质感")
+        VStack(spacing: Spacing.s) {
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
+                Text("正在处理")
                     .font(Typography.section)
                     .foregroundStyle(Palette.textPrimary)
                     .accessibilityAddTraits(.isHeader)
-                Text(current?.stage == .saving ? "正在写入相册，请稍候" : "照片始终保持清晰，不预览虚假效果")
+                Spacer(minLength: 0)
+                Text("已完成 \(completedCount) / \(model.items.count)")
                     .font(Typography.caption)
                     .foregroundStyle(Palette.textSecondary)
+                    .monospacedDigit()
+                    .accessibilityLabel(String(localized: "converting.completedAccessibility", defaultValue: "已完成 \(completedCount) 张，共 \(model.items.count) 张"))
             }
-            Spacer(minLength: 0)
-            Text("\(completedCount) / \(model.items.count)")
-                .font(Typography.captionEmphasized)
-                .foregroundStyle(Palette.textSecondary)
-                .monospacedDigit()
-                .accessibilityLabel(String(localized: "converting.completedAccessibility", defaultValue: "已完成 \(completedCount) 张，共 \(model.items.count) 张"))
+
+            ProgressView(value: Double(completedCount), total: Double(total))
+                .progressViewStyle(.linear)
+                .tint(Palette.accent)
+                .frame(height: 4)
+                .accessibilityLabel(String(localized: "已完成 \(completedCount) / \(model.items.count)"))
         }
     }
 
     private var cancelBar: some View {
         VStack(spacing: Spacing.xs) {
-            SecondaryActionButton(title: model.isCancelling ? "正在完成当前照片…" : "取消队列",
-                                  systemImage: "xmark.circle") {
+            SecondaryActionButton(title: model.isCancelling ? "正在完成当前照片…" : "取消",
+                                  systemImage: model.isCancelling ? nil : "xmark") {
                 model.cancelConversion()
             }
             .disabled(model.isCancelling)
             .opacity(model.isCancelling ? 0.6 : 1)
-
-            Text("取消后不会再开始新照片；已经保存的新照片会保留。")
-                .font(Typography.micro)
-                .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.bottom, Spacing.xs)
         }
         .padding(.top, Spacing.s)
         .padding(.horizontal, margin)
+        .padding(.bottom, Spacing.xs)
         .background(.ultraThinMaterial)
         .overlay(alignment: .top) {
             Rectangle().fill(Palette.hairline).frame(height: 0.5)

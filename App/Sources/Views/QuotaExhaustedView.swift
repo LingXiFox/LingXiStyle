@@ -1,8 +1,7 @@
 import SwiftUI
 import LingXiKit
 
-/// Shown when today's free allowance is gone. No countdown and no forced purchase:
-/// the user can always come back tomorrow, or choose a lifetime unlock.
+/// Quiet end-of-allowance sheet. No countdown, no fake urgency, no automatic paywall.
 struct QuotaExhaustedView: View {
     let limit: Int
     var onUpgrade: () -> Void
@@ -11,93 +10,62 @@ struct QuotaExhaustedView: View {
     var body: some View {
         ZStack {
             Palette.background.ignoresSafeArea()
-            ambientLight
+            AmbientBackdrop(intensity: .quiet)
 
-            VStack(spacing: 0) {
-                HStack {
-                    Text(Brand.name.uppercased())
-                        .font(.system(.caption2, design: .default, weight: .semibold))
-                        .tracking(2.4)
-                        .foregroundStyle(Palette.accentText)
-                    Spacer()
-                    Button(action: onDismiss) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Palette.textSecondary)
-                            .frame(width: Layout.minimumTouchTarget, height: Layout.minimumTouchTarget)
-                            .background(Palette.surface.opacity(0.8), in: Circle())
+            ScrollView {
+                VStack(spacing: 0) {
+                    HStack {
+                        Spacer(minLength: 0)
+                        Button(action: onDismiss) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Palette.textSecondary)
+                                .frame(width: Layout.minimumTouchTarget, height: Layout.minimumTouchTarget)
+                        }
+                        .accessibilityLabel("关闭")
                     }
-                    .accessibilityLabel("关闭")
+
+                    ZStack {
+                        Circle()
+                            .fill(Palette.fillControl)
+                            .frame(width: 52, height: 52)
+                        Image(systemName: "moon")
+                            .font(.system(size: 24, weight: .regular))
+                            .foregroundStyle(Palette.thinking)
+                    }
+                    .accessibilityHidden(true)
+
+                    Text("今日免费额度已用完")
+                        .font(Typography.sheetTitle)
+                        .foregroundStyle(Palette.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, Spacing.m)
+                        .accessibilityAddTraits(.isHeader)
+
+                    Text(String(localized: "quota.exhaustedBody", defaultValue: "每天 00:00 按本地时间重置，明天会恢复 \(limit) 张。没有处理的照片不会消耗额度。"))
+                        .font(Typography.body)
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, Spacing.xs)
+
+                    VStack(spacing: Spacing.xs) {
+                        PrimaryActionButton(title: String(localized: "了解\(Brand.name) Pro")) {
+                            onUpgrade()
+                        }
+                        SecondaryActionButton(title: String(localized: "明天再来")) {
+                            onDismiss()
+                        }
+                    }
+                    .padding(.top, Spacing.l)
                 }
+                .padding(.horizontal, Spacing.l)
                 .padding(.top, Spacing.s)
-
-                Spacer(minLength: Spacing.xl)
-
-                ZStack {
-                    Circle()
-                        .fill(RadialGradient(colors: [Palette.warning.opacity(0.22), .clear],
-                                             center: .center, startRadius: 2, endRadius: 90))
-                        .frame(width: 170, height: 170)
-                    Circle()
-                        .strokeBorder(Palette.warning.opacity(0.35), lineWidth: 1)
-                        .frame(width: 86, height: 86)
-                    Image(systemName: "moon.stars")
-                        .font(.system(size: 36, weight: .ultraLight))
-                        .foregroundStyle(Palette.warning)
-                }
-                .accessibilityHidden(true)
-
-                Text("今日免费额度已用完")
-                    .font(.system(.title2, design: .default, weight: .semibold))
-                    .foregroundStyle(Palette.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, Spacing.m)
-                    .accessibilityAddTraits(.isHeader)
-
-                Text(String(localized: "quota.resetNote", defaultValue: "每天 00:00 按本地时间重置，明天会恢复 \(limit) 张免费额度。"))
-                    .font(Typography.body)
-                    .foregroundStyle(Palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, Spacing.s)
-
-                VStack(spacing: Spacing.s) {
-                    PrimaryActionButton(title: String(localized: "永久解锁无限转换"), systemImage: "sparkles") {
-                        onUpgrade()
-                    }
-                    SecondaryActionButton(title: String(localized: "明天继续免费使用"), systemImage: "sunrise") {
-                        onDismiss()
-                    }
-                }
-                .padding(.top, Spacing.xl)
-
-                Text("不购买也可以继续使用免费额度。转换质量与完整性校验完全一致。")
-                    .font(Typography.caption)
-                    .foregroundStyle(Palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, Spacing.m)
-
-                Spacer(minLength: Spacing.xl)
+                .padding(.bottom, Spacing.l)
             }
-            .padding(.horizontal, Spacing.margin(for: 390))
-            .padding(.bottom, Spacing.l)
+            .scrollBounceBehavior(.basedOnSize)
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("今日免费额度已用完")
-    }
-
-    private var ambientLight: some View {
-        ZStack {
-            RadialGradient(colors: [Palette.warning.opacity(0.08), .clear],
-                           center: .top, startRadius: 0, endRadius: 320)
-                .offset(y: -80)
-            RadialGradient(colors: [Palette.accent.opacity(0.10), .clear],
-                           center: .bottomLeading, startRadius: 0, endRadius: 300)
-                .offset(x: -100, y: 120)
-        }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
     }
 }

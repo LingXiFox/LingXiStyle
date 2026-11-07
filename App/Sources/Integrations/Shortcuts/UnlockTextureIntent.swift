@@ -8,8 +8,8 @@ import LingXiServices
 /// Shortcut entry point. Like every other entry it only talks to ConversionService; the file
 /// is copied into our own sandbox before anything is inspected.
 struct UnlockTextureIntent: AppIntent {
-    static let title: LocalizedStringResource = "解锁第三代摄影风格"
-    static let description = IntentDescription("为 HEIC 原片追加第三代 Texture / Grain，并另存为新照片。原图保持不变。")
+    static let title: LocalizedStringResource = "添加纹理与颗粒"
+    static let description = IntentDescription("为 HEIC 原片追加纹理与颗粒，并另存为新照片。原图保持不变。")
     static let openAppWhenRun = false
 
     @Parameter(title: "照片")
@@ -25,7 +25,7 @@ struct UnlockTextureIntent: AppIntent {
     var checkOnly: Bool
 
     static var parameterSummary: some ParameterSummary {
-        Summary("解锁 \(\.$photos) 的第三代风格") {
+        Summary("为 \(\.$photos) 添加纹理与颗粒") {
             \.$saveToLibrary
             \.$returnsFiles
             \.$checkOnly
@@ -123,7 +123,7 @@ struct UnlockTextureIntent: AppIntent {
 
         let dialog: String
         if checkOnly {
-            dialog = String(localized: "intent.dialog.check", defaultValue: "可解锁 \(ready) 张，跳过 \(skipped) 张，失败 \(failed) 张。")
+            dialog = String(localized: "intent.dialog.check", defaultValue: "可处理 \(ready) 张，跳过 \(skipped) 张，失败 \(failed) 张。")
         } else {
             dialog = String(localized: "intent.dialog.convert", defaultValue: "已转换 \(converted) 张，其中 \(savedToLibrary) 张已存入相册；跳过 \(skipped) 张，失败 \(failed) 张。")
                 + (firstFailure.map { String(localized: "intent.dialog.firstFailure", defaultValue: "\n第一处问题：\($0)") } ?? "")
@@ -176,8 +176,8 @@ struct UnlockTextureIntent: AppIntent {
 struct LingXiShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(intent: UnlockTextureIntent(),
-                    phrases: ["用 \(.applicationName) 解锁第三代摄影风格"],
-                    shortTitle: "解锁第三代风格",
-                    systemImageName: "camera.filters")
+                    phrases: ["用 \(.applicationName) 添加纹理与颗粒"],
+                    shortTitle: "添加纹理与颗粒",
+                    systemImageName: "square.3.layers.3d")
     }
 }

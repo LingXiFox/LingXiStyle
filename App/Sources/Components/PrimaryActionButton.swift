@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Filled primary action. Foreground flips with the scheme so both palettes clear 4.5:1.
+/// The single filled primary action on a screen. Fox orange always carries brand ink, never white.
 struct PrimaryActionButton: View {
     let title: String
     var systemImage: String?
@@ -19,7 +19,7 @@ struct PrimaryActionButton: View {
         }
         .buttonStyle(PressableButtonStyle(reduceMotion: reduceMotion))
         .disabled(!isEnabled || isWorking)
-        .accessibilityHint(isEnabled ? "" : "当前没有可解锁的照片")
+        .accessibilityHint(isEnabled ? "" : String(localized: "当前没有可处理的照片"))
     }
 }
 
@@ -30,13 +30,11 @@ struct PrimaryActionLabel: View {
     var isEnabled: Bool = true
     var isWorking: Bool = false
 
-    @Environment(\.colorScheme) private var colorScheme
-
     var body: some View {
         HStack(spacing: Spacing.xs) {
             if isWorking {
                 ProgressView()
-                    .tint(colorScheme == .dark ? .black : .white)
+                    .tint(Palette.onAccent)
                     .controlSize(.small)
             } else if let systemImage {
                 Image(systemName: systemImage)
@@ -47,8 +45,8 @@ struct PrimaryActionLabel: View {
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
         }
-        .frame(maxWidth: .infinity, minHeight: Layout.minimumTouchTarget + 8)
-        .foregroundStyle(colorScheme == .dark ? Color(light: 0x0B101A, dark: 0x0B101A) : .white)
+        .frame(maxWidth: .infinity, minHeight: Layout.primaryButtonHeight)
+        .foregroundStyle(Palette.onAccent)
         .background(Palette.accent.opacity(isEnabled ? 1 : 0.45),
                     in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
     }
@@ -68,14 +66,10 @@ struct SecondaryActionButton: View {
                 }
                 Text(title).font(Typography.bodyEmphasized)
             }
-            .frame(maxWidth: .infinity, minHeight: Layout.minimumTouchTarget + 4)
+            .frame(maxWidth: .infinity, minHeight: Layout.secondaryButtonHeight)
             .foregroundStyle(Palette.textPrimary)
-            .background(Palette.surfaceElevated,
+            .background(Palette.fillControl,
                         in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: Radius.button, style: .continuous)
-                    .strokeBorder(Palette.hairline, lineWidth: 1)
-            )
         }
         .buttonStyle(.plain)
     }

@@ -2,7 +2,7 @@
 
 公开品牌：简体中文「纹粒」，繁体中文 / 英文 / 日文「Texel」；仓库、Bundle ID 与 StoreKit Product ID 仍沿用 LingXiStyle。
 
-给 iPhone 16 / 17 系列 HEIC 原片追加第三代摄影风格（Texture / Grain），另存为一张新的 HEIC。
+给 iPhone 16 / 17 系列 HEIC 原片追加纹理与颗粒（Texture / Grain），另存为一张新的 HEIC。
 原图不会被覆盖、不会被转码，照片不离开设备。
 
 ![LingXiStyle app icon](App/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png)
@@ -14,19 +14,19 @@
 
 ## 状态
 
-- **1.4.0（build 5）**：在 1.3 的品牌、四语言与 5 张 / 日免费额度之上，新增首页设置入口、应用内语言切换（跟随系统 / 简体中文 / 繁体中文 / English / 日本語，切换后重启生效）、批量超额时只转换剩余额度，以及首次额度用尽时的一次性 Pro 介绍。
+- **1.5.0（build 6）**：按 UI handoff 完成视觉重构：iOS 分组表面、狐橙 `#E8A13A`、每屏最多一个强调填充；重写首页、已选照片、处理中、结果、Pro、额度耗尽、设置与权限页；保留 1.4 的设置入口、应用内语言切换、批量超额只处理剩余额度，以及首次额度用尽时的一次性 Pro 介绍。
 - 免费用户每天可成功转换 5 张 HEIC；失败、跳过、不兼容不扣额度。额度按本地自然日重置，App、分享扩展与快捷指令共用同一账本。
 - Pro 是 StoreKit 2 非消耗型内购，Product ID `com.lingxifox.LingXiStyle.pro`（显示名「纹粒 Pro」/「Texel Pro」）；一次性购买、永久无限，可恢复购买，退款 / 撤销后回到免费额度。
 - 本地化使用 String Catalog，支持简体中文、繁体中文、英文、日文；内部 Bundle ID、Keychain 服务名与 StoreKit Product ID 保持不变，升级不丢购买。
 - 自动化测试：`LingXiKitTests` 27/27、`LingXiPurchaseTests` 21/21（13 个 StoreKit 测试 + 8 个 Keychain 额度测试）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。
 - `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift 源码 warning；签名 Debug 构建与模拟器签名构建通过。
 - 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.2 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过；1.3 沿用同一引擎并在模拟器保存成功。
-- 1.4 在 1.3 的四语言首页与深色验收基础上，用 1.4 构建在 iPhone 17（标准 402×874 pt）复验简体中文 / 英文首页、设置页、语言切换与 Pro 页；在 iPhone Duo（折叠 466×678 pt）验收 5/5 免费态与一屏紧凑布局；并验收批量超额「仅转换 N 张」、首次额度用尽提示只出现一次、重启后额度耗尽页保持安静。真实 App Store 交易、真机、分享扩展额度共享与其余系统矩阵仍需逐项验证。
+- 1.5 在 iPhone 17（402×874 pt）模拟器复验 zh-Hans / en 的首页、已选照片、处理中、结果、设置、Pro、额度耗尽与深色；选择页显示 48MP，结果页只保留一个诊断入口；iPhone Duo（466×678 pt）复验 5/5 紧凑首页；accessibility-extra-large 首页可滚动、主操作可见。权限拒绝页因 PhotosPicker 自动授予受限访问而未能在模拟器触发；真实 App Store 交易、真机、分享扩展与快捷指令仍未验证。
 
 ## 它做什么
 
 - 从系统「照片」选择 HEIC 原片，或从「文件」导入 `.heic` / `.heif`。
-- 用 PhotoKit 取出**原始资源文件**（iCloud 原件会真实下载），只追加第三代纹理与颗粒。
+- 用 PhotoKit 取出**原始资源文件**（iCloud 原件会真实下载），只追加纹理与颗粒。
 - 输出编码后的主图 payload 逐 item 逐块比对 SHA-256；HDR、EXIF、Styles、缩略图保留。
 - 用 `PHAssetCreationRequest` 另存为相册中的**新照片**，保存后回读确认仍是 HEIC。
 - 提供真实的阶段进度、可取消队列、成功 / 跳过 / 失败统计、本地化错误与诊断信息。
@@ -34,8 +34,8 @@
 - 转换任务按会话隔离：取消、重试、清空只影响所属批次，已保存照片不会被再次写入。
 - 结果页可在 App 内查看已保存照片，并分享转换后的真实 HEIC；不依赖未公开的系统跳转。
 - 免费额度 5 张 / 本地自然日，所有入口共享；转换成功并保存后才扣 1 张。
-- 一次性购买「纹粒 Pro」/「Texel Pro」后无限转换；价格来自 `Product.displayPrice`，按当前 App Store 地区显示。
-- 额度耗尽时提供「永久解锁」与「明天继续免费」；批量超出时只处理剩余额度，不静默弹付费墙。
+- 一次性购买「纹粒 Pro」/「Texel Pro」后无限张数；价格来自 `Product.displayPrice`，按当前 App Store 地区显示。
+- 额度耗尽时提供「了解纹粒 Pro」与「明天再来」；批量超出时只处理剩余额度，不静默弹付费墙。
 - 首次额度用尽时展示一次 Pro 介绍；之后只显示安静的额度页，不重复弹付费墙。
 - 首页右上角设置可切换应用语言、查看 Pro 状态与恢复购买；语言切换写入系统 AppleLanguages，重启 App 后生效。
 
@@ -127,7 +127,7 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
                 |
           LingXiEngine  (URL → URL，固定管线)
            /        \
-      LingXiKit   StylePortCore (vendor，第三代风格编码核心)
+      LingXiKit   StylePortCore (vendor，纹理与颗粒编码核心)
 ```
 
 | 层 | 位置 | 职责 |
@@ -136,7 +136,7 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 | Services | `Services/Sources/LingXiServices` | PhotoKit 适配 + 唯一转换入口 + 额度预约 / 提交，App 与扩展共用同一份二进制 |
 | Engine | `Engine/Sources/LingXiEngine` | 读文件 → 检查 → 调核心 → 复审 → 写临时文件 |
 | Kit | `Kit/Sources/LingXiKit` | ISO BMFF / HEIF 解析、兼容性判定、无损校验、任务状态机、额度、StoreKit 权益、诊断 |
-| Core | `Core/Sources/StylePortCore` | 上游第三代风格核心（MIT，见 ThirdPartyNotices） |
+| Core | `Core/Sources/StylePortCore` | 上游纹理与颗粒编码核心（MIT，见 ThirdPartyNotices） |
 
 所有入口（图库、文件导入、快捷指令、分享扩展）最终都调用
 `ConversionService.shared.convert(_:onStage:)`。PhotoKit 与分享面板只是输入 / 输出适配器，
@@ -167,26 +167,25 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 
 | 输入 | 结果 |
 | --- | --- |
-| iPhone 16 / 17 HEIC 原片（含 grid + 多 tile） | 可解锁 |
-| 已带第三代 Texture Styles | 无需转换 |
+| iPhone 16 / 17 HEIC 原片（含 grid + 多 tile） | 可添加 |
+| 已带纹理与颗粒 | 无需处理 |
 | Live Photo | 暂不支持，跳过并提示；不会处理视频部分 |
 | RAW / RAW+HEIC | 暂不支持 |
 | JPEG / PNG / TIFF / DNG | 拒绝，并给出本地化原因 |
 | 已在系统相册编辑过的 Asset | 提示会基于当前原件另存新照片，不覆盖 |
 | 损坏 / 缺主图 / 缺 Styles | 拒绝，诊断里保留原始错误码 |
 
-## 四个页面
+## 四个页面与设置
 
-1. **空状态**：品牌标题、取景构图框、主按钮「选择照片」、次级「从文件导入」、隐私文案「仅在本机处理 · 原图始终保留」。构图框不叠加 `ORIGINAL HEIC` / `4:5` 角落文字。
-2. **已选照片**：大图不裁切、60–72pt 缩略图条、兼容标签、数量与主 CTA。
-3. **转换中**：照片始终清晰，只有边框层承载扫光 / 呼吸光；真实阶段文字与 X/Y；可取消队列。
-4. **结果页**：已保存照片预览、成功 / 跳过 / 失败数量、应用内查看与分享、继续处理、失败重试；原始错误码只放诊断。
+1. **首页**：左侧额度胶囊、右侧 44pt 设置按钮、64pt 品牌标记、两行标题、三行 inset grouped 说明、橙色「选择照片」与「从「文件」导入」、底部「最多 9 张 · HEIC / HEIF」。
+2. **已选照片**：392pt 大图不裁切、68pt 缩略图条、材质兼容标签、48MP 信息条、可添加 / 跳过汇总、额度 footnote 与主 CTA。
+3. **处理中**：4pt 确定性进度条、300pt 清晰预览、真实阶段列表与 X/Y、可取消队列；不使用扫光、呼吸光或渐变边框。
+4. **结果页**：已保存照片预览、成功 / 跳过 / 失败统计、应用内查看与分享、单条诊断入口、继续处理与失败重试；原始错误码只放诊断。
 
-转换页按真实阶段反馈：读取时呼吸光、检查 / 校验时扫边、追加质感时冰蓝到淡紫的渐变描边、
-保存时收束淡出；照片本身始终显示真实预览，动效只作用于边框、背景和状态组件。
+设置页使用原生 Form：Pro 状态与恢复购买、跟随系统 / 简体中文 / 繁体中文 / English / 日本語、隐私说明与第三方许可。Pro 页、额度耗尽页与权限页均为独立 sheet / 页面，支持深色、浅色与 Dynamic Type。
 
 支持真深 / 浅色、Dynamic Type、横竖屏、窄屏、VoiceOver 与 Reduce Motion
-（关闭循环光、扫边与缩放，只保留状态变化）。设计令牌见
+（关闭循环动效，只保留状态变化）。设计令牌见
 `App/Sources/DesignSystem/Tokens.swift`，动效见 `Motion.swift`。
 
 ## 任务生命周期与取消
@@ -211,9 +210,9 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
   编码失败、无损校验失败、取消或保存失败都会释放预留，不扣额度。
 - App、分享扩展、快捷指令都调用同一个 `ConversionService`；额度检查、预留、提交、释放都在
   这个共享服务里完成，入口无法绕过。
-- 批量选择超过剩余额度时，App 只转换剩余张数，其余标记为「延后」，并提示升级 Pro 或明天继续；
+- 批量选择超过剩余额度时，App 只处理剩余张数，其余保留为未处理并显示数量，同时提示升级 Pro 或明天继续；
   不会在转换中途静默弹出付费墙。
-- 额度耗尽时显示「今日免费额度已用完」，可选择一次性解锁 Pro，或明天继续免费。
+- 额度耗尽时显示「今日免费额度已用完」，可选择「了解纹粒 Pro」或「明天再来」；首次触及上限时只主动展示一次 Pro 介绍。
 
 ### 额度存储
 
@@ -245,7 +244,7 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 
 ## 快捷指令
 
-「解锁第三代摄影风格」接受 1–N 个文件，参数：
+「添加纹理与颗粒」接受 1–N 个文件，参数：
 
 - 保存到相册（默认开）
 - 返回转换后的文件（默认关）
@@ -273,7 +272,7 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 | `E_UNREADABLE` | 文件不可读 |
 | `E_CORRUPT` | HEIF 结构无法解析 |
 | `E_UNSUPPORTED:<issues>` | 兼容性判定拒绝，issues 为具体项 |
-| `E_ALREADY_TEXTURED` | 已带第三代质感 |
+| `E_ALREADY_TEXTURED` | 已带纹理与颗粒 |
 | `E_ENGINE` | 核心编码错误 |
 | `E_VERIFY:<checks>` | 无损校验失败 |
 | `E_WRITE` | 临时文件写入失败 |
@@ -313,7 +312,7 @@ project.yml             XcodeGen 工程定义
 
 ## 已知限制
 
-- 1.4 已完成 Debug / Release、签名 Debug 构建与自动化测试（Kit 27 / Purchase 21 / Engine 2 / Core 14 执行、2 跳过），并在 1.3 四语言验收基础上复验 iPhone 17 的 zh-Hans / en 首页，在 iPhone 17 / iPhone Duo 模拟器验收 5/5 免费态、Pro 页、设置与语言切换、批量超额与首次额度用尽提示；48MP 转换与 11/11 无损校验沿用 1.2 的端到端证据。真机与系统矩阵仍未逐项验证。
+- 1.5 已完成 Debug / Release、签名 Debug 构建与自动化测试（Kit 27 / Purchase 21 / Engine 2 / Core 14 执行、2 跳过），并在 iPhone 17 模拟器复验 zh-Hans / en 的首页、选择、处理中、结果、设置、Pro、额度耗尽、深色与 accessibility-extra-large；iPhone Duo 复验 5/5 紧凑首页。48MP 转换与 11/11 无损校验沿用 1.2 的端到端证据。权限拒绝页、分享扩展、快捷指令、真实交易与真机矩阵仍未逐项验证。
 - 真实购买、退款 / 待批准、App 与分享扩展的 Keychain 跨进程共享尚未在真机验证；模拟器只能验证 App 内持久化。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 - 免费 Personal Team 只能使用本地 StoreKit 配置测试；真实内购与上架需要付费 Apple Developer Program、App Store Connect 商品与 Sandbox / 生产环境。
 - `Configuration.storekit` 的 `$2.99` 只是本地测试价；线上价格由 App Store Connect 与 `Product.displayPrice` 决定。

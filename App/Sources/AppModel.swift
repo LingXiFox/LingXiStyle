@@ -82,8 +82,8 @@ final class AppModel: ObservableObject {
     }
 
     var ctaTitle: String {
-        if convertibleCount > 1 { return String(localized: "cta.unlockPhotos", defaultValue: "解锁 \(convertibleCount) 张照片") }
-        return String(localized: "解锁第三代摄影风格")
+        if convertibleCount > 1 { return String(localized: "cta.addTexture", defaultValue: "添加纹理与颗粒（\(convertibleCount) 张）") }
+        return String(localized: "添加纹理与颗粒")
     }
 
     var isBusyPreparing: Bool { items.contains { $0.phase == .preparing } }
@@ -524,7 +524,7 @@ final class AppModel: ObservableObject {
             return
         }
         guard convertibleCount > 0 else {
-            notice = String(localized: "当前没有可解锁的照片。")
+            notice = String(localized: "当前没有可处理的照片。")
             return
         }
         isStartingConversion = true
@@ -578,7 +578,7 @@ final class AppModel: ObservableObject {
 
         let requested = items.filter(\.isConvertible).count
         guard requested > 0 else {
-            notice = String(localized: "当前没有可解锁的照片。")
+            notice = String(localized: "当前没有可处理的照片。")
             return
         }
         if !status.isPro {
@@ -629,7 +629,7 @@ final class AppModel: ObservableObject {
             }
         }
         guard convertibleCount > 0 else {
-            notice = String(localized: "当前没有可解锁的照片。")
+            notice = String(localized: "当前没有可处理的照片。")
             return
         }
 

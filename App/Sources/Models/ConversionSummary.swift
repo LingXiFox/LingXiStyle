@@ -28,7 +28,7 @@ struct ConversionSummary {
         }
         if failedCount > 0 { return String(localized: "这次没有保存成功") }
         if cancelledCount > 0 { return String(localized: "已取消，没有保存新照片") }
-        return String(localized: "没有需要转换的照片")
+        return String(localized: "没有需要处理的照片")
     }
 
     init(items: [PhotoItem]) {

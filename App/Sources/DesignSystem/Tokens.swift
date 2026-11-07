@@ -1,24 +1,43 @@
 import SwiftUI
 import UIKit
 
-/// The brief's token table, expressed as real dynamic colors so light and dark are both
-/// first-class instead of a dark palette with an inverted afterthought.
+/// 1.5 design tokens. Structure uses iOS semantic colors; fox orange is the only interaction
+/// accent. The handoff's #C24A14 was overridden by the owner with #E8A13A, so the foreground on
+/// the accent fill is brand ink (#1A1410, 8.33:1) instead of white (2.19:1).
 enum Palette {
-    static let background = Color(light: 0xF6F8FB, dark: 0x0B101A)
-    static let surface = Color(light: 0xFFFFFF, dark: 0x161E2B)
-    static let surfaceElevated = Color(light: 0xEAF0F7, dark: 0x202A39)
-    static let textPrimary = Color(light: 0x182233, dark: 0xF7F9FC)
-    static let textSecondary = Color(light: 0x526175, dark: 0xAAB6C8)
-    static let accent = Color(light: 0x087DB5, dark: 0x82D7FF)
-    /// Accent as text on background. The brief's accent is a fill color; at 4.28:1 it misses
-    /// the 4.5:1 body-text bar in light mode, so text uses this slightly deeper variant.
-    static let accentText = Color(light: 0x06688F, dark: 0x82D7FF)
-    static let accentSecondary = Color(light: 0x7954C5, dark: 0xBBA7F4)
-    static let success = Color(light: 0x148059, dark: 0x80DDB8)
-    static let warning = Color(light: 0x956009, dark: 0xF3CD8A)
-    static let error = Color(light: 0xBB3940, dark: 0xFF9F9F)
-    static let hairline = Color(light: 0x182233, dark: 0xF7F9FC).opacity(0.10)
-    static let shadow = Color(light: 0x182233, dark: 0x000000).opacity(0.12)
+    // Structure: iOS semantic colors, so light/dark and Increase Contrast stay native.
+    static let background = Color(uiColor: .systemGroupedBackground)
+    static let surface = Color(uiColor: .secondarySystemGroupedBackground)
+    // The handoff's tertiarySystemGroupedBackground collapses into systemGroupedBackground
+    // in light mode, which would erase elevated cards on the page background. Keep the
+    // intended contrast in both appearances: white in light, #2C2C2E in dark.
+    static let surfaceElevated = Color(light: 0xFFFFFF, dark: 0x2C2C2E)
+    static let textPrimary = Color(uiColor: .label)
+    static let textSecondary = Color(uiColor: .secondaryLabel)
+    static let textTertiary = Color(uiColor: .tertiaryLabel)
+    static let hairline = Color(uiColor: .separator)
+    static let fillControl = Color(uiColor: .tertiarySystemFill)
+    static let shadow = Color(light: 0x000000, dark: 0x000000, lightAlpha: 0.10, darkAlpha: 0.30)
+
+    // Interaction brand: fox orange. accentText is the darker variant used for text and icons.
+    static let accent = Color(light: 0xE8A13A, dark: 0xE8A13A)
+    static let accentText = Color(light: 0xB3430F, dark: 0xE8A13A)
+    static let accentSoft = Color(light: 0xE8A13A, dark: 0xE8A13A, lightAlpha: 0.10, darkAlpha: 0.22)
+    static let onAccent = Color(light: 0x1A1410, dark: 0x1A1410)
+
+    // Atmosphere: only the backdrop and small running indicators.
+    static let running = Color(light: 0x0E8A85, dark: 0x3CC9BD)
+    static let thinking = Color(light: 0x4A4FC0, dark: 0x9EA2F5)
+
+    // Semantic status: icons only; labels stay textPrimary.
+    static let success = Color(light: 0x248A3D, dark: 0x30DB5B)
+    static let warning = Color(light: 0xB25000, dark: 0xFFD426)
+    static let error = Color(light: 0xD70015, dark: 0xFF6961)
+    static let info = Color(light: 0x0040DD, dark: 0x409CFF)
+
+    // Brand ink: icon mark only, never a page background.
+    static let brandInk = Color(light: 0x1A1410, dark: 0x1A1410)
+    static let brandMilk = Color(light: 0xF6F1E8, dark: 0xF6F1E8)
 }
 
 enum Spacing {
@@ -34,15 +53,19 @@ enum Spacing {
 }
 
 enum Radius {
-    static let card: CGFloat = 26
-    static let button: CGFloat = 18
+    static let card: CGFloat = 20
+    static let group: CGFloat = 14
+    static let button: CGFloat = 14
     static let thumbnail: CGFloat = 14
     static let chip: CGFloat = 12
+    static let stat: CGFloat = 12
 }
 
 /// Text styles keep Dynamic Type working; explicit point sizes would freeze it.
 enum Typography {
     static let brand = Font.system(.title, design: .default, weight: .semibold)
+    static let hero = Font.system(.largeTitle, design: .default, weight: .bold)
+    static let sheetTitle = Font.system(.title, design: .default, weight: .bold)
     static let section = Font.system(.title2, design: .default, weight: .semibold)
     static let status = Font.system(.headline, design: .default, weight: .semibold)
     static let body = Font.system(.body, design: .default)
@@ -51,29 +74,33 @@ enum Typography {
     static let captionEmphasized = Font.system(.footnote, design: .default, weight: .semibold)
     static let micro = Font.system(.caption2, design: .default, weight: .medium)
     static let numeric = Font.system(.body, design: .rounded, weight: .semibold).monospacedDigit()
+    static let statNumber = Font.system(.title2, design: .rounded, weight: .bold).monospacedDigit()
+    static let monospaced = Font.system(.footnote, design: .monospaced)
 }
 
 enum Layout {
     static let minimumTouchTarget: CGFloat = 44
     static let heroAspect: CGFloat = 4.0 / 5.0
     static let thumbnailSide: CGFloat = 68
+    static let primaryButtonHeight: CGFloat = 52
+    static let secondaryButtonHeight: CGFloat = 48
 }
 
 extension Color {
-    init(light: UInt32, dark: UInt32) {
+    init(light: UInt32, dark: UInt32, lightAlpha: CGFloat = 1, darkAlpha: CGFloat = 1) {
         self.init(uiColor: UIColor { traits in
-            UIColor(hex: traits.userInterfaceStyle == .dark ? dark : light)
+            traits.userInterfaceStyle == .dark
+                ? UIColor(hex: dark, alpha: darkAlpha)
+                : UIColor(hex: light, alpha: lightAlpha)
         })
     }
 }
 
 private extension UIColor {
-    convenience init(hex: UInt32) {
-        self.init(
-            red: CGFloat((hex >> 16) & 0xFF) / 255,
-            green: CGFloat((hex >> 8) & 0xFF) / 255,
-            blue: CGFloat(hex & 0xFF) / 255,
-            alpha: 1
-        )
+    convenience init(hex: UInt32, alpha: CGFloat) {
+        self.init(red: CGFloat((hex >> 16) & 0xFF) / 255,
+                  green: CGFloat((hex >> 8) & 0xFF) / 255,
+                  blue: CGFloat(hex & 0xFF) / 255,
+                  alpha: alpha)
     }
 }

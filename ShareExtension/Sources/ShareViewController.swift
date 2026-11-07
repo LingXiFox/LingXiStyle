@@ -161,7 +161,7 @@ final class ShareModel: ObservableObject {
         diagnosticCode = nil
         phase = .inspecting
         title = String(localized: "正在检查 HEIC 结构")
-        message = String(localized: "确认这是完整原片，并检查是否已经带有第三代质感。")
+        message = String(localized: "确认这是完整原片，并检查是否已经带有纹理与颗粒。")
 
         processingTask = Task { [weak self] in
             await self?.run(fileURL: fileURL, session: session)
@@ -206,7 +206,7 @@ final class ShareModel: ObservableObject {
         do {
             try Task.checkCancellation()
             phase = .converting(.readingOriginal)
-            title = String(localized: "正在补上第三代质感")
+            title = String(localized: "正在添加纹理与颗粒")
             message = String(localized: "照片保持清晰，只处理纹理与颗粒层。")
 
             let request = ConversionService.Request(
@@ -248,7 +248,7 @@ final class ShareModel: ObservableObject {
 
     private func present(_ error: Error) {
         if let failure = error as? ConversionFailure {
-            fail(title: String(localized: "转换没有完成"), message: failure.message, code: failure.diagnosticCode, retry: true)
+            fail(title: String(localized: "处理没有完成"), message: failure.message, code: failure.diagnosticCode, retry: true)
         } else if let libraryError = error as? PhotoLibraryError {
             let denied: Bool
             switch libraryError {
@@ -260,7 +260,7 @@ final class ShareModel: ObservableObject {
                  code: libraryError.diagnosticCode,
                  retry: true)
         } else {
-            fail(title: String(localized: "转换没有完成"), message: error.localizedDescription, code: nil, retry: true)
+            fail(title: String(localized: "处理没有完成"), message: error.localizedDescription, code: nil, retry: true)
         }
     }
 
@@ -357,7 +357,6 @@ final class ShareModel: ObservableObject {
 
 struct ShareFlowView: View {
     @ObservedObject var model: ShareModel
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var accent: Color { SharePalette.accent }
 
@@ -369,24 +368,19 @@ struct ShareFlowView: View {
 
                 ZStack {
                     Circle()
-                        .fill(
-                            LinearGradient(colors: [accent.opacity(0.22), SharePalette.violet.opacity(0.16)],
-                                           startPoint: .topLeading,
-                                           endPoint: .bottomTrailing)
-                        )
+                        .fill(SharePalette.surface)
                         .frame(width: 88, height: 88)
                     Circle()
-                        .strokeBorder(accent.opacity(0.26), lineWidth: 1)
+                        .strokeBorder(SharePalette.hairline, lineWidth: 0.5)
                         .frame(width: 88, height: 88)
                     Image(systemName: symbol)
-                        .font(.system(size: 32, weight: .semibold))
+                        .font(.system(size: 30, weight: .semibold))
                         .foregroundStyle(iconColor)
-                        .symbolEffect(.pulse, options: reduceMotion ? .nonRepeating : .repeating, value: model.isBusy)
                 }
 
                 VStack(spacing: 8) {
                     Text(model.title)
-                        .font(.title3.weight(.semibold))
+                        .font(.system(.title2, design: .default, weight: .bold))
                         .foregroundStyle(SharePalette.textPrimary)
                         .multilineTextAlignment(.center)
                     Text(model.message)
@@ -433,12 +427,12 @@ struct ShareFlowView: View {
                 ShareStageRail(stage: stage)
                 ProgressView()
                     .controlSize(.small)
-                    .tint(accent)
+                    .tint(SharePalette.running)
             }
         case .reading, .inspecting:
             ProgressView()
                 .controlSize(.large)
-                .tint(accent)
+                .tint(SharePalette.running)
         }
     }
 
@@ -448,22 +442,28 @@ struct ShareFlowView: View {
             Button("取消") { model.cancel() }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
+                .tint(SharePalette.textPrimary)
                 .disabled(!model.canCancel)
                 .frame(maxWidth: .infinity)
+                .frame(minHeight: 48)
         } else {
             HStack(spacing: 12) {
                 if model.canRetry {
                     Button("重试") { model.retry() }
                         .buttonStyle(.bordered)
                         .controlSize(.large)
+                        .tint(SharePalette.textPrimary)
                         .frame(maxWidth: .infinity)
+                        .frame(minHeight: 48)
                 }
                 Button(model.phase == .done ? String(localized: "完成") : String(localized: "关闭")) { model.close() }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     .frame(maxWidth: .infinity)
+                    .frame(minHeight: 52)
                     .tint(accent)
-                    .foregroundStyle(.black)
+                    .foregroundStyle(SharePalette.onAccent)
+                    .buttonBorderShape(.roundedRectangle(radius: 14))
             }
         }
     }
@@ -500,7 +500,7 @@ private struct ShareStageRail: View {
         HStack(spacing: 5) {
             ForEach(Array(ConversionStage.pipeline.enumerated()), id: \.element) { index, step in
                 Capsule()
-                    .fill(index <= currentIndex ? SharePalette.accent : SharePalette.hairline)
+                    .fill(index <= currentIndex ? SharePalette.accent : SharePalette.fillControl)
                     .frame(height: 4)
                     .overlay {
                         if index == currentIndex {
@@ -522,14 +522,17 @@ private struct ShareStageRail: View {
 }
 
 private enum SharePalette {
-    static let background = Color(light: 0xF6F8FB, dark: 0x0B101A)
-    static let textPrimary = Color(light: 0x182233, dark: 0xF7F9FC)
-    static let textSecondary = Color(light: 0x526175, dark: 0xAAB6C8)
-    static let accent = Color(light: 0x087DB5, dark: 0x82D7FF)
-    static let violet = Color(light: 0x7954C5, dark: 0xBBA7F4)
-    static let success = Color(light: 0x148059, dark: 0x80DDB8)
-    static let warning = Color(light: 0x956009, dark: 0xF3CD8A)
-    static let hairline = Color(light: 0x182233, dark: 0xF7F9FC).opacity(0.14)
+    static let background = Color(uiColor: .systemGroupedBackground)
+    static let surface = Color(uiColor: .secondarySystemGroupedBackground)
+    static let textPrimary = Color(uiColor: .label)
+    static let textSecondary = Color(uiColor: .secondaryLabel)
+    static let fillControl = Color(uiColor: .tertiarySystemFill)
+    static let hairline = Color(uiColor: .separator)
+    static let accent = Color(light: 0xE8A13A, dark: 0xE8A13A)
+    static let onAccent = Color(light: 0x1A1410, dark: 0x1A1410)
+    static let running = Color(light: 0x0E8A85, dark: 0x3CC9BD)
+    static let success = Color(light: 0x248A3D, dark: 0x30DB5B)
+    static let warning = Color(light: 0xB25000, dark: 0xFFD426)
 }
 
 private extension Color {

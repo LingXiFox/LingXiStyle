@@ -5,7 +5,7 @@ import StoreKit
 public enum ProProduct {
     public static let identifier = "com.lingxifox.LingXiStyle.pro"
     public static var displayName: String { Brand.proName }
-    public static var description: String { String(localized: "一次购买，永久解锁无限照片转换。") }
+    public static var description: String { String(localized: "一次购买，永久不限张数。") }
 }
 
 /// The only source of truth for Pro. A local bool, a button callback, or an unverified JWS can

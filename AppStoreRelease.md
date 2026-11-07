@@ -1,4 +1,4 @@
-# App Store 发布配置（纹粒 / Texel 1.4）
+# App Store 发布配置（纹粒 / Texel 1.5）
 
 这份文档只描述**若要发布到 App Store**时需要完成的 App Store Connect 与签名配置。
 仓库本身仍然只提供源码，不附带 IPA、TestFlight 包或真实商品。
@@ -38,11 +38,11 @@ UI 与测试都不得把它当作生产价格。
 
 3. 参考名称：`Texel Pro`。
 4. 本地化至少填写简体中文；建议同时填写繁体中文、英文、日文，德文可选：
-   - 简体中文：`纹粒 Pro` / `一次购买，永久解锁无限照片转换。`
-   - 繁體中文：`Texel Pro` / `一次購買，永久解鎖無限照片轉換。`
-   - English: `Texel Pro` / `One purchase. Unlimited photo conversions, forever.`
-   - 日本語：`Texel Pro` / `一度の購入で、写真変換はずっと無制限。`
-   - Deutsch（可选）：`Texel Pro` / `Einmal kaufen. Unbegrenzte Fotokonvertierungen, für immer.`
+   - 简体中文：`纹粒 Pro` / `一次购买，永久不限张数。`
+   - 繁體中文：`Texel Pro` / `一次購買，永久不限張數。`
+   - English: `Texel Pro` / `One purchase. Unlimited photos, forever.`
+   - 日本語：`Texel Pro` / `一度の購入で、写真はいつでも無制限。`
+   - Deutsch（可选）：`Texel Pro` / `Einmal kaufen. Unbegrenzte Fotos, für immer.`
 5. 上传审核截图（Pro 页面 + 购买按钮 + 恢复购买）。
 6. 价格：先设置一个基准地区价格，其他地区使用 Apple 的自动定价，或按地区手动覆盖。
 7. 商品状态必须为 **Ready to Submit / 已准备提交**，并随 App 版本一起提交审核。
@@ -89,7 +89,7 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 
 ## 5. 发布前检查清单
 
-- [ ] 版本号 `1.4.0`、Build `5`（或更高）已写入 `project.yml`。
+- [ ] 版本号 `1.5.0`、Build `6`（或更高）已写入 `project.yml`。
 - [ ] `xcodegen generate` 后 Debug scheme 仍带 `Configuration.storekit`。
 - [ ] `LingXiKitTests`、`LingXiPurchaseTests`、`LingXiEngineTests`、`StylePortCoreTests` 全绿。
 - [ ] Release 构建不包含 StoreKit 测试配置。
@@ -101,6 +101,8 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 - [ ] 恢复购买、退款 / 撤销、待批准、未完成交易均有本地化提示。
 - [ ] 首次启动不强制弹付费页。
 - [ ] 分享扩展与快捷指令同样受额度约束。
+- [ ] 1.5 视觉：iOS 语义表面、狐橙 `#E8A13A`、每屏最多一个强调填充；无渐变边框 / 扫光 / 呼吸光。
+- [ ] 设置页 Pro 行只显示「一次购买，永久不限张数。」或已购状态，不显示价格。
 - [ ] 浅色 / 深色、Dynamic Type、Reduce Motion、VoiceOver 通过。
 - [ ] 隐私说明、支持 URL、审核备注已填写。
 - [ ] Archive 使用 Release、正确 Team、上传 App Store Connect。

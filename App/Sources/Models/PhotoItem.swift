@@ -64,8 +64,8 @@ struct PhotoItem: Identifiable {
         case .preparingFailed(let message): return String(localized: "phase.preparingFailed", defaultValue: "读取失败：\(message)")
         case .ready:
             switch verdict?.status {
-            case .ready: return String(localized: "可解锁第三代风格")
-            case .alreadyEnhanced: return String(localized: "已包含第三代风格，无需转换")
+            case .ready: return String(localized: "可添加纹理与颗粒")
+            case .alreadyEnhanced: return String(localized: "已带有纹理与颗粒，无需处理")
             case .unsupported: return String(localized: "暂不支持")
             case nil: return String(localized: "等待检查")
             }

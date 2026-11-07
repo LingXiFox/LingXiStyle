@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import LingXiKit
 
 struct ResultView: View {
     @ObservedObject var model: AppModel
@@ -9,35 +10,36 @@ struct ResultView: View {
 
     private var summary: ConversionSummary { model.summary ?? ConversionSummary(items: model.items) }
     private var savedItems: [PhotoItem] { model.savedItems }
-    private var shareableURLs: [URL] { savedItems.compactMap(\.outputURL) }
     private var warnedItems: [PhotoItem] { savedItems.filter { $0.saveWarning != nil } }
+    private var integrity: IntegrityReport? { savedItems.compactMap(\.integrity).first }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: Spacing.m) {
-                ResultHeroCard(summary: summary,
-                               savedItems: savedItems,
-                               onView: { viewer = ViewerPayload(index: 0) },
-                               onViewItem: { index in viewer = ViewerPayload(index: index) })
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                header
 
-                if !warnedItems.isEmpty { warningCard }
+                statsRow
 
-                if !summary.failures.isEmpty { failuresCard }
+                if let first = savedItems.first {
+                    previewCard(first)
+                }
 
-                if !summary.skippedReasons.isEmpty { skippedCard }
+                if let integrity {
+                    integrityGroup(integrity)
+                }
+
+                if !warnedItems.isEmpty { warningNotice }
+
+                if !summary.failures.isEmpty { failuresGroup }
+
+                if !summary.skippedReasons.isEmpty { skippedGroup }
 
                 if model.deferredCount > 0 { deferredCard }
 
-                Button(action: onShowDiagnostics) {
-                    Label("查看诊断信息", systemImage: "stethoscope")
-                        .font(Typography.captionEmphasized)
-                        .foregroundStyle(Palette.textSecondary)
-                        .frame(maxWidth: .infinity, minHeight: Layout.minimumTouchTarget)
-                }
-                .buttonStyle(.plain)
+                if integrity == nil { diagnosticsRow }
             }
             .padding(.horizontal, margin)
-            .padding(.top, Spacing.m)
+            .padding(.top, Spacing.s)
             .padding(.bottom, Spacing.l)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
@@ -46,11 +48,195 @@ struct ResultView: View {
         }
     }
 
-    private var warningCard: some View {
+    // MARK: Header and stats
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: Spacing.s) {
+                Image(systemName: summary.savedCount > 0 ? "checkmark.circle" : (summary.failedCount > 0 ? "exclamationmark.circle" : "info.circle"))
+                    .font(.system(size: 26, weight: .semibold))
+                    .foregroundStyle(summary.savedCount > 0 ? Palette.success : (summary.failedCount > 0 ? Palette.error : Palette.warning))
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(Typography.sheetTitle)
+                    .foregroundStyle(Palette.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            Text(subline)
+                .font(.system(.subheadline))
+                .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.top, Spacing.m)
+    }
+
+    private var title: String {
+        if summary.savedCount > 0 { return String(localized: "result.title.saved", defaultValue: "已存入相册") }
+        if summary.failedCount > 0 { return String(localized: "result.title.failed", defaultValue: "这次没有保存成功") }
+        if summary.cancelledCount > 0 { return String(localized: "result.title.cancelled", defaultValue: "已取消") }
+        return String(localized: "result.title.empty", defaultValue: "没有需要处理的照片")
+    }
+
+    private var statsRow: some View {
+        HStack(spacing: Spacing.xs) {
+            statCell(String(localized: "成功"), value: summary.savedCount, symbol: "checkmark", tint: Palette.success)
+            statCell(String(localized: "跳过"), value: summary.skippedCount, symbol: "minus", tint: Palette.textTertiary)
+            statCell(String(localized: "失败"), value: summary.failedCount, symbol: "xmark", tint: Palette.error)
+        }
+    }
+
+    private func statCell(_ title: String, value: Int, symbol: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("\(value)")
+                .font(Typography.statNumber)
+                .foregroundStyle(value == 0 ? Palette.textTertiary : Palette.textPrimary)
+            HStack(spacing: 5) {
+                Image(systemName: symbol)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(tint)
+                Text(title)
+                    .font(Typography.caption)
+                    .foregroundStyle(Palette.textPrimary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Spacing.s)
+        .padding(.vertical, 10)
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.stat, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(String(localized: "summary.countAccessibility", defaultValue: "\(title) \(value) 张"))
+    }
+
+    private var subline: String {
+        if summary.savedCount > 0 {
+            return String(localized: "原图没有被修改，新照片已另存为单独的一张。")
+        }
+        if summary.failedCount > 0 { return String(localized: "没有写入新照片，原图保持不变。") }
+        if summary.cancelledCount > 0 { return String(localized: "任务已取消，没有写入新照片。") }
+        return String(localized: "这些照片不需要生成新副本。")
+    }
+
+    // MARK: Preview
+
+    private func previewCard(_ item: PhotoItem) -> some View {
+        VStack(spacing: Spacing.xs) {
+            ZStack {
+                Color.black.opacity(0.92)
+                Button {
+                    viewer = ViewerPayload(index: 0)
+                } label: {
+                    Image(uiImage: item.image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "查看已保存照片"))
+                .accessibilityHint(String(localized: "打开成果预览"))
+
+                if let url = item.outputURL {
+                    ShareLink(item: url) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(.black.opacity(0.42), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("分享这张 HEIC")
+                    .padding(10)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 270)
+            .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+
+            HStack(spacing: Spacing.s) {
+                Text(item.outputURL?.lastPathComponent ?? item.displayName)
+                    .font(Typography.monospaced)
+                    .foregroundStyle(Palette.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: 0)
+                if savedItems.count > 1 {
+                    HStack(spacing: 5) {
+                        ForEach(0..<savedItems.count, id: \.self) { index in
+                            Capsule()
+                                .fill(index == 0 ? Palette.textPrimary : Palette.textTertiary.opacity(0.4))
+                                .frame(width: index == 0 ? 16 : 6, height: 6)
+                        }
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(String(localized: "result.pages", defaultValue: "第 1 张，共 \(savedItems.count) 张"))
+                }
+            }
+            .padding(.horizontal, Spacing.xxs)
+        }
+    }
+
+    // MARK: Integrity
+
+    private func integrityGroup(_ report: IntegrityReport) -> some View {
+        let primary = report.checks.first { $0.id == "primary" }
+        let preservedIDs = ["hdr", "exif", "thumbnail", "gainmap"]
+        let preserved = report.checks.filter { preservedIDs.contains($0.id) }
+        let preservedPassed = !preserved.isEmpty && preserved.allSatisfy(\.passed)
+
+        return VStack(spacing: 0) {
+            integrityRow(title: String(localized: "result.integrity.primary", defaultValue: "主图像素逐块校验一致"),
+                        passed: primary?.passed ?? report.passed,
+                        trailing: nil)
+
+            Divider().overlay(Palette.hairline).padding(.leading, 40)
+
+            integrityRow(title: String(localized: "result.integrity.metadata", defaultValue: "HDR、EXIF、缩略图已保留"),
+                        passed: preservedPassed,
+                        trailing: AnyView(
+                            Button(action: onShowDiagnostics) {
+                                Text(String(localized: "查看诊断信息"))
+                                    .font(Typography.caption)
+                                    .foregroundStyle(Palette.accentText)
+                                    .frame(minHeight: Layout.minimumTouchTarget)
+                            }
+                            .buttonStyle(.plain)
+                        ))
+        }
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.group, style: .continuous))
+    }
+
+    private func integrityRow(title: String, passed: Bool, trailing: AnyView?) -> some View {
+        HStack(spacing: Spacing.xs) {
+            Image(systemName: passed ? "checkmark" : "xmark")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(passed ? Palette.success : Palette.error)
+                .frame(width: 18)
+            Text(title)
+                .font(Typography.caption)
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            if let trailing { trailing }
+        }
+        .padding(.horizontal, Spacing.m)
+        .frame(minHeight: 44)
+    }
+
+    // MARK: Warnings, failures, skips, deferred
+
+    private var warningNotice: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Label("照片已保存，但有一项回读提示", systemImage: "exclamationmark.triangle.fill")
-                .font(Typography.captionEmphasized)
-                .foregroundStyle(Palette.warning)
+            HStack(alignment: .top, spacing: Spacing.xs) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Palette.warning)
+                Text(String(localized: "result.warning.title", defaultValue: "照片已保存，但有一项回读提示"))
+                    .font(Typography.captionEmphasized)
+                    .foregroundStyle(Palette.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             ForEach(warnedItems) { item in
                 if let warning = item.saveWarning {
                     Text(String(localized: "result.warningLine", defaultValue: "\(item.displayName)：\(warning)"))
@@ -62,28 +248,23 @@ struct ResultView: View {
             Text("照片已经写入相册，不需要重试。可以打开系统「照片」确认资源类型。")
                 .font(Typography.micro)
                 .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(Spacing.m)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.group, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Radius.group, style: .continuous)
             .strokeBorder(Palette.warning.opacity(0.28), lineWidth: 1))
     }
 
-    private var failuresCard: some View {
-        VStack(alignment: .leading, spacing: Spacing.s) {
-            Text("没有完成的照片")
-                .font(Typography.status)
-                .foregroundStyle(Palette.textPrimary)
+    private var failuresGroup: some View {
+        VStack(spacing: 0) {
+            groupHeader(String(localized: "result.failures.title", defaultValue: "未完成 \(summary.failedCount) 张"), symbol: "exclamationmark.circle.fill", tint: Palette.error)
 
             ForEach(summary.failures) { failure in
+                Divider().overlay(Palette.hairline).padding(.leading, Spacing.m)
                 HStack(alignment: .top, spacing: Spacing.s) {
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .font(.system(.body, design: .default, weight: .medium))
-                        .foregroundStyle(Palette.error)
-                        .padding(.top, 2)
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 3) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(failure.name)
                             .font(Typography.captionEmphasized)
                             .foregroundStyle(Palette.textPrimary)
@@ -96,48 +277,51 @@ struct ResultView: View {
                     }
                     Spacer(minLength: 0)
                 }
-                .padding(.vertical, Spacing.xxs)
+                .padding(.horizontal, Spacing.m)
+                .padding(.vertical, 10)
             }
 
             if summary.failedCount > 0 {
+                Divider().overlay(Palette.hairline).padding(.leading, Spacing.m)
                 Button {
                     model.retryFailed()
                 } label: {
-                    Label("重试失败项", systemImage: "arrow.clockwise")
+                    Label(String(localized: "重试失败项"), systemImage: "arrow.clockwise")
                         .font(Typography.captionEmphasized)
                         .foregroundStyle(Palette.accentText)
-                        .frame(minHeight: Layout.minimumTouchTarget)
+                        .frame(maxWidth: .infinity, minHeight: Layout.minimumTouchTarget)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(Spacing.m)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-            .strokeBorder(Palette.hairline, lineWidth: 1))
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.group, style: .continuous))
     }
 
-    private var skippedCard: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("跳过的照片")
-                .font(Typography.status)
-                .foregroundStyle(Palette.textPrimary)
+    private var skippedGroup: some View {
+        VStack(spacing: 0) {
+            groupHeader(String(localized: "result.skipped.title", defaultValue: "跳过 \(summary.skippedCount) 张"), symbol: "minus.circle", tint: Palette.textTertiary)
+
             ForEach(Array(summary.skippedReasons.enumerated()), id: \.offset) { _, reason in
+                Divider().overlay(Palette.hairline).padding(.leading, Spacing.m)
                 Text(reason)
                     .font(Typography.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Spacing.m)
+                    .padding(.vertical, 10)
             }
+
+            Divider().overlay(Palette.hairline).padding(.leading, Spacing.m)
             Text("这些照片没有被修改，也没有保存副本。")
                 .font(Typography.micro)
                 .foregroundStyle(Palette.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Spacing.m)
+                .padding(.vertical, 10)
         }
-        .padding(Spacing.m)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-            .strokeBorder(Palette.hairline, lineWidth: 1))
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.group, style: .continuous))
     }
 
     private var deferredCard: some View {
@@ -145,7 +329,7 @@ struct ResultView: View {
             Label(String(localized: "result.deferred", defaultValue: "还有 \(model.deferredCount) 张未处理"), systemImage: "clock.badge.exclamationmark")
                 .font(Typography.captionEmphasized)
                 .foregroundStyle(Palette.warning)
-            Text("今日免费额度不足，这些照片没有转换，也没有消耗额度。明天 00:00 后会恢复免费额度。")
+            Text("今日免费额度不足，这些照片没有处理，也没有消耗额度。明天 00:00 后会恢复免费额度。")
                 .font(Typography.caption)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -161,49 +345,58 @@ struct ResultView: View {
         }
         .padding(Spacing.m)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.warning.opacity(0.08), in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-            .strokeBorder(Palette.warning.opacity(0.24), lineWidth: 1))
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.group, style: .continuous))
     }
+
+    private func groupHeader(_ title: String, symbol: String, tint: Color) -> some View {
+        HStack(spacing: Spacing.xs) {
+            Image(systemName: symbol)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(tint)
+            Text(title)
+                .font(Typography.bodyEmphasized)
+                .foregroundStyle(Palette.textPrimary)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Spacing.m)
+        .frame(minHeight: 44)
+    }
+
+    private var diagnosticsRow: some View {
+        Button(action: onShowDiagnostics) {
+            HStack(spacing: Spacing.s) {
+                Image(systemName: "stethoscope")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Palette.textSecondary)
+                    .frame(width: 22)
+                Text(String(localized: "查看诊断信息"))
+                    .font(Typography.body)
+                    .foregroundStyle(Palette.textPrimary)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.textTertiary)
+            }
+            .padding(.horizontal, Spacing.m)
+            .frame(minHeight: 48)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.group, style: .continuous))
+    }
+
+    // MARK: Bottom bar
 
     private var bottomBar: some View {
         VStack(spacing: Spacing.xs) {
-            if summary.savedCount > 0 {
-                HStack(spacing: Spacing.s) {
-                    PrimaryActionButton(title: String(localized: "查看成果"), systemImage: "photo.stack") {
-                        viewer = ViewerPayload(index: 0)
-                    }
-                    if !shareableURLs.isEmpty {
-                        ShareLink(items: shareableURLs) {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.system(.headline, design: .default, weight: .semibold))
-                                .foregroundStyle(Palette.textPrimary)
-                                .frame(width: 56, height: Layout.minimumTouchTarget + 8)
-                                .background(Palette.surfaceElevated,
-                                            in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
-                                .overlay(RoundedRectangle(cornerRadius: Radius.button, style: .continuous)
-                                    .strokeBorder(Palette.hairline, lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("分享成果")
-                        .accessibilityHint("分享已保存的 HEIC 文件")
-                    }
-                }
-                if summary.failedCount > 0 {
-                    SecondaryActionButton(title: String(localized: "重试失败项"), systemImage: "arrow.clockwise") {
-                        model.retryFailed()
-                    }
-                }
-            } else if summary.failedCount > 0 {
-                PrimaryActionButton(title: String(localized: "重试失败项"), systemImage: "arrow.clockwise") {
+            if summary.failedCount > 0 {
+                SecondaryActionButton(title: String(localized: "重试失败项"), systemImage: "arrow.clockwise") {
                     model.retryFailed()
                 }
             }
-
-            Button("继续处理") { model.reset() }
-                .font(Typography.captionEmphasized)
-                .foregroundStyle(Palette.textSecondary)
-                .frame(maxWidth: .infinity, minHeight: Layout.minimumTouchTarget)
+            PrimaryActionButton(title: String(localized: "result.continueNew", defaultValue: "继续处理新照片"), systemImage: "plus") {
+                model.reset()
+            }
         }
         .padding(.top, Spacing.s)
         .padding(.horizontal, margin)
@@ -218,149 +411,6 @@ struct ResultView: View {
 private struct ViewerPayload: Identifiable {
     let id = UUID()
     let index: Int
-}
-
-// MARK: - Result hero
-
-private struct ResultHeroCard: View {
-    let summary: ConversionSummary
-    let savedItems: [PhotoItem]
-    let onView: () -> Void
-    let onViewItem: (Int) -> Void
-
-    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
-    @Environment(\.reduceMotionOverride) private var reduceMotionOverride
-    @State private var appeared = false
-
-    private var reduceMotion: Bool { systemReduceMotion || reduceMotionOverride }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            if let first = savedItems.first {
-                Button(action: onView) {
-                    ZStack {
-                        Palette.background
-                        Image(uiImage: first.image)
-                            .resizable()
-                            .scaledToFit()
-                            .padding(Spacing.s)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .aspectRatio(4.0 / 3.0, contentMode: .fit)
-                    .clipped()
-                    .overlay(alignment: .topTrailing) {
-                        Text(savedItems.count > 1
-                             ? String(localized: "result.count.photos", defaultValue: "\(savedItems.count) 张")
-                             : String(localized: "新照片"))
-                            .font(Typography.micro)
-                            .foregroundStyle(Palette.textPrimary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(.ultraThinMaterial, in: Capsule())
-                            .padding(Spacing.s)
-                    }
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("查看已保存照片")
-                .accessibilityHint("打开成果预览")
-            } else {
-                ZStack {
-                    LinearGradient(colors: [Palette.surfaceElevated, Palette.surface],
-                                   startPoint: .topLeading,
-                                   endPoint: .bottomTrailing)
-                    Image(systemName: summary.failedCount > 0 ? "exclamationmark.seal" : "checkmark.seal")
-                        .font(.system(size: 42, weight: .light))
-                        .foregroundStyle(summary.failedCount > 0 ? Palette.warning : Palette.textSecondary)
-                }
-                .frame(height: 154)
-                .accessibilityHidden(true)
-            }
-
-            VStack(alignment: .leading, spacing: Spacing.s) {
-                HStack(alignment: .top, spacing: Spacing.s) {
-                    Image(systemName: summary.savedCount > 0 ? "checkmark.seal.fill" : "info.circle.fill")
-                        .font(.system(size: 26, weight: .semibold))
-                        .foregroundStyle(summary.savedCount > 0 ? Palette.success : Palette.warning)
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(summary.headline)
-                            .font(Typography.section)
-                            .foregroundStyle(Palette.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(subline)
-                            .font(Typography.caption)
-                            .foregroundStyle(Palette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer(minLength: 0)
-                }
-
-                HStack(spacing: Spacing.xs) {
-                    countPill(String(localized: "成功"), value: summary.savedCount, tint: Palette.success)
-                    if summary.skippedCount > 0 { countPill(String(localized: "跳过"), value: summary.skippedCount, tint: Palette.textSecondary) }
-                    if summary.failedCount > 0 { countPill(String(localized: "失败"), value: summary.failedCount, tint: Palette.error) }
-                    if summary.cancelledCount > 0 { countPill(String(localized: "取消"), value: summary.cancelledCount, tint: Palette.warning) }
-                    Spacer(minLength: 0)
-                }
-
-                if savedItems.count > 1 {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: Spacing.xs) {
-                            ForEach(Array(savedItems.enumerated()), id: \.element.id) { index, item in
-                                Button { onViewItem(index) } label: {
-                                    Image(uiImage: item.image)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 62, height: 62)
-                                        .clipShape(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous))
-                                        .overlay(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
-                                            .strokeBorder(Palette.hairline, lineWidth: 1))
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel(String(localized: "result.viewer.accessibility", defaultValue: "查看第 \(index + 1) 张成果"))
-                            }
-                        }
-                    }
-                }
-            }
-            .padding(Spacing.l)
-        }
-        .background(Palette.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                .strokeBorder(Palette.hairline, lineWidth: 1)
-        )
-        .shadow(color: Palette.shadow, radius: 16, y: 6)
-        .offset(y: appeared || reduceMotion ? 0 : 10)
-        .opacity(appeared || reduceMotion ? 1 : 0)
-        .onAppear {
-            guard !reduceMotion else { appeared = true; return }
-            withAnimation(Motion.result) { appeared = true }
-        }
-    }
-
-    private var subline: String {
-        if summary.savedCount > 0 {
-            return String(localized: "原图没有被修改，新照片已存入系统相册。")
-        }
-        if summary.failedCount > 0 { return String(localized: "没有写入新照片，原图保持不变。") }
-        if summary.cancelledCount > 0 { return String(localized: "任务已取消，没有写入新照片。") }
-        return String(localized: "这些照片不需要生成新副本。")
-    }
-
-    private func countPill(_ title: String, value: Int, tint: Color) -> some View {
-        HStack(spacing: 5) {
-            Circle().fill(tint).frame(width: 7, height: 7)
-            Text(title).font(Typography.micro).foregroundStyle(Palette.textSecondary)
-            Text("\(value)").font(Typography.numeric).foregroundStyle(Palette.textPrimary)
-        }
-        .padding(.horizontal, Spacing.xs)
-        .padding(.vertical, 6)
-        .background(Palette.surfaceElevated, in: Capsule())
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(String(localized: "summary.countAccessibility", defaultValue: "\(title) \(value) 张"))
-    }
 }
 
 // MARK: - Saved result viewer
@@ -434,10 +484,10 @@ struct SavedResultsViewer: View {
                     ShareLink(item: url) {
                         Label("分享这张 HEIC", systemImage: "square.and.arrow.up")
                             .font(Typography.bodyEmphasized)
-                            .foregroundStyle(.black)
+                            .foregroundStyle(Palette.onAccent)
                             .padding(.horizontal, Spacing.l)
                             .frame(minHeight: Layout.minimumTouchTarget + 4)
-                            .background(.white, in: Capsule())
+                            .background(Palette.accent, in: Capsule())
                     }
                     .padding(.bottom, Spacing.m)
                 }
@@ -458,32 +508,59 @@ struct PermissionDeniedView: View {
         ScrollView {
             VStack(spacing: Spacing.m) {
                 Spacer(minLength: Spacing.xl)
-                Image(systemName: "photo.badge.exclamationmark")
-                    .font(.system(size: 46, weight: .light))
-                    .foregroundStyle(Palette.warning)
-                    .accessibilityHidden(true)
+
+                ZStack {
+                    Circle()
+                        .fill(Palette.fillControl)
+                        .frame(width: 72, height: 72)
+                    Image(systemName: "photo.badge.exclamationmark")
+                        .font(.system(size: 30, weight: .medium))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                .accessibilityHidden(true)
+
                 Text("需要照片访问权限")
-                    .font(Typography.section)
+                    .font(Typography.sheetTitle)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
-                Text("仅在本机读取你选中的 HEIC 原片，不经过服务器。没有相册权限时，仍然可以从「文件」导入。")
+                    .accessibilityAddTraits(.isHeader)
+
+                Text("纹粒只读取你选中的 HEIC 原片，并把新照片另存进相册。照片不经过任何服务器。")
                     .font(Typography.body)
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
 
-                PrimaryActionButton(title: String(localized: "打开系统设置"), systemImage: "gearshape") {
+                HStack(alignment: .top, spacing: Spacing.s) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(Palette.info)
+                        .frame(width: 22, height: 22)
+                    Text(String(localized: "没有相册权限时，仍然可以从「文件」导入 HEIC。"))
+                        .font(Typography.caption)
+                        .foregroundStyle(Palette.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+                .padding(Spacing.m)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous))
+
+                PrimaryActionButton(title: String(localized: "前往设置开启"), systemImage: "gearshape") {
                     guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
                     UIApplication.shared.open(url)
                 }
-                .padding(.top, Spacing.s)
 
-                SecondaryActionButton(title: String(localized: "从文件导入 HEIC"), systemImage: "folder", action: onImportFiles)
-                SecondaryActionButton(title: String(localized: "重新检查"), systemImage: "arrow.clockwise", action: onRetry)
+                SecondaryActionButton(title: String(localized: "从「文件」导入"), systemImage: "folder", action: onImportFiles)
 
-                Text("文件导入不需要相册权限。")
-                    .font(Typography.micro)
-                    .foregroundStyle(Palette.textSecondary)
+                Button(action: onRetry) {
+                    Text(String(localized: "重新检查"))
+                        .font(Typography.captionEmphasized)
+                        .foregroundStyle(Palette.accentText)
+                        .frame(minHeight: Layout.minimumTouchTarget)
+                }
+                .buttonStyle(.plain)
+
                 Spacer(minLength: Spacing.xl)
             }
             .padding(.horizontal, margin)

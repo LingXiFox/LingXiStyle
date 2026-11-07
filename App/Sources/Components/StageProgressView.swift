@@ -2,13 +2,10 @@ import SwiftUI
 import LingXiKit
 
 /// Shows the real pipeline, step by step. No percentages, no invented time estimates: the
-/// current step is fed by the engine's stage callbacks.
+/// current step is fed by the engine's stage callbacks. 1.5 uses a 44pt inset group.
 struct StageProgressView: View {
     let stage: ConversionStage?
     var failed: Bool = false
-    let photoIndex: Int
-    let photoTotal: Int
-    let photoName: String
 
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.reduceMotionOverride) private var reduceMotionOverride
@@ -22,44 +19,20 @@ struct StageProgressView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.s) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(statusText)
-                    .font(Typography.status)
-                    .foregroundStyle(Palette.textPrimary)
-                Spacer(minLength: Spacing.s)
-                Text(String(localized: "progress.photoCounter", defaultValue: "第 \(photoIndex) / \(photoTotal) 张"))
-                    .font(Typography.caption)
-                    .foregroundStyle(Palette.textSecondary)
-                    .monospacedDigit()
-            }
-
-            VStack(alignment: .leading, spacing: Spacing.xs + 2) {
-                ForEach(Array(pipeline.enumerated()), id: \.element) { index, step in
-                    row(for: step, index: index)
+        VStack(spacing: 0) {
+            ForEach(Array(pipeline.enumerated()), id: \.element) { index, step in
+                row(for: step, index: index)
+                if index < pipeline.count - 1 {
+                    Rectangle()
+                        .fill(Palette.hairline)
+                        .frame(height: 0.5)
+                        .padding(.leading, 44)
                 }
             }
-
-            Text(photoName)
-                .font(Typography.micro)
-                .foregroundStyle(Palette.textSecondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
         }
-        .padding(Spacing.m)
-        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                .strokeBorder(Palette.hairline, lineWidth: 1)
-        )
-        .accessibilityElement(children: .combine)
-    }
-
-    private var statusText: String {
-        if failed { return String(localized: "这一步没有完成") }
-        guard let stage else { return String(localized: "准备中") }
-        if stage == .finished { return String(localized: "已保存新照片") }
-        return stage.inProgressTitle
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.group, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.group, style: .continuous))
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
@@ -74,30 +47,35 @@ struct StageProgressView: View {
                 : isCurrent ? String(localized: "stage.current", defaultValue: "，进行中") : ""
 
         HStack(spacing: Spacing.s) {
-            ZStack {
+            Group {
                 if done {
                     Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 20, weight: .regular))
                         .foregroundStyle(Palette.success)
                 } else if isFailedHere {
                     Image(systemName: "exclamationmark.circle.fill")
+                        .font(.system(size: 20, weight: .regular))
                         .foregroundStyle(Palette.error)
                 } else if isCurrent {
-                    Circle().fill(Palette.accent).frame(width: 8, height: 8)
-                        .overlay(Circle().stroke(Palette.accent.opacity(0.35), lineWidth: 5))
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(Palette.running)
                 } else {
-                    Circle().strokeBorder(Palette.textSecondary.opacity(0.45), lineWidth: 1.5)
-                        .frame(width: 8, height: 8)
+                    Circle()
+                        .strokeBorder(Palette.textTertiary.opacity(0.5), lineWidth: 1.5)
+                        .frame(width: 14, height: 14)
                 }
             }
-            .frame(width: 20, height: 20)
-            .animation(Motion.respectingReduceMotion(reduceMotion, Motion.stageChange), value: done)
-            .animation(Motion.respectingReduceMotion(reduceMotion, Motion.stageChange), value: isCurrent)
+            .frame(width: 24, height: 20)
 
             Text(step.title)
-                .font(isCurrent ? Typography.bodyEmphasized : Typography.caption)
-                .foregroundStyle(isCurrent ? Palette.textPrimary : Palette.textSecondary)
+                .font(isCurrent ? Typography.bodyEmphasized : Typography.body)
+                .foregroundStyle(Palette.textPrimary)
             Spacer(minLength: 0)
         }
+        .frame(minHeight: 44)
+        .padding(.horizontal, Spacing.m)
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(String(localized: "progress.stageAccessibility", defaultValue: "\(step.title)\(suffix)"))
     }
 }

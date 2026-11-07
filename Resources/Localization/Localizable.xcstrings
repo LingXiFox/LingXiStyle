@@ -30,6 +30,64 @@
         }
       }
     },
+    "%lld": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "%lld / %lld": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld / %lld"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld / %lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld / %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld / %lld"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "2026 texture_styles 条目就绪": {
       "extractionState": "manual",
       "localizations": {
@@ -233,6 +291,35 @@
         }
       }
     },
+    "PRO": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PRO"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PRO"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PRO"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PRO"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "ProRAW + HEIC 组合暂不支持": {
       "extractionState": "manual",
       "localizations": {
@@ -268,25 +355,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Convert %lld only"
+            "value": "Process %lld only"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld 枚だけ変換"
+            "value": "%lld 枚だけ処理"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "仅转换 %lld 张"
+            "value": "仅处理 %lld 张"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "僅轉換 %lld 張"
+            "value": "僅處理 %lld 張"
           }
         }
       }
@@ -297,25 +384,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You selected %lld convertible photos and have %lld free conversions left today. The rest will be skipped and won't use quota."
+            "value": "You selected %lld photos that can be processed and have %lld free photos left today. The rest won’t be processed and won’t use quota."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld 枚の変換可能な写真を選択しました。本日の無料枠は残り %lld 枚です。超過分は変換されず、枠も消費しません。"
+            "value": "%lld 枚の処理可能な写真を選択しました。本日の無料枠は残り %lld 枚です。超過分は処理されず、枠も消費しません。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "已选 %lld 张可转换照片，今日还剩 %lld 张免费额度。超出部分不会转换，也不会消耗额度。"
+            "value": "已选 %lld 张可处理照片，今日还剩 %lld 张免费额度。超出部分不会处理，也不会消耗额度。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "已選 %lld 張可轉換照片，今日還剩 %lld 張免費額度。超出部分不會轉換，也不會消耗額度。"
+            "value": "已選 %lld 張可處理照片，今日還剩 %lld 張免費額度。超出部分不會處理，也不會消耗額度。"
           }
         }
       }
@@ -461,6 +548,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "已完成 %lld 張，共 %lld 張"
+          }
+        }
+      }
+    },
+    "cta.addTexture": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add texture & grain (%lld)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テクスチャとグレインを追加（%lld枚）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加纹理与颗粒（%lld 张）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加入紋理與顆粒（%lld 張）"
           }
         }
       }
@@ -935,25 +1051,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld can be unlocked, %lld skipped, %lld failed."
+            "value": "%lld ready to process, %lld skipped, %lld failed."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "変換可能 %lld 枚、スキップ %lld 枚、失敗 %lld 枚。"
+            "value": "処理可能 %lld 枚、スキップ %lld 枚、失敗 %lld 枚。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "可解锁 %lld 张，跳过 %lld 张，失败 %lld 张。"
+            "value": "可处理 %lld 张，跳过 %lld 张，失败 %lld 张。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "可解鎖 %lld 張，跳過 %lld 張，失敗 %lld 張。"
+            "value": "可處理 %lld 張，跳過 %lld 張，失敗 %lld 張。"
           }
         }
       }
@@ -1544,25 +1660,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Convert %lld photos free every day without buying"
+            "value": "Process %lld photos free every day, with the same quality and verification"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "購入しなくても毎日 %lld 枚まで無料で変換"
+            "value": "購入しなくても毎日 %lld 枚まで無料で処理。品質と検証は同じです"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "不购买也可以每天转换 %lld 张照片"
+            "value": "不购买也可以每天处理 %lld 张，质量与校验完全一致"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "不購買也可以每天轉換 %lld 張照片"
+            "value": "不購買也可以每天處理 %lld 張，品質與校驗完全一致"
           }
         }
       }
@@ -1747,25 +1863,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unlock forever · %@"
+            "value": "Buy once · %@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "永久にアンロック · %@"
+            "value": "一度の購入 · %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "永久解锁 · %@"
+            "value": "一次性购买 · %@"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "永久解鎖 · %@"
+            "value": "一次購買 · %@"
           }
         }
       }
@@ -1915,6 +2031,35 @@
         }
       }
     },
+    "quota.exhaustedBody": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resets at local midnight; %lld free photos return tomorrow. Photos that weren’t processed don’t use quota."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "毎日0時に現地時間でリセットされ、明日 %lld 枚分が回復します。処理されなかった写真は枠を消費しません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每天 00:00 按本地时间重置，明天会恢复 %lld 张。没有处理的照片不会消耗额度。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每天 00:00 按本地時間重置，明天會恢復 %lld 張。沒有處理的照片不會消耗額度。"
+          }
+        }
+      }
+    },
     "quota.resetNote": {
       "extractionState": "manual",
       "localizations": {
@@ -1969,6 +2114,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "已恢復 %@ 權益。"
+          }
+        }
+      }
+    },
+    "result.continueNew": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Process new photos"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しい写真を処理"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续处理新照片"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "繼續處理新照片"
           }
         }
       }
@@ -2060,6 +2234,267 @@
         }
       }
     },
+    "result.failures.title": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld not completed"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未完了 %lld 枚"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未完成 %lld 张"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未完成 %lld 張"
+          }
+        }
+      }
+    },
+    "result.integrity.metadata": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HDR, EXIF, and thumbnail preserved"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HDR・EXIF・サムネイルを保持"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HDR、EXIF、缩略图已保留"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HDR、EXIF、縮圖已保留"
+          }
+        }
+      }
+    },
+    "result.integrity.primary": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primary image pixels verified block by block"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メイン画像のピクセルをブロック単位で検証済み"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "主图像素逐块校验一致"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "主圖像素逐塊校驗一致"
+          }
+        }
+      }
+    },
+    "result.pages": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photo 1 of %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 / %lld 枚"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 1 张，共 %lld 张"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 1 張，共 %lld 張"
+          }
+        }
+      }
+    },
+    "result.skipped.title": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld skipped"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スキップ %lld 枚"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳过 %lld 张"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳過 %lld 張"
+          }
+        }
+      }
+    },
+    "result.title.cancelled": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelled"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キャンセル済み"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已取消"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已取消"
+          }
+        }
+      }
+    },
+    "result.title.empty": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing to process"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理する写真がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有需要处理的照片"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有需要處理的照片"
+          }
+        }
+      }
+    },
+    "result.title.failed": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing was saved"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今回は保存できませんでした"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这次没有保存成功"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這次沒有儲存成功"
+          }
+        }
+      }
+    },
+    "result.title.saved": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved to Photos"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真に保存しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已存入相册"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已存入相簿"
+          }
+        }
+      }
+    },
     "result.viewer.accessibility": {
       "extractionState": "manual",
       "localizations": {
@@ -2085,6 +2520,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "查看第 %lld 張成果"
+          }
+        }
+      }
+    },
+    "result.warning.title": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved, with one read-back warning"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存しましたが、読み戻しの警告が1件あります"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片已保存，但有一项回读提示"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片已儲存，但有一項回讀提示"
           }
         }
       }
@@ -2176,6 +2640,35 @@
         }
       }
     },
+    "selection.readyCount": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ready to add"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 枚を追加できます"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 张可添加"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 張可加入"
+          }
+        }
+      }
+    },
     "selection.skippedCount": {
       "extractionState": "manual",
       "localizations": {
@@ -2201,6 +2694,122 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld 張會跳過"
+          }
+        }
+      }
+    },
+    "settings.about.licenses": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Third-Party Licenses"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サードパーティライセンス"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第三方许可"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第三方授權"
+          }
+        }
+      }
+    },
+    "settings.about.privacy": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacy"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プライバシー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐私说明"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隱私說明"
+          }
+        }
+      }
+    },
+    "settings.about.section": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアプリについて"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关于"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "關於"
+          }
+        }
+      }
+    },
+    "settings.about.version": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バージョン"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本"
           }
         }
       }
@@ -2240,25 +2849,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Language only changes the interface. Photos are always processed on this device."
+            "value": "Photos are always processed on this device."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "言語は画面表示のみに影響します。写真は常にこの端末内で処理されます。"
+            "value": "写真は常にこの端末内で処理されます。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "语言只影响界面显示；照片始终只在本机处理。"
+            "value": "照片始终只在本机处理。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "語言只影響介面顯示；照片始終只在本機處理。"
+            "value": "照片始終只在本機處理。"
           }
         }
       }
@@ -2327,25 +2936,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reopen the app after changing the language."
+            "value": "Language only changes the interface. Close the app from the app switcher and reopen it after switching."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "言語を変更した後、App を開き直すと反映されます。"
+            "value": "言語は画面表示のみに影響します。切り替えた後は、Appスイッチャーから App を閉じて開き直してください。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "切换语言后，需要重新打开 App 才会生效。"
+            "value": "语言只影响界面显示。切换后需要从多任务界面关闭并重新打开 App。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "切換語言後，需要重新開啟 App 才會生效。"
+            "value": "語言只影響介面顯示。切換後需要從多工介面關閉並重新開啟 App。"
           }
         }
       }
@@ -2443,25 +3052,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Buy once for unlimited photo conversions, forever."
+            "value": "Buy once for unlimited photos, forever."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "一度の購入で写真変換が永久に無制限。"
+            "value": "一度の購入で、写真の処理枚数が永久に無制限。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "一次购买，永久解锁无限照片转换。"
+            "value": "一次购买，永久不限张数。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "一次購買，永久解鎖無限照片轉換。"
+            "value": "一次購買，永久不限張數。"
           }
         }
       }
@@ -2988,6 +3597,35 @@
         }
       }
     },
+    "一次性购买": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一次性购买"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一次購買"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One-time purchase"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一度の購入"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "一次性购买 · 永久使用": {
       "extractionState": "manual",
       "localizations": {
@@ -3045,6 +3683,35 @@
           }
         }
       }
+    },
+    "一次购买，永久不限张数。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一次购买，永久不限张数。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一次購買，永久不限張數。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One purchase. Unlimited photos, forever."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一度の購入で、ずっと無制限。"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "一次购买，永久使用": {
       "extractionState": "manual",
@@ -3162,6 +3829,35 @@
         }
       }
     },
+    "不覆盖、不转码，新照片另存进相册": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不覆盖、不转码，新照片另存进相册"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不覆蓋、不轉碼，新照片另存到相簿"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No overwrite, no transcoding. A new photo is saved to Photos."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上書きも変換もせず、新しい写真として写真アプリに保存します。"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "不购买也可以继续使用免费额度。转换质量与完整性校验完全一致。": {
       "extractionState": "manual",
       "localizations": {
@@ -3191,6 +3887,35 @@
         }
       }
     },
+    "为 ${photos} 添加纹理与颗粒": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "为 ${photos} 添加纹理与颗粒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "為 ${photos} 加入紋理與顆粒"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add texture and grain to ${photos}"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "${photos} にテクスチャと粒子を追加"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "为 HEIC 原片追加第三代 Texture / Grain，并另存为新照片。原图保持不变。": {
       "extractionState": "manual",
       "localizations": {
@@ -3219,6 +3944,64 @@
           }
         }
       }
+    },
+    "为 HEIC 原片追加纹理与颗粒，并另存为新照片。原图保持不变。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "为 HEIC 原片追加纹理与颗粒，并另存为新照片。原图保持不变。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "為 HEIC 原片加入紋理與顆粒，並另存為新照片。原圖保持不變。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adds texture and grain to HEIC originals and saves a new photo. The original stays untouched."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HEIC 原本にテクスチャと粒子を追加し、新しい写真として保存します。元の写真は変更されません。"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "为原片添上\n纹理与颗粒": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "为原片添上\n纹理与颗粒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "為原片添上\n紋理與顆粒"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Give your originals\ntexture and grain"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原本に\nテクスチャと粒子を"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "为原片补上\n第三代摄影质感": {
       "extractionState": "manual",
@@ -3277,6 +4060,35 @@
           }
         }
       }
+    },
+    "了解%@ Pro": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "了解%@ Pro"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "了解 %@ Pro"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Learn about %@ Pro"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Pro を見る"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "交易已验证，但权益尚未生效，请稍后重试。": {
       "extractionState": "manual",
@@ -3568,6 +4380,64 @@
         }
       }
     },
+    "今日免费额度已用完 · %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日免费额度已用完 · %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日免費額度已用完 · %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No free conversions left today · %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本日の無料枠を使い切りました · %@"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "今日免费额度已用完。明天会按本地时间重置，也可以了解纹粒 Pro。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You’ve used all free photos today. The allowance resets at local midnight, or you can learn about Texel Pro."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本日の無料枠を使い切りました。明日の現地時刻0時にリセットされます。Texel Pro についても確認できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日免费额度已用完。明天会按本地时间重置，也可以了解纹粒 Pro。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日免費額度已用完。明天會按本地時間重置，也可以了解 Texel Pro。"
+          }
+        }
+      }
+    },
     "今日免费额度已用完。明天会按本地时间重置，也可以永久解锁无限转换。": {
       "extractionState": "manual",
       "localizations": {
@@ -3597,6 +4467,35 @@
         }
       }
     },
+    "今日免费额度还剩 %lld 张 · %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日免费额度还剩 %lld 张 · %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日免費額度還剩 %lld 張 · %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld free conversions left today · %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本日の無料枠 残り%lld枚 · %@"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "今日额度暂不可用": {
       "extractionState": "manual",
       "localizations": {
@@ -3625,6 +4524,35 @@
           }
         }
       }
+    },
+    "从「文件」导入": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从「文件」导入"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "從「檔案」匯入"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import from Files"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「ファイル」から読み込む"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "从文件导入": {
       "extractionState": "manual",
@@ -3887,6 +4815,35 @@
         }
       }
     },
+    "免费版继续可用": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费版继续可用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免費版繼續可用"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free tier keeps working"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料版も引き続き使えます"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "免费额度不足": {
       "extractionState": "manual",
       "localizations": {
@@ -3915,6 +4872,35 @@
           }
         }
       }
+    },
+    "免费额度与 Pro 权益记录在本机钥匙串中；购买交易由 App Store 验证，App 不接触你的支付信息。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免费额度与 Pro 权益记录在本机钥匙串中；购买交易由 App Store 验证，App 不接触你的支付信息。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免費額度與 Pro 權益記錄在本機鑰匙圈中；購買交易由 App Store 驗證，App 不接觸你的付款資訊。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free quota and Pro entitlement are stored in this device’s keychain. Purchases are verified by the App Store; the app never sees your payment details."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料枠と Pro の権利はこの端末のキーチェーンに保存されます。購入は App Store が検証し、App が支払い情報に触れることはありません。"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "关闭": {
       "extractionState": "manual",
@@ -4031,6 +5017,35 @@
           }
         }
       }
+    },
+    "其余界面、状态机与校验逻辑由 LingXiStyle 项目实现。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其余界面、状态机与校验逻辑由 LingXiStyle 项目实现。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其餘介面、狀態機與校驗邏輯由 LingXiStyle 專案實作。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The rest of the interface, state machine, and verification logic are implemented by the LingXiStyle project."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "その他のUI、状態管理、検証ロジックは LingXiStyle プロジェクトによる実装です。"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "写入相册": {
       "extractionState": "manual",
@@ -4206,6 +5221,35 @@
         }
       }
     },
+    "前往设置开启": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前往设置开启"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前往設定開啟"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Settings"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定を開く"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "升级 Pro": {
       "extractionState": "manual",
       "localizations": {
@@ -4264,6 +5308,35 @@
         }
       }
     },
+    "原件不会被修改": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原件不会被修改"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原圖不會被修改"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Originals are never modified"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の写真は変更されません"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "原件读取失败": {
       "extractionState": "manual",
       "localizations": {
@@ -4318,6 +5391,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "原圖始終保留"
+          }
+        }
+      }
+    },
+    "原图没有被修改，新照片已另存为单独的一张。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original wasn’t modified; the new photo was saved as a separate item."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の写真は変更されず、新しい写真が別項目として保存されました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原图没有被修改，新照片已另存为单独的一张。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原圖沒有被修改，新照片已另存為單獨的一張。"
           }
         }
       }
@@ -4525,6 +5627,35 @@
         }
       }
     },
+    "只追加纹理与颗粒层，主图像素逐块校验不变。结果另存为一张新照片。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只追加纹理与颗粒层，主图像素逐块校验不变。结果另存为一张新照片。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只附加紋理與顆粒層，主圖像素逐塊校驗不變。結果另存為一張新照片。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adds only a texture-and-grain layer. Primary pixels are verified tile by tile, unchanged. Saved as a new photo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テクスチャと粒子の層だけを追加。メイン画像のピクセルはタイルごとに検証され、変化しません。結果は新しい写真として保存されます。"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "只追加纹理与颗粒层，主图编码保持原样。": {
       "extractionState": "manual",
       "localizations": {
@@ -4612,6 +5743,64 @@
         }
       }
     },
+    "可添加": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可添加"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可加入"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "追加可能"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "可添加纹理与颗粒": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可添加纹理与颗粒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可加入紋理與顆粒"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready for texture & grain"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テクスチャと粒子を追加できます"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "可解锁": {
       "extractionState": "manual",
       "localizations": {
@@ -4670,6 +5859,64 @@
         }
       }
     },
+    "同样只追加纹理与颗粒，原图始终保留": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同样只追加纹理与颗粒，原图始终保留"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同樣只加入紋理與顆粒，原圖始終保留"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Still adds only texture and grain. Originals are always kept."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じくテクスチャと粒子だけを追加し、元の写真は常に保持されます。"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "含风格信息": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "含风格信息"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "含風格資訊"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Includes style metadata"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スタイル情報を含む"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "商品信息尚未加载，请稍后重试。": {
       "extractionState": "manual",
       "localizations": {
@@ -4727,6 +5974,93 @@
           }
         }
       }
+    },
+    "处理方式不变": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "处理方式不变"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "處理方式不變"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Same processing"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理方法は同じ"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "处理没有完成": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Processing didn’t finish"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理が完了しませんでした"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "处理没有完成"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "處理沒有完成"
+          }
+        }
+      }
+    },
+    "复制": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複製"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コピー"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "失败": {
       "extractionState": "manual",
@@ -4811,6 +6145,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "它可能來自較舊的機型或第三方應用程式，沒有可保留的攝影風格。"
+          }
+        }
+      }
+    },
+    "它可能来自较旧的机型或第三方应用，没有可保留的纹理与颗粒信息。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It may come from an older iPhone or a third-party app and has no texture and grain information to preserve."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "古い機種やサードパーティ製アプリの写真で、保持できるテクスチャとグレイン情報がない可能性があります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "它可能来自较旧的机型或第三方应用，没有可保留的纹理与颗粒信息。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "它可能來自較舊的機型或第三方應用程式，沒有可保留的紋理與顆粒資訊。"
           }
         }
       }
@@ -4927,6 +6290,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "匯入已取消"
+          }
+        }
+      }
+    },
+    "将保留原图全部像素与元数据，只追加一层纹理与颗粒。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将保留原图全部像素与元数据，只追加一层纹理与颗粒。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "將保留原圖全部像素與中繼資料，只附加一層紋理與顆粒。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All original pixels and metadata are preserved; only one layer of texture and grain is added."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元のピクセルとメタデータはすべて保持し、テクスチャと粒子の層だけを追加します。"
           }
         }
       }
@@ -5105,6 +6497,35 @@
         }
       }
     },
+    "已复制": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已複製"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コピーしました"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "已存为相册中的新照片": {
       "extractionState": "manual",
       "localizations": {
@@ -5134,6 +6555,35 @@
         }
       }
     },
+    "已完成 %lld / %lld": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已完成 %lld / %lld"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已完成 %lld / %lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld of %lld complete"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld / %lld 完了"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "已就绪": {
       "extractionState": "manual",
       "localizations": {
@@ -5162,6 +6612,64 @@
           }
         }
       }
+    },
+    "已带有纹理与颗粒": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已带有纹理与颗粒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已帶有紋理與顆粒"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already textured"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テクスチャと粒子あり"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "已带有纹理与颗粒，无需处理": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已带有纹理与颗粒，无需处理"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已帶有紋理與顆粒，無需處理"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already has texture and grain — no processing needed"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テクスチャと粒子があるため処理は不要です"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "已有第三代质感": {
       "extractionState": "manual",
@@ -5336,6 +6844,64 @@
           }
         }
       }
+    },
+    "当前没有可处理的照片": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前没有可处理的照片"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前沒有可處理的照片"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No photos to process"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理できる写真がありません"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "当前没有可处理的照片。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前没有可处理的照片。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前沒有可處理的照片。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No photos to process."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理できる写真がありません。"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "当前没有可解锁的照片。": {
       "extractionState": "manual",
@@ -5743,6 +7309,35 @@
         }
       }
     },
+    "新增纹理与颗粒数据": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增纹理与颗粒数据"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增紋理與顆粒資料"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texture and grain data added"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テクスチャと粒子データを追加"
+          }
+        }
+      }
+    },
     "新照片": {
       "extractionState": "manual",
       "localizations": {
@@ -6004,6 +7599,64 @@
         }
       }
     },
+    "无限转换 · %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无限转换 · %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無限轉換 · %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlimited · %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無制限 · %@"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "无需处理": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No processing needed"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理は不要"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无需处理"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無需處理"
+          }
+        }
+      }
+    },
     "无需转换": {
       "extractionState": "manual",
       "localizations": {
@@ -6061,6 +7714,35 @@
           }
         }
       }
+    },
+    "明天再来": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "明天再来"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "明天再來"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Come back tomorrow"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "また明日"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "明天继续免费使用": {
       "extractionState": "manual",
@@ -6207,6 +7889,35 @@
         }
       }
     },
+    "最多 %lld 张 · HEIC / HEIF": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %lld 张 · HEIC / HEIF"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %lld 張 · HEIC / HEIF"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Up to %lld photos · HEIC / HEIF"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大 %lld 枚 · HEIC / HEIF"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "未完成": {
       "extractionState": "manual",
       "localizations": {
@@ -6293,6 +8004,35 @@
           }
         }
       }
+    },
+    "本 App 的 HEIC 纹理补全能力基于 Shalielie 的开源实现，按其许可证使用。完整许可证见仓库 ThirdPartyNotices/Shalielie-LICENSE.txt。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本 App 的 HEIC 纹理补全能力基于 Shalielie 的开源实现，按其许可证使用。完整许可证见仓库 ThirdPartyNotices/Shalielie-LICENSE.txt。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本 App 的 HEIC 紋理補全能力基於 Shalielie 的開源實作，依其授權條款使用。完整授權條款見倉庫 ThirdPartyNotices/Shalielie-LICENSE.txt。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HEIC texture completion in this app is based on Shalielie’s open-source implementation and used under its license. See ThirdPartyNotices/Shalielie-LICENSE.txt for the full license."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本 App の HEIC テクスチャ補完は Shalielie のオープンソース実装を基にしており、そのライセンスに基づいて使用しています。全文は ThirdPartyNotices/Shalielie-LICENSE.txt を参照してください。"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "本职不变": {
       "extractionState": "manual",
@@ -6439,6 +8179,35 @@
         }
       }
     },
+    "标准 HEIC": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标准 HEIC"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "標準 HEIC"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standard HEIC"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "標準 HEIC"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "检查结构": {
       "extractionState": "manual",
       "localizations": {
@@ -6583,6 +8352,35 @@
           }
         }
       }
+    },
+    "正在处理": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在处理"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在處理"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Processing"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理中"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "正在完成": {
       "extractionState": "manual",
@@ -6729,6 +8527,35 @@
         }
       }
     },
+    "正在检查原件": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在检查原件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在檢查原片"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking original"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原本を確認中"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "正在检查结构": {
       "extractionState": "manual",
       "localizations": {
@@ -6757,6 +8584,35 @@
           }
         }
       }
+    },
+    "正在添加纹理与颗粒": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在添加纹理与颗粒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在加入紋理與顆粒"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adding texture & grain"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テクスチャと粒子を追加中"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "正在确认主图、HDR、EXIF 与风格元数据。": {
       "extractionState": "manual",
@@ -7222,6 +9078,35 @@
         }
       }
     },
+    "没有 iPhone 16/17 的纹理与颗粒数据": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No iPhone 16/17 texture and grain data"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone 16/17 のテクスチャとグレインデータがありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有 iPhone 16/17 的纹理与颗粒数据"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有 iPhone 16/17 的紋理與顆粒資料"
+          }
+        }
+      }
+    },
     "没有产生扣款，你可以随时回来再购买。": {
       "extractionState": "manual",
       "localizations": {
@@ -7512,6 +9397,35 @@
         }
       }
     },
+    "没有相册权限时，仍然可以从「文件」导入 HEIC。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Without Photos access, you can still import HEIC files from Files."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真へのアクセスがなくても、「ファイル」から HEIC を読み込めます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有相册权限时，仍然可以从「文件」导入 HEIC。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有相簿權限時，仍然可以從「檔案」匯入 HEIC。"
+          }
+        }
+      }
+    },
     "没有读取或保存任何照片。": {
       "extractionState": "manual",
       "localizations": {
@@ -7537,6 +9451,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "沒有讀取或儲存任何照片。"
+          }
+        }
+      }
+    },
+    "没有需要处理的照片": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No photos to process"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理する写真がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有需要处理的照片"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有需要處理的照片"
           }
         }
       }
@@ -7569,6 +9512,35 @@
           }
         }
       }
+    },
+    "添加纹理与颗粒": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加纹理与颗粒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加入紋理與顆粒"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add texture & grain"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テクスチャと粒子を追加"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "清空": {
       "extractionState": "manual",
@@ -7657,6 +9629,35 @@
         }
       }
     },
+    "照片不上传，处理全程离线": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片不上传，处理全程离线"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片不會上傳，處理全程離線"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos are never uploaded. Everything runs offline."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真はアップロードされません。処理はすべてオフラインです。"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "照片保持清晰，只处理纹理与颗粒层。": {
       "extractionState": "manual",
       "localizations": {
@@ -7714,6 +9715,35 @@
           }
         }
       }
+    },
+    "照片只在本机处理": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片只在本机处理"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片只在本機處理"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos stay on this device"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真はこの端末内で処理"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "照片已保存，但有一项回读提示": {
       "extractionState": "manual",
@@ -7889,6 +9919,35 @@
         }
       }
     },
+    "确认这是完整原片，并检查是否已经带有纹理与颗粒。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确认这是完整原片，并检查是否已经带有纹理与颗粒。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認這是完整原片，並檢查是否已經帶有紋理與顆粒。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirms this is a complete original and checks whether it already has texture and grain."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完全な原本かを確認し、すでにテクスチャと粒子があるかを調べます。"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "移出队列": {
       "extractionState": "manual",
       "localizations": {
@@ -7976,6 +10035,35 @@
         }
       }
     },
+    "系统相册里已有编辑记录。会新增一张照片，不覆盖原图或现有编辑。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统相册里已有编辑记录。会新增一张照片，不覆盖原图或现有编辑。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統相簿已有編輯記錄。會新增一張照片，不覆蓋原圖或現有編輯。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This photo has edits in Photos. A new photo will be added without replacing the original or existing edits."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真アプリに編集履歴があります。元の写真や既存の編集を上書きせず、新しい写真を追加します。"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "系统相册里已有编辑记录。解锁会新增一张照片，不覆盖原图或现有编辑。": {
       "extractionState": "manual",
       "localizations": {
@@ -8004,6 +10092,122 @@
           }
         }
       }
+    },
+    "纹理与颗粒元数据逐字节一致": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texture and grain metadata is byte-for-byte identical"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テクスチャとグレインのメタデータがバイト単位で一致"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "纹理与颗粒元数据逐字节一致"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "紋理與顆粒中繼資料逐位元組一致"
+          }
+        }
+      }
+    },
+    "纹理与颗粒渲染": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "纹理与颗粒渲染"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "紋理與顆粒算圖"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texture & grain rendering"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テクスチャと粒子のレンダリング"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "纹粒只读取你选中的 HEIC 原片，并把新照片另存进相册。照片不经过任何服务器。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texel only reads the HEIC originals you select and saves new photos to Photos. Your photos never pass through a server."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texel は選択した HEIC 原本だけを読み取り、新しい写真を写真アプリに保存します。写真がサーバーを経由することはありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "纹粒只读取你选中的 HEIC 原片，并把新照片另存进相册。照片不经过任何服务器。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texel 只讀取你選取的 HEIC 原片，並把新照片另存到相簿。照片不經過任何伺服器。"
+          }
+        }
+      }
+    },
+    "纹粒读取你选择的 HEIC 原片，只追加纹理与颗粒层，然后把结果保存为一张新照片。原图不会被覆盖或转码。处理过程不上传照片，也不依赖云端服务。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "纹粒读取你选择的 HEIC 原片，只追加纹理与颗粒层，然后把结果保存为一张新照片。原图不会被覆盖或转码。处理过程不上传照片，也不依赖云端服务。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "紋粒讀取你選擇的 HEIC 原片，只附加紋理與顆粒層，然後把結果儲存為一張新照片。原圖不會被覆蓋或轉碼。處理過程不會上傳照片，也不依賴雲端服務。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texel reads the HEIC original you choose, adds only a texture-and-grain layer, and saves the result as a new photo. The original is never overwritten or transcoded. Nothing is uploaded or processed in the cloud."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texel は選択した HEIC 原本を読み取り、テクスチャと粒子の層だけを追加して、結果を新しい写真として保存します。元の写真は上書きも変換もされません。写真のアップロードやクラウド処理は行いません。"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "结果仍是 HEIC 容器": {
       "extractionState": "manual",
@@ -9397,6 +11601,35 @@
         }
       }
     },
+    "这张照片不是分块编码的 HEIC，无法安全添加纹理与颗粒数据。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这张照片不是分块编码的 HEIC，无法安全添加纹理与颗粒数据。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這張照片不是分塊編碼的 HEIC，無法安全加入紋理與顆粒資料。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This photo isn’t a tiled HEIC, so texture and grain data can’t be added safely."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この写真はタイル符号化された HEIC ではないため、テクスチャと粒子データを安全に追加できません。"
+          }
+        }
+      }
+    },
     "这张照片不是分块编码的 HEIC，无法安全追加质感数据。": {
       "extractionState": "manual",
       "localizations": {
@@ -9451,6 +11684,64 @@
           "stringUnit": {
             "state": "translated",
             "value": "這張照片已經包含 2026 質感樣式資料，重複處理不會帶來變化。"
+          }
+        }
+      }
+    },
+    "这张照片已经包含纹理与颗粒数据，无需重复处理。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这张照片已经包含纹理与颗粒数据，无需重复处理。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這張照片已經包含紋理與顆粒資料，無需重複處理。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This photo already contains texture and grain data; no need to process it again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この写真にはすでにテクスチャと粒子のデータが含まれているため、再処理は不要です。"
+          }
+        }
+      }
+    },
+    "这张照片已经带有纹理与颗粒。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这张照片已经带有纹理与颗粒。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這張照片已經帶有紋理與顆粒。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This photo already has texture and grain."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この写真にはすでにテクスチャと粒子があります。"
           }
         }
       }
@@ -9512,6 +11803,35 @@
           }
         }
       }
+    },
+    "适用于 iPhone 16 / 17 系列拍摄的照片": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "适用于 iPhone 16 / 17 系列拍摄的照片"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "適用於 iPhone 16 / 17 系列拍攝的照片"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For photos shot on iPhone 16 / 17"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone 16 / 17 シリーズで撮影した写真向け"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "选择照片": {
       "extractionState": "manual",
@@ -9599,6 +11919,35 @@
           }
         }
       }
+    },
+    "重新检查权限": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新检查权限"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新檢查權限"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check permission again"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "権限を再確認"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "重试": {
       "extractionState": "manual",
@@ -9715,6 +12064,35 @@
           }
         }
       }
+    },
+    "非消耗型内购，不是订阅。价格由 App Store 按当前地区显示，交易验证通过后才生效。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "非消耗型内购，不是订阅。价格由 App Store 按当前地区显示，交易验证通过后才生效。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "非消耗型內購，不是訂閱。價格由 App Store 依目前地區顯示，交易驗證通過後才生效。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A non-consumable purchase, not a subscription. The App Store shows the price for your region; the purchase takes effect after verification."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "消耗型ではない買い切りで、サブスクリプションではありません。価格は App Store が地域に応じて表示し、取引の検証後に有効になります。"
+          }
+        }
+      },
+      "extractionState": "manual"
     },
     "非订阅，不会按月扣费": {
       "extractionState": "manual",

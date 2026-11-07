@@ -38,6 +38,6 @@
 		<string>$(PRODUCT_MODULE_NAME).ShareViewController</string>
 	</dict>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>用于把补好质感的照片存为相册中的新照片，原照片不会被修改。</string>
+	<string>用于把补好纹理与颗粒的照片存为相册中的新照片，原照片不会被修改。</string>
 </dict>
 </plist>

@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The four compatibility states the user can act on. Text sits on a tinted capsule but keeps
-/// the high-contrast body color: tinted text on a tinted fill would drop under 4.5:1.
+/// Compatibility state on a neutral material capsule. Only the icon carries status color;
+/// the label stays textPrimary so it cannot rely on color alone.
 struct CompatibilityBadge: View {
     enum Kind: Equatable {
         case convertible
@@ -12,8 +12,8 @@ struct CompatibilityBadge: View {
 
         var title: String {
             switch self {
-            case .convertible: return String(localized: "可解锁")
-            case .noChange: return String(localized: "无需转换")
+            case .convertible: return String(localized: "可添加")
+            case .noChange: return String(localized: "无需处理")
             case .unsupported: return String(localized: "暂不支持")
             case .downloading: return String(localized: "下载原件")
             case .failed: return String(localized: "读取失败")
@@ -22,7 +22,7 @@ struct CompatibilityBadge: View {
 
         var symbol: String {
             switch self {
-            case .convertible: return "sparkles"
+            case .convertible: return "checkmark"
             case .noChange: return "checkmark.circle"
             case .unsupported: return "exclamationmark.triangle"
             case .downloading: return "icloud.and.arrow.down"
@@ -35,7 +35,7 @@ struct CompatibilityBadge: View {
             case .convertible: return Palette.success
             case .noChange: return Palette.textSecondary
             case .unsupported: return Palette.warning
-            case .downloading: return Palette.accent
+            case .downloading: return Palette.running
             case .failed: return Palette.error
             }
         }
@@ -57,8 +57,7 @@ struct CompatibilityBadge: View {
         }
         .padding(.horizontal, Spacing.s - 2)
         .padding(.vertical, 6)
-        .background(kind.tint.opacity(0.16), in: Capsule())
-        .overlay(Capsule().strokeBorder(kind.tint.opacity(0.28), lineWidth: 1))
+        .background(.ultraThinMaterial, in: Capsule())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(kind.title)
     }

@@ -144,7 +144,7 @@ public enum ConversionFailure: Error, Sendable, LocalizedError {
         case .unreadable: return String(localized: "无法读取这个文件，它可能已被移动或没有访问权限。")
         case .corrupted(let detail): return String(localized: "engine.error.corruptDetail", defaultValue: "文件结构无法解析。\(detail)")
         case .unsupported(let verdict): return verdict.detail
-        case .engine(.alreadyHasTexture): return String(localized: "这张照片已经带有第三代质感。")
+        case .engine(.alreadyHasTexture): return String(localized: "这张照片已经带有纹理与颗粒。")
         case .engine(.originalIsNotHEIC): return String(localized: "engine.error.notHEIC", defaultValue: "这不是 HEIC 原片，请在 \(Brand.name) 中从图库选择原始照片。")
         case .engine(.invalidData(let detail)): return String(localized: "engine.error.invalidData", defaultValue: "核心拒绝了这个文件的布局：\(detail)")
         case .engine(.missingResource(let name)): return String(localized: "engine.error.missingResource", defaultValue: "缺少核心需要的资源：\(name)")

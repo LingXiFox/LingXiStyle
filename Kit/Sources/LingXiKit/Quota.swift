@@ -65,7 +65,7 @@ public enum QuotaError: Error, LocalizedError, Sendable, Equatable {
     public var errorDescription: String? {
         switch self {
         case .exhausted:
-            return String(localized: "今日免费额度已用完。明天会按本地时间重置，也可以永久解锁无限转换。")
+            return String(localized: "今日免费额度已用完。明天会按本地时间重置，也可以了解纹粒 Pro。")
         case .unavailable:
             return String(localized: "暂时无法读取今日免费额度，请稍后重试。")
         case .database:

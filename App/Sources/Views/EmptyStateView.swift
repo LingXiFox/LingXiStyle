@@ -2,6 +2,9 @@ import SwiftUI
 import PhotosUI
 import LingXiKit
 
+/// 1.5 home: quota capsule and settings in the top bar, centered brand mark and promise,
+/// a three-row inset group, then the two entry points. No decorative viewfinder, no gradient
+/// border, no separate privacy footer; the privacy promise lives in the group.
 struct EmptyStateView: View {
     @ObservedObject var model: AppModel
     @Environment(\.contentMargin) private var margin
@@ -11,177 +14,125 @@ struct EmptyStateView: View {
     @State private var appeared = false
 
     var body: some View {
-        GeometryReader { proxy in
-            let isCompact = proxy.size.height < 760
-            ScrollView {
-                VStack(spacing: 0) {
-                    header
-                        .padding(.top, isCompact ? Spacing.m : Spacing.xl)
+        ScrollView {
+            VStack(spacing: 0) {
+                topBar
+                    .padding(.top, Spacing.xs)
 
-                    compositionFrame(isCompact: isCompact)
-                        .padding(.top, isCompact ? Spacing.m : Spacing.xl)
+                BrandMark(size: 64)
+                    .padding(.top, Spacing.l)
 
-                    Spacer(minLength: isCompact ? Spacing.m : Spacing.xl)
+                Text("为原片添上\n纹理与颗粒")
+                    .font(Typography.hero)
+                    .foregroundStyle(Palette.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, Spacing.m)
+                    .accessibilityAddTraits(.isHeader)
 
-                    actions
-                        .padding(.top, isCompact ? Spacing.m : Spacing.l)
+                Text("只追加纹理与颗粒层，主图像素逐块校验不变。结果另存为一张新照片。")
+                    .font(Typography.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, Spacing.xs)
 
-                    QuotaBadge(quota: model.quota, isPro: model.isPro) {
-                        model.presentPro()
-                    }
-                    .padding(.top, isCompact ? Spacing.s : Spacing.m)
+                infoGroup
+                    .padding(.top, Spacing.l)
 
-                    privacyLine
-                        .padding(.top, isCompact ? Spacing.s : Spacing.m)
-                        .padding(.bottom, isCompact ? Spacing.s : Spacing.l)
-                }
-                .padding(.horizontal, margin)
-                .frame(maxWidth: .infinity)
+                actions
+                    .padding(.top, Spacing.l)
+
+                Text("最多 \(AppModel.maxSelection) 张 · HEIC / HEIF")
+                    .font(Typography.micro)
+                    .foregroundStyle(Palette.textTertiary)
+                    .padding(.top, Spacing.s)
+                    .padding(.bottom, Spacing.l)
             }
-            .scrollBounceBehavior(.basedOnSize)
-            .opacity(appeared || reduceMotion ? 1 : 0)
-            .offset(y: appeared || reduceMotion ? 0 : 8)
-            .onAppear {
-                guard !reduceMotion else { appeared = true; return }
-                withAnimation(Motion.entrance) { appeared = true }
-            }
+            .padding(.horizontal, margin)
+            .frame(maxWidth: .infinity)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .opacity(appeared || reduceMotion ? 1 : 0)
+        .offset(y: appeared || reduceMotion ? 0 : 8)
+        .onAppear {
+            guard !reduceMotion else { appeared = true; return }
+            withAnimation(Motion.entrance) { appeared = true }
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: Spacing.s) {
-            HStack(spacing: 7) {
-                Circle()
-                    .fill(LinearGradient(colors: [Palette.accent, Palette.accentSecondary],
-                                         startPoint: .topLeading,
-                                         endPoint: .bottomTrailing))
-                    .frame(width: 7, height: 7)
-                Text(Brand.name.uppercased())
-                    .font(.system(.caption2, design: .default, weight: .semibold))
-                    .tracking(2.4)
-                    .foregroundStyle(Palette.accentText)
+    private var topBar: some View {
+        HStack(spacing: Spacing.s) {
+            QuotaBadge(quota: model.quota, isPro: model.isPro, compact: true) {
+                model.presentPro()
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(Brand.name)
-
-            Text("为原片补上\n第三代摄影质感")
-                .font(.system(.largeTitle, design: .default, weight: .semibold))
-                .foregroundStyle(Palette.textPrimary)
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-
-            Text("照片本身保持清晰，只追加纹理与颗粒。HDR、景深和原始信息都留在原片里。")
-                .font(Typography.body)
-                .foregroundStyle(Palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack(spacing: Spacing.xs) {
-                miniBadge(String(localized: "HEIC 原片"), systemImage: "photo")
-                miniBadge(String(localized: "仅补质感"), systemImage: "sparkles")
-            }
-            .padding(.top, Spacing.xxs)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(alignment: .topTrailing) {
+            Spacer(minLength: 0)
             Button {
                 model.presentSettings()
             } label: {
                 Image(systemName: "gearshape")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(Palette.textSecondary)
                     .frame(width: Layout.minimumTouchTarget, height: Layout.minimumTouchTarget)
-                    .background(Palette.surface.opacity(0.8), in: Circle())
-                    .overlay(Circle().strokeBorder(Palette.hairline, lineWidth: 1))
+                    .background(Palette.fillControl, in: Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(String(localized: "settings.title", defaultValue: "设置"))
         }
+        .frame(minHeight: Layout.minimumTouchTarget)
     }
 
-    private func miniBadge(_ title: String, systemImage: String) -> some View {
-        Label(title, systemImage: systemImage)
-            .font(Typography.micro)
-            .foregroundStyle(Palette.textSecondary)
-            .padding(.horizontal, Spacing.xs)
-            .padding(.vertical, 5)
-            .background(Palette.surface.opacity(0.7), in: Capsule())
-            .overlay(Capsule().strokeBorder(Palette.hairline, lineWidth: 1))
+    private var infoGroup: some View {
+        VStack(spacing: 0) {
+            infoRow(symbol: "square.3.layers.3d",
+                    title: String(localized: "原图始终保留"),
+                    detail: String(localized: "不覆盖、不转码，新照片另存进相册"))
+            divider
+            infoRow(symbol: "checkmark.shield",
+                    title: String(localized: "仅在本机处理"),
+                    detail: String(localized: "照片不上传，处理全程离线"))
+            divider
+            infoRow(symbol: "photo",
+                    title: String(localized: "HEIC 原片"),
+                    detail: String(localized: "适用于 iPhone 16 / 17 系列拍摄的照片"))
+        }
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.group, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.group, style: .continuous))
+        .accessibilityElement(children: .contain)
     }
 
-    private func compositionFrame(isCompact: Bool) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                .fill(LinearGradient(colors: [Palette.surface, Palette.surfaceElevated.opacity(0.75)],
-                                     startPoint: .topLeading,
-                                     endPoint: .bottomTrailing))
-
-            // A soft aperture glow sits behind the framing marks, never on top of a photo.
-            Circle()
-                .fill(RadialGradient(colors: [Palette.accent.opacity(0.20), Palette.accentSecondary.opacity(0.05), .clear],
-                                     center: .center,
-                                     startRadius: 4,
-                                     endRadius: 180))
-                .frame(width: 300, height: 300)
-                .blur(radius: 10)
+    private func infoRow(symbol: String, title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: Spacing.s) {
+            Image(systemName: symbol)
+                .font(.system(.body, design: .default, weight: .medium))
+                .foregroundStyle(Palette.textSecondary)
+                .frame(width: 24, height: 22)
                 .accessibilityHidden(true)
-
-            ThirdsGrid()
-                .stroke(Palette.textSecondary.opacity(0.12), lineWidth: 0.5)
-                .padding(1)
-
-            VStack(spacing: isCompact ? Spacing.xs : Spacing.s) {
-                ZStack {
-                    Circle()
-                        .fill(Palette.surfaceElevated)
-                        .frame(width: isCompact ? 56 : 78, height: isCompact ? 56 : 78)
-                    Circle()
-                        .strokeBorder(Palette.accent.opacity(0.24), lineWidth: 1)
-                        .frame(width: isCompact ? 56 : 78, height: isCompact ? 56 : 78)
-                    Image(systemName: "camera.filters")
-                        .font(.system(size: isCompact ? 24 : 32, weight: .light))
-                        .foregroundStyle(Palette.accent)
-                }
-                .shadow(color: Palette.accent.opacity(0.18), radius: 18)
-                Text("一张原片，一层质感")
-                    .font(Typography.status)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(Typography.bodyEmphasized)
                     .foregroundStyle(Palette.textPrimary)
-                if !isCompact {
-                    Text("保留原始光影，只让质感更接近第三代风格")
-                        .font(Typography.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Text(detail)
+                    .font(Typography.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(isCompact ? Spacing.m : Spacing.l)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Spacing.m)
+        .padding(.vertical, Spacing.s - 1)
+    }
 
-        }
-        .frame(maxHeight: isCompact ? 152 : 260)
-        .aspectRatio(Layout.heroAspect, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-        .overlay {
-            CornerBrackets()
-                .stroke(LinearGradient(colors: [Palette.accent.opacity(0.8), Palette.accentSecondary.opacity(0.55)],
-                                       startPoint: .topLeading,
-                                       endPoint: .bottomTrailing),
-                        style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
-                .padding(18)
-                .allowsHitTesting(false)
-        }
-        .overlay(
-            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                .strokeBorder(LinearGradient(colors: [Palette.accent.opacity(0.24), Palette.hairline, Palette.accentSecondary.opacity(0.18)],
-                                             startPoint: .topLeading,
-                                             endPoint: .bottomTrailing),
-                              lineWidth: 1)
-        )
-        .shadow(color: Palette.shadow, radius: 22, y: 10)
-        .accessibilityHidden(true)
+    private var divider: some View {
+        Rectangle()
+            .fill(Palette.hairline)
+            .frame(height: 0.5)
+            .padding(.leading, 52)
     }
 
     private var actions: some View {
-        VStack(spacing: Spacing.s) {
+        VStack(spacing: Spacing.xs) {
             PhotosPicker(selection: $model.pickerSelection,
                          maxSelectionCount: AppModel.maxSelection,
                          matching: .images,
@@ -191,61 +142,9 @@ struct EmptyStateView: View {
             .buttonStyle(.plain)
             .accessibilityHint(String(localized: "empty.pickerHint", defaultValue: "打开系统图库，最多选择 \(AppModel.maxSelection) 张 HEIC 原片"))
 
-            SecondaryActionButton(title: String(localized: "从文件导入"), systemImage: "folder") {
+            SecondaryActionButton(title: String(localized: "从「文件」导入"), systemImage: "folder") {
                 model.isImportingFiles = true
             }
         }
-    }
-
-    private var privacyLine: some View {
-        HStack(spacing: Spacing.xs) {
-            Image(systemName: "lock.shield")
-                .font(.system(.caption, design: .default, weight: .medium))
-            Text("仅在本机处理")
-            Text("·").foregroundStyle(Palette.textSecondary.opacity(0.5))
-            Text("原图始终保留")
-        }
-        .font(Typography.caption)
-        .foregroundStyle(Palette.textSecondary)
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("仅在本机处理，原图始终保留")
-    }
-}
-
-/// Decorative rule-of-thirds grid. Kept faint so it never competes with the copy.
-struct ThirdsGrid: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        for index in 1...2 {
-            let x = rect.minX + rect.width * CGFloat(index) / 3
-            path.move(to: CGPoint(x: x, y: rect.minY))
-            path.addLine(to: CGPoint(x: x, y: rect.maxY))
-            let y = rect.minY + rect.height * CGFloat(index) / 3
-            path.move(to: CGPoint(x: rect.minX, y: y))
-            path.addLine(to: CGPoint(x: rect.maxX, y: y))
-        }
-        return path
-    }
-}
-
-/// Four corner brackets, drawn as a single stroke so it scales with the card.
-struct CornerBrackets: Shape {
-    var arm: CGFloat = 22
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let corners: [(CGPoint, CGFloat, CGFloat)] = [
-            (CGPoint(x: rect.minX, y: rect.minY), 1, 1),
-            (CGPoint(x: rect.maxX, y: rect.minY), -1, 1),
-            (CGPoint(x: rect.minX, y: rect.maxY), 1, -1),
-            (CGPoint(x: rect.maxX, y: rect.maxY), -1, -1)
-        ]
-        for (point, dx, dy) in corners {
-            path.move(to: CGPoint(x: point.x, y: point.y + arm * dy))
-            path.addLine(to: point)
-            path.addLine(to: CGPoint(x: point.x + arm * dx, y: point.y))
-        }
-        return path
     }
 }

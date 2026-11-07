@@ -14,8 +14,9 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
-    MARKETING_VERSION: "1.4.0"
-    CURRENT_PROJECT_VERSION: "5"
+    SWIFT_EMIT_LOC_STRINGS: YES
+    MARKETING_VERSION: "1.5.0"
+    CURRENT_PROJECT_VERSION: "6"
     CODE_SIGN_STYLE: Automatic
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     CLANG_ENABLE_MODULES: YES
@@ -118,8 +119,8 @@ targets:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        NSPhotoLibraryUsageDescription: 用于读取你选择的 HEIC 原片，并在本机追加第三代质感。照片不会离开设备。
-        NSPhotoLibraryAddUsageDescription: 用于把补好质感的照片存为相册中的新照片，原照片不会被修改。
+        NSPhotoLibraryUsageDescription: 用于读取你选择的 HEIC 原片，并在本机追加纹理与颗粒。照片不会离开设备。
+        NSPhotoLibraryAddUsageDescription: 用于把补好纹理与颗粒的照片存为相册中的新照片，原照片不会被修改。
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.LingXiStyle
@@ -153,7 +154,7 @@ targets:
         CFBundleDisplayName: 纹粒
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        NSPhotoLibraryAddUsageDescription: 用于把补好质感的照片存为相册中的新照片，原照片不会被修改。
+        NSPhotoLibraryAddUsageDescription: 用于把补好纹理与颗粒的照片存为相册中的新照片，原照片不会被修改。
         LingXiKeychainGroup: $(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
