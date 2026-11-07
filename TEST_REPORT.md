@@ -3,8 +3,10 @@
 - 日期：2026-11-07
 - 版本：1.7.0（build 8）
 - 结论：本机 Debug / Release 构建、四套自动化测试与 iOS 27.3 模拟器分享闭环通过；
-  iOS 18.5 / 26.x 由 GitHub Actions 矩阵覆盖编译与 StoreKit 测试，但本机没有对应运行时；
-  真机、真实 App Store 交易与部分失败路径仍未验证。本报告只记录实际执行过的证据。
+  GitHub Actions [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297)
+  全绿，iOS 18.5 与 iOS 26.x 均完成 Debug / Release 构建和 StoreKit / Keychain 测试。
+  本机没有 iOS 18 / 26 运行时；真机、真实 App Store 交易与部分失败路径仍未验证。
+  本报告只记录实际执行过的证据。
 
 ## 1. 环境
 
@@ -65,6 +67,8 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiStyle \
     各自执行 Debug / Release generic 构建和 `LingXiPurchaseTests`。
 - StoreKit 配置校验要求：唯一非消耗型商品 `com.lingxifox.LingXiStyle.pro`、本地测试价
   `2.99`、Offer Code `DEVELOPER_FREE` 为 0 元、`_developerTeamID` 为空。
+- 2026-11-07 首轮完整矩阵 [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297)
+  成功：Policy、macOS 单测、iOS 18.5、iOS 26.x 四个 job 全部 `success`。
 
 ## 3. 模拟器端到端
 
@@ -111,7 +115,16 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiStyle \
 | `LingXiEngineTests` | TEST SUCCEEDED | 2 | 2 | 0 |
 | `StylePortCoreTests` | TEST SUCCEEDED | 14 | 12 | 2 |
 
-合计执行 68 项，66 项通过，2 项因缺少外部 fixture 跳过。
+本机（iPhone 17 / iOS 27.3）合计执行 68 项，66 项通过，2 项因缺少外部 fixture 跳过。
+
+CI 运行时差异（同一份测试代码）：
+
+| CI job | 系统 / Xcode | 购买测试 | 说明 |
+| --- | --- | --- | --- |
+| `iOS 18.5 compatibility` | iPhone 16 模拟器 / Xcode 16.4 | 23 执行，23 通过 | `.codeOffer` 测试由 `#if compiler(>=6.2)` 排除；Ask to Buy 走已验证权益恢复分支 |
+| `iOS 26.x current` | iPhone 16 / 17 模拟器 / Xcode 26.3 | 24 执行，23 通过，1 跳过 | iOS 26 StoreKitTest 不应用本地 Offer Code，测试明确 `XCTSkip`，不是放行失败 |
+
+本机 iOS 27.3 的 Offer Code 测试实际执行并通过（0 元交易、验签、授予 Pro）。
 
 ```bash
 xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiKitTests \
@@ -144,9 +157,12 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 2. USA / CHN / JPN / DEU 四个 storefront 的价格来自 StoreKit，货币符号与
    `priceFormatStyle.currencyCode` 一致，且四个价格不全相同（证明未硬编码）。
 3. 成功购买后 `PurchaseManager.isPro` 与 `StoreKitEntitlementProvider.isPro()` 同时为真。
-4. 用户取消不授予 Pro，不产生交易。
-5. 网络失败显示错误，不授予 Pro。
-6. 交易 pending 时不授予；批准后由交易监听解锁。
+4. 用户取消不授予 Pro，不留下 `.purchased` / `.restored` 交易。iOS 18 / 26 的
+   StoreKitTest 会在 `allTransactions()` 保留非成功尝试，因此断言只统计已完成交易。
+5. 网络失败显示错误，不授予 Pro，不留下已完成交易。
+6. 交易 pending 时不授予；批准后由交易监听解锁。iOS 18.5 的 StoreKitTest 不把批准事件
+   送进 `Transaction.updates`，测试改为验证已验签权益并调用 `refreshEntitlement()` 恢复；
+   iOS 26 / 27 仍验证真实监听回调。
 7. 恢复购买恢复 Pro。
 8. 重启后仍能读取已验签交易。
 9. 退款 / 撤销后 Pro 失效，回到免费额度。
@@ -156,8 +172,9 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme StylePortCoreTests \
 13. 失败转换不扣额度：损坏 HEIC 在预检阶段失败，记录一次预留与一次释放、零提交，额度仍为 5 / 5。
 14. **1.7 新增免费 Offer Code**：`.codeOffer(referenceName: "DEVELOPER_FREE")` 购买成功，
     交易价格为 0，无撤销 / 过期，`StoreKitEntitlementProvider.isPro()` 为真，新
-    `PurchaseManager` 启动即为 Pro。该测试在 Xcode 16.4 上因 SDK 无 `.codeOffer` 而编译跳过，
-    当前 SDK（Xcode 27.3）执行。
+    `PurchaseManager` 启动即为 Pro。Xcode 16.4 没有 `.codeOffer` API，编译期排除；
+    iOS 26 StoreKitTest 仍按 2.99 收款，运行期 `XCTSkip`；本机 iOS 27.3 实际执行通过。
+    生产兑换仍必须使用 App Store Connect 的官方 Offer Code。
 
 `KeychainQuotaTests`（10）：
 
@@ -192,7 +209,7 @@ StoreKit 授权只接受 `.verified` 交易；未验签、pending、取消、网
 | --- | --- | --- |
 | Xcode 16.4 编译失败 | 源码 + CI 构建 | ✅ 移除对 `StoreKitError.invalidPresentationContext`（iOS 27 SDK 才有的 case）的直接匹配，改用 if-case 分支；旧 SDK 不再报 `_ErrorCodeProtocol` 错误 |
 | Xcode 16.4 类型检查超时 | 源码 + CI 构建 | ✅ `Core/Sources/StylePortCore/PeopleDetection.swift` 的 `matteSize` 拆成 `ratio` / `scaled` 两步，`Core/Sources/StylePortCore/RasterImport.swift` 的 `appleExif` 字节拼接与 `Core/Tests/StylePortCoreTests/StylePortCoreTests.swift` 的 JPEG fixture 拼装都拆成多次 `+=`；旧编译器不再报 `unable to type-check this expression in reasonable time` |
-| CI 设计 | `.github/workflows/ci.yml` + 本地 YAML 解析 | 🟡 双 SDK 矩阵、策略检查与产物上传已写入；首轮 GitHub 运行结果见第 8 节 |
+| CI 设计 | GitHub Actions + 本地 YAML 解析 | ✅ [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297) 四个 job 全部成功；双 SDK 矩阵、策略检查与 macOS 单测均执行 |
 | 分享扩展阻塞 | 源码 + 统一日志 + 模拟器闭环 | ✅ `process` 不再把 `reading` 当忙碌；读取、转换、保存、额度同步全部通过 |
 | 分享读取超时 / 回退 | 源码审查 | ✅ 3 秒 data fallback、15 秒 deadline、`E_SHARE_READ_TIMEOUT`；超时 UI 未实测 |
 | 分享取消 / 重试 | 源码审查 | ✅ 取消递增 generation，清理回退 / 超时任务；重试可复用已保留 provider；未实测 |
@@ -212,8 +229,8 @@ StoreKit 授权只接受 `.verified` 交易；未验签、pending、取消、网
 | 系统 | 设备 / 环境 | 构建 | 启动 | 主流程 | 已知问题 | 验证方式 |
 | --- | --- | --- | --- | --- | --- | --- |
 | iOS 18.0 | 无 | 🟡 部署目标，CI 用 18.5 SDK 编译 | ⚪ | ⚪ | 无运行时；最低版本仅编译覆盖 | CI `ios-18` |
-| iOS 18.5 | CI iPhone 16 模拟器 | 🟡 | ⚪ | ⚪ | 仅构建 + StoreKit 单测 | CI `ios-18` |
-| iOS 26.0 – 26.2 | CI iPhone 16 / 17 模拟器 | 🟡 | ⚪ | ⚪ | 仅构建 + StoreKit 单测 | CI `ios-26` |
+| iOS 18.5 | CI iPhone 16 模拟器 | ✅ | ⚪ | ⚪ | Debug / Release + 23 项 StoreKit / Keychain 测试通过；Offer Code 测试被旧编译器排除；主流程未跑 | CI `ios-18` |
+| iOS 26.0 – 26.2 | CI iPhone 16 / 17 模拟器 | ✅ | ⚪ | ⚪ | Debug / Release + 24 项测试，23 通过、1 项本地 Offer Code 运行期跳过；主流程未跑 | CI `ios-26` |
 | iOS 27.0 – 27.2 | 无 | ⚪ | ⚪ | ⚪ | 本机无对应运行时 | 未执行 |
 | iOS 27.3 | iPhone 17 模拟器 | ✅ | ✅ | ✅ 选图 / 转换 / 保存 / 分享扩展 | 见第 7 节限制 | 本机签名构建 + 目视 + 统一日志 |
 
@@ -226,10 +243,12 @@ iOS 18 / 26 的启动和主流程没有在本机执行，不能因为 CI 编译�
    分享扩展生命周期、7 天签名到期都未验证。
 2. **没有真实 App Store 交易。** `SKTestSession` 与本地 `.storekit` 不能证明生产商品、
    税务 / 银行、Sandbox 账号、退款到账时延。上线前必须按 `AppStoreRelease.md` 走 Sandbox。
-3. **Offer Code 只在本地配置验证。** 0 元交易能被正确授予 Pro；生产环境的 Offer Code
-   需要商品可发放、App 已发布或符合 Apple 的兑换条件，且必须在 App Store Connect 创建。
-4. **iOS 18 / 26 只覆盖编译与 StoreKit 测试。** 本机没有对应运行时，主流程、
-   PhotosPicker、分享扩展与 UI 适配未在这些系统上运行。
+3. **Offer Code 只在本地配置验证。** 本机 iOS 27.3 的 0 元交易能被正确授予 Pro；
+   iOS 18 / 26 的本地 StoreKitTest 不支持该配置（一个被旧编译器排除，一个运行期跳过）。
+   生产环境的 Offer Code 需要商品可发放、App 已发布或符合 Apple 的兑换条件，
+   且必须在 App Store Connect 创建。
+4. **iOS 18 / 26 只覆盖构建与购买 / Keychain 单测。** 本机没有对应运行时，启动、主流程、
+   PhotosPicker、分享扩展与 UI 适配未在这些系统上运行；不能因为 CI 编译通过就写成系统兼容通过。
 5. **分享扩展只验证了成功与已处理两条路径。** 取消、15 秒超时、非 HEIC、额度耗尽、
    相册写入失败没有在 UI 上逐一构造。
 6. **快捷指令未运行 UI。** 代码共用 `ConversionService`，但 AppIntents 参数、
@@ -251,9 +270,18 @@ iOS 18 / 26 的启动和主流程没有在本机执行，不能因为 CI 编译�
 ## 8. GitHub Actions
 
 - 工作流：`.github/workflows/ci.yml`
-- 首次 1.7 运行：**待推送后补充运行链接与结果**。
-- 上一轮失败：run 42365742133 的 `Build Debug for iOS` 因
-  `ProEntitlement.swift:195` 的 `invalidPresentationContext` 编译错误失败；该行已修复。
+- 首次完整 1.7 运行：[run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297)
+  （commit `24bfa3c`）— **success**。
+  - `Policy and project checks`：成功；XcodeGen 一致、四语言、StoreKit 配置、凭据扫描通过。
+  - `macOS unit tests`：成功；Kit 28、Engine 2、Core 14（2 跳过）。
+  - `iOS 18.5 compatibility`：成功；Debug / Release 构建通过，23 项购买 / Keychain 测试通过。
+  - `iOS 26.x current`：成功；Debug / Release 构建通过，24 项中 23 通过、1 项 Offer Code
+    因运行时限制跳过。
+- 前几轮失败已修复：`ProEntitlement.swift` 的 `invalidPresentationContext` 编译错误、
+  `PeopleDetection` / `RasterImport` / Core 测试 fixture 在 Xcode 16.4 的类型检查超时，
+  以及 StoreKitTest 在 iOS 18 / 26 对取消 / 失败交易和 Ask to Buy 的差异断言。
+- 运行器提示：`actions/checkout@v4` 使用 Node.js 20 已弃用（GitHub 强制 Node.js 24），
+  不影响本次结果。
 
 ## 9. 建议的验收顺序
 

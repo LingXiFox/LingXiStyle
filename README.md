@@ -18,11 +18,11 @@
 - 免费用户每天可成功转换 5 张 HEIC；失败、跳过、不兼容不扣额度。额度按本地自然日重置，App、分享扩展与快捷指令共用同一账本。
 - Pro 是 StoreKit 2 非消耗型内购，Product ID `com.lingxifox.LingXiStyle.pro`（显示名「纹粒 Pro」/「Texel Pro」）；一次性购买、永久无限，可恢复购买，退款 / 撤销后回到免费额度。
 - 本地化使用 String Catalog，支持简体中文、繁体中文、英文、日文；内部 Bundle ID、Keychain 服务名与 StoreKit Product ID 保持不变，升级不丢购买。
-- 自动化测试：`LingXiKitTests` 28/28、`LingXiPurchaseTests` 24/24（14 个 StoreKit 测试 + 10 个 Keychain 额度测试）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。合计执行 68 项，66 项通过，2 项跳过。
+- 自动化测试：本机 `LingXiKitTests` 28/28、`LingXiPurchaseTests` 24/24（14 个 StoreKit 测试 + 10 个 Keychain 额度测试）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）。合计执行 68 项，66 项通过，2 项跳过。GitHub Actions [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297) 全绿：iOS 18.5 的 23 项购买 / Keychain 测试全部通过；iOS 26.x 的 24 项中 23 通过、1 项因本地 Offer Code 运行时限制明确跳过。
 - `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift 源码 warning；签名 Debug 构建与模拟器签名构建通过。
 - 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.2 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过；1.3 沿用同一引擎并在模拟器保存成功。
 - 1.7 在同一台 iPhone 17（iOS 27.3）完成分享扩展端到端：从「照片」分享 5,924,047 字节原片，读入、转换、另存成功，额度从 4 / 5 变为 3 / 5；分享已处理过的照片会提示「无需重复处理」且不扣额度。签名模拟器构建的 App 与扩展均生成同一 Keychain Access Group（`4VXWMYSQG8.com.lingxifox.LingXiStyle.shared`）。
-- 兼容性验证边界：本机只有 iOS 27.3 运行时；iOS 18.5 与 iOS 26.x 由 GitHub Actions 构建 + 跑 StoreKit 测试，iOS 18 / 26 真机或本地模拟器未验证，详见 [TEST_REPORT.md](TEST_REPORT.md)。
+- 兼容性验证边界：本机只有 iOS 27.3 运行时；iOS 18.5 与 iOS 26.x 已由 GitHub Actions 完成 Debug / Release 构建和购买 / Keychain 测试，但启动、主流程与 UI 仍未在这些系统上运行；iOS 18 / 26 真机或本地模拟器未验证，详见 [TEST_REPORT.md](TEST_REPORT.md)。
 
 ## 它做什么
 
@@ -269,9 +269,11 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 1.7 修复了读取成功后不进入处理的缺陷：原判断把当前 `reading` 阶段也算作忙碌，
 导致回调已复制完文件却被静默丢弃。现在只阻止重复处理任务，并记录读取字节数。
 
-自动化测试覆盖 100% 免费 Offer Code：本地 StoreKit 配置中的 `DEVELOPER_FREE` 兑换后
-交易价格为 0，仍通过验签并授予 Pro；这证明授权逻辑不依赖价格，但也意味着生产环境必须
-只通过 App Store Connect 官方 Offer Code 发放。
+自动化测试覆盖 100% 免费 Offer Code：本机 iOS 27.3 的 StoreKitTest 中
+`DEVELOPER_FREE` 兑换后交易价格为 0，仍通过验签并授予 Pro；这证明授权逻辑不依赖价格。
+iOS 18 的旧 SDK 没有 `.codeOffer` API，iOS 26 的 StoreKitTest 会忽略本地 Offer Code，
+因此这两条 CI 分别编译期排除 / 运行期跳过，不能当成生产兑换已验收。生产环境必须只通过
+App Store Connect 官方 Offer Code 发放。
 
 分享面板有时只给 JPEG / 预览图，这时会被拒绝，这是预期行为——转码会破坏原始编码。
 
@@ -324,7 +326,7 @@ project.yml             XcodeGen 工程定义
 
 ## 已知限制
 
-- 1.7 已完成 Debug / Release generic iOS 构建与四套自动化测试（Kit 28 / Purchase 24 / Engine 2 / Core 14 执行、2 跳过）；分享扩展在 iPhone 17 模拟器完成读取、转换、保存与额度同步。48MP 转换与 11/11 无损校验沿用 1.2 的端到端证据，1.7 未改编码核心。
+- 1.7 已完成 Debug / Release generic iOS 构建与四套自动化测试（Kit 28 / Purchase 24 / Engine 2 / Core 14 执行、2 跳过）；GitHub Actions run 42371186297 四 job 全绿。分享扩展在 iPhone 17 模拟器完成读取、转换、保存与额度同步。48MP 转换与 11/11 无损校验沿用 1.2 的端到端证据，1.7 未改编码核心。
 - 真机安装、真实 App Store 交易、iOS 18 / 26 运行时、权限拒绝页、快捷指令 UI、分享扩展的取消 / 超时 / 额度耗尽路径仍未验证。模拟器签名构建能证明材料中的共享组配置，但不能替代真机 distribution 签名。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 - 免费 Personal Team 只能使用本地 StoreKit 配置测试；真实内购与上架需要付费 Apple Developer Program、App Store Connect 商品与 Sandbox / 生产环境。
 - `Configuration.storekit` 的 `$2.99` 只是本地测试价；线上价格由 App Store Connect 与 `Product.displayPrice` 决定。

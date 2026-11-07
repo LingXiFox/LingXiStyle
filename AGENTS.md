@@ -9,9 +9,9 @@
 纹理与颗粒（Texture / Grain），另存为相册新照片。原图不覆盖、不转码、不上传。当前版本 1.7.0（build 8），
 包含品牌「纹粒 / Texel」、四语言本地化、5 张 / 日免费额度、StoreKit 2 一次性 Pro 内购、
 首页设置入口与应用内语言切换、首次额度用尽的一次性 Pro 介绍，以及 1.5 的 iOS 分组表面 / 狐橙视觉重构。
-1.7 是发布候选收口：修复 Xcode 16.4 编译失败（StoreKitError 新 case 与 PeopleDetection / RasterImport / Core 测试 fixture 的类型检查超时），CI 拆成 iOS 18.5 / 26.x 双 SDK 矩阵，
+1.7 是发布候选收口：修复 Xcode 16.4 编译失败（StoreKitError 新 case 与 PeopleDetection / RasterImport / Core 测试 fixture 的类型检查超时），CI 拆成 iOS 18.5 / 26.x 双 SDK 矩阵并已在 run 42371186297 全绿，
 修复分享扩展读取完成后不进入处理的阻塞缺陷并补超时回退，模拟器签名构建验证共享 Keychain 组，
-新增 100% 免费 Offer Code 的 StoreKit 测试。
+新增 100% 免费 Offer Code 的 StoreKit 测试（本机 iOS 27.3 通过，iOS 18/26 CI 因 SDK/运行时限制排除或跳过）。
 
 ## 构建与验证
 
@@ -108,7 +108,7 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
   `generic/platform=iOS` Debug 与 Release 构建。修改任务生命周期必须跑 `ConversionRunTests`。
 - 真机验证状态以 `TEST_REPORT.md` 为准，不得把「编译通过」写成「真机通过」。
 - 交付默认：本地 commit 完成后直接 `git push origin main`，不要只留本地提交；推送前仍需确认工作区干净、无凭据与签名资产。
-- 1.7 已完成 Debug / Release generic iOS 构建与自动化测试（Kit 28 / Purchase 24 / Engine 2 / Core 14 执行、2 跳过）；分享扩展在 iPhone 17（iOS 27.3）完成读取、转换、保存与额度同步。iOS 18.5 / 26.x 由 CI 矩阵构建与跑 StoreKit 测试，本机没有对应运行时。真机安装、真实交易、权限拒绝页、快捷指令 UI 与分享扩展的取消 / 超时 / 额度耗尽路径仍未验证；不得把模拟器通过写成真机通过。
+- 1.7 已完成 Debug / Release generic iOS 构建与自动化测试（Kit 28 / Purchase 24 / Engine 2 / Core 14 执行、2 跳过）；分享扩展在 iPhone 17（iOS 27.3）完成读取、转换、保存与额度同步。GitHub Actions run 42371186297 全绿：iOS 18.5 购买测试 23/23，iOS 26.x 24 项中 23 通过、1 项本地 Offer Code 运行期跳过；macOS 单测通过。本机没有 iOS 18 / 26 运行时，启动与主流程未在这些系统验证。真机安装、真实交易、权限拒绝页、快捷指令 UI 与分享扩展的取消 / 超时 / 额度耗尽路径仍未验证；不得把模拟器或 CI 构建通过写成真机 / 系统兼容通过。
 - 已有 48MP 实拍 HEIC 的引擎层与 1.2 App 端到端验证，记录见 `TEST_REPORT.md`；1.7 引擎算法未改。真实 App Store 交易 / 退款、真机 Keychain 共享组与系统权限矩阵仍需确认。
 - 语言偏好只写 `LingXiStyle.appLanguage`，非「跟随系统」时再写 `AppleLanguages`；不要让 SwiftUI 预览或测试进程持久化语言设置。
 - 修改 HEIF 解析后必须跑 `LingXiKitTests` 的 `iref` 回归用例；修改额度必须同时跑

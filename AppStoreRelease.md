@@ -78,6 +78,14 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 退款 / 撤销、重复回调、商品加载失败重试、跨入口额度，以及 100% 免费 Offer Code
 （`testFreeOfferCodeGrantsVerifiedPro`）。
 
+Offer Code 测试的运行时限制：
+
+- Xcode 16.4 / iOS 18.5 SDK 没有 `.codeOffer` API，该测试被 `#if compiler(>=6.2)` 编译排除。
+- iOS 26 的 StoreKitTest 会忽略本地 Offer Code 并按列表价收款，该测试在运行期 `XCTSkip`。
+- 本机 iOS 27.3 实际执行通过：交易价格 0、验签通过、`StoreKitEntitlementProvider.isPro()`
+  为真、新 `PurchaseManager` 启动即 Pro。
+- 因此 App Store Connect 的官方 Offer Code 兑换仍需按 4.3 在 Sandbox / 生产复验。
+
 ### 4.2 真机 Sandbox
 
 1. App Store Connect → 用户和访问 → Sandbox → 测试员，新建 Sandbox 账号。
@@ -101,7 +109,8 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
    生产代码不得内置免费解锁旁路、固定兑换码或开发者账号白名单。
 
 授权逻辑不检查交易价格，因此 0 元交易会被接受；这是支持官方 Offer Code 的前提，
-也意味着任何绕过 StoreKit 验签的“免费 Pro”实现都是错误。
+也意味着任何绕过 StoreKit 验签的“免费 Pro”实现都是错误。生产兑换必须使用 Apple 官方
+Offer Code，代码中不得出现固定兑换码、开发者账号白名单或隐藏开关。
 
 ## 5. 发布前检查清单
 
@@ -121,7 +130,8 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 - [ ] 跨入口额度竞态：另一入口抢走最后额度时，未处理项显示为延后，不记失败。
 - [ ] Keychain 无共享组 entitlement 时 fail-closed，不静默拆成两套账本。
 - [ ] 分享扩展在真机完成读取、转换、保存；另测取消与 15 秒超时。
-- [ ] GitHub Actions CI 至少成功运行一次，XcodeGen 生成工程与仓库一致。
+- [x] GitHub Actions CI 已成功运行：[run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297)
+      （Policy、macOS 单测、iOS 18.5、iOS 26.x 全绿；XcodeGen 生成工程与仓库一致）。
 - [ ] 设置页 Pro 行只显示「一次购买，永久不限张数。」或已购状态，不显示价格。
 - [ ] 浅色 / 深色、Dynamic Type、Reduce Motion、VoiceOver 通过。
 - [ ] 隐私说明、支持 URL、审核备注已填写。
