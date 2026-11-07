@@ -191,7 +191,7 @@ StoreKit 授权只接受 `.verified` 交易；未验签、pending、取消、网
 | 项 | 验证方式 | 结论 |
 | --- | --- | --- |
 | Xcode 16.4 编译失败 | 源码 + CI 构建 | ✅ 移除对 `StoreKitError.invalidPresentationContext`（iOS 27 SDK 才有的 case）的直接匹配，改用 if-case 分支；旧 SDK 不再报 `_ErrorCodeProtocol` 错误 |
-| Xcode 16.4 类型检查超时 | 源码 + CI 构建 | ✅ `Core/Sources/StylePortCore/PeopleDetection.swift` 的 `matteSize` 拆成 `ratio` / `scaled` 两步，`Core/Sources/StylePortCore/RasterImport.swift` 的 `appleExif` 字节拼接拆成多次 `+=`；旧编译器不再报 `unable to type-check this expression in reasonable time` |
+| Xcode 16.4 类型检查超时 | 源码 + CI 构建 | ✅ `Core/Sources/StylePortCore/PeopleDetection.swift` 的 `matteSize` 拆成 `ratio` / `scaled` 两步，`Core/Sources/StylePortCore/RasterImport.swift` 的 `appleExif` 字节拼接与 `Core/Tests/StylePortCoreTests/StylePortCoreTests.swift` 的 JPEG fixture 拼装都拆成多次 `+=`；旧编译器不再报 `unable to type-check this expression in reasonable time` |
 | CI 设计 | `.github/workflows/ci.yml` + 本地 YAML 解析 | 🟡 双 SDK 矩阵、策略检查与产物上传已写入；首轮 GitHub 运行结果见第 8 节 |
 | 分享扩展阻塞 | 源码 + 统一日志 + 模拟器闭环 | ✅ `process` 不再把 `reading` 当忙碌；读取、转换、保存、额度同步全部通过 |
 | 分享读取超时 / 回退 | 源码审查 | ✅ 3 秒 data fallback、15 秒 deadline、`E_SHARE_READ_TIMEOUT`；超时 UI 未实测 |

@@ -89,6 +89,12 @@ public final class PurchaseManager: ObservableObject {
 
     public func refreshEntitlement() async {
         isPro = await entitlementProvider.isPro()
+        // Ask to Buy approval can arrive while the app is backgrounded. iOS 18 does not always
+        // replay that approval through Transaction.updates in a test host, so recover the visible
+        // state from the verified entitlement instead of leaving the sheet on "awaiting approval".
+        if isPro, purchaseState == .awaitingApproval {
+            purchaseState = .success
+        }
     }
 
     public func loadProduct() async {

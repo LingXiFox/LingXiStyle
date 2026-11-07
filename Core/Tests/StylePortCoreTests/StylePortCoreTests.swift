@@ -193,8 +193,12 @@ final class StylePortCoreTests: XCTestCase {
             let styled = try AppleExif.injectMakerNoteTag(into: carried, payload: [1, 2, 3, 4, 5, 6])
             XCTAssertEqual(try AppleExif.makerNoteTag(in: styled, tag: 0x54), [1, 2, 3, 4, 5, 6])
 
-            let jpeg: [UInt8] = [0xFF, 0xD8, 0xFF, 0xE1] + bigEndianBytes(2 + 6 + tiff.count, count: 2)
-                + Array("Exif".utf8) + [0, 0] + tiff + [0xFF, 0xDA, 0, 2, 0xFF, 0xD9]
+            var jpeg: [UInt8] = [0xFF, 0xD8, 0xFF, 0xE1]
+            jpeg += bigEndianBytes(2 + 6 + tiff.count, count: 2)
+            jpeg += Array("Exif".utf8)
+            jpeg += [0, 0]
+            jpeg += tiff
+            jpeg += [0xFF, 0xDA, 0, 2, 0xFF, 0xD9]
             XCTAssertEqual(RasterImport.sourceTIFF(in: jpeg), tiff)
         }
         XCTAssertNil(RasterImport.carryExif(tiff: Array("not a tiff".utf8), width: 8, height: 8))
