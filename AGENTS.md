@@ -103,6 +103,7 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiPurchaseTests \
 - 修改 Kit / Engine 必须跑对应 macOS 测试 scheme；修改 App 必须至少做一次
   `generic/platform=iOS` Debug 与 Release 构建。修改任务生命周期必须跑 `ConversionRunTests`。
 - 真机验证状态以 `TEST_REPORT.md` 为准，不得把「编译通过」写成「真机通过」。
+- 交付默认：本地 commit 完成后直接 `git push origin main`，不要只留本地提交；推送前仍需确认工作区干净、无凭据与签名资产。
 - 1.6 已完成 Debug / Release、签名 Debug 构建与自动化测试（Kit 28 / Purchase 22 / Engine 2 / Core 14 执行、2 跳过）；在 iPhone 17（402×874 pt）复验 5/5 → 4/5 额度、48MP 转换、英文批量「仅处理 4 张」、英文额度页、深色首页 / Pro 页，并在 iPhone Duo（466×678 pt）复验 5/5 紧凑首页。分享扩展在模拟器停在读取阶段，快捷指令、真实交易、权限拒绝页与真机矩阵仍未逐项验证；不得把模拟器通过写成真机通过。
 - 已有 48MP 实拍 HEIC 的引擎层与 1.2 App 端到端验证，记录见 `TEST_REPORT.md`；1.6 引擎算法未改。真实 App Store 交易 / 退款、分享扩展、快捷指令与真机系统权限矩阵仍需确认。
 - 语言偏好只写 `LingXiStyle.appLanguage`，非「跟随系统」时再写 `AppleLanguages`；不要让 SwiftUI 预览或测试进程持久化语言设置。
