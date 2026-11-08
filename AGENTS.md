@@ -141,3 +141,54 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiUITests \
 | `Resources/Localization` | String Catalog（App / 分享扩展 / 快捷指令 / Info.plist） |
 | `.github/workflows` | CI：XcodeGen 一致性、四语言完整性、凭据扫描、iOS 18.5 / 26.0 双 SDK 构建与测试、macOS 单元测试 |
 | `.github/actions/setup` | CI 复用的 Xcode 选择 + XcodeGen 安装 action |
+
+## Resource Lifecycle and Cleanup
+
+**All resources started or allocated by an Agent must be properly released when they are no longer needed.**
+
+### Mandatory Rules
+
+1. **Ownership**: Track processes, temporary files, simulators, servers, and other resources created during task execution.
+2. **Cleanup on Exit**: Release owned resources when a task finishes, fails, or is interrupted.
+3. **No Orphan Processes**: Do not leave unnecessary background processes running after completing a task.
+4. **Scoped Cleanup**: Only terminate processes and remove resources owned by the current task. Never indiscriminately kill unrelated processes.
+5. **Graceful Shutdown**: Prefer normal termination. Use forced termination only when graceful shutdown fails.
+6. **Temporary Artifacts**: Remove task-specific temporary files, caches, and build artifacts when they are no longer required. Preserve reusable caches and user data.
+7. **Verification**: Confirm that resource cleanup succeeded before reporting task completion.
+8. **Failure Handling**: Cleanup must execute even when builds, tests, or other operations fail. Preserve the original failure status.
+
+### Xcode and iOS Simulator
+
+- Shut down simulators started by the current task after testing.
+- Terminate task-owned `xcodebuild` and related processes when no longer needed.
+- Prevent orphaned simulator processes from accumulating between test runs.
+- Use `trap` or equivalent cleanup handlers in automation scripts.
+- Avoid unnecessary concurrent simulator instances.
+- Never erase simulator devices, installed runtimes, or persistent application data unless explicitly authorized.
+- Do not force-terminate shared CoreSimulator services while other development sessions are active.
+
+### Completion Criteria
+
+A task is considered complete only when:
+
+- Its intended operation has finished.
+- Its temporary resources have been released.
+- No unnecessary task-owned background processes remain.
+- Any cleanup failure has been reported.
+
+**Resource cleanup is part of task execution, not an optional post-processing step.**
+
+## Long-running Tasks and CI
+
+- Never poll long-running tasks through repeated LLM calls.
+- After pushing code, identify the GitHub Actions run
+  associated with the pushed commit.
+- Monitor CI using `gh run watch <run-id> --exit-status
+  --compact --interval 60` in a background bash task.
+- End the agent turn when no other work remains.
+- Resume automatically when the background task completes.
+- On failure, retrieve failed logs using
+  `gh run view <run-id> --log-failed`.
+- Never use `sleep` followed by repeated model-driven
+  status checks.
+- Avoid duplicate CI watchers for the same run.
