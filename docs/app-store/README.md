@@ -63,8 +63,9 @@ python3 -m http.server 8080 --directory docs
 - [ ] `<REVIEW_CONTACT_NAME>` / `<REVIEW_CONTACT_EMAIL>` / `<REVIEW_CONTACT_PHONE>`：
       App Review 联系人。
 - [ ] 真实 App 截图：按 `screenshots.md` 从 App 捕获，不使用测试 fixture 或合成图。
-- [x] App target 已提供 `PrivacyInfo.xcprivacy`（`UserDefaults` / `CA92.1`）；
-      如 Share Extension、Shortcuts 或未来 SDK 使用 required reason API，需补充独立清单。
+- [x] App target 已提供 `PrivacyInfo.xcprivacy`（`UserDefaults` / `CA92.1`）。
+- [x] Share Extension 已提供独立 `PrivacyInfo.xcprivacy`（`FileTimestamp` / `C617.1`，用于清理自身临时目录）；
+      Shortcuts 复用 App 清单，未来新增 required reason API 或第三方 SDK 时仍需补充。
 
 ## 原则
 

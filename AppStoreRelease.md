@@ -132,15 +132,15 @@ Offer Code，代码中不得出现固定兑换码、开发者账号白名单或�
 - [ ] 分享扩展在真机完成读取、转换、保存；另测取消与 15 秒超时。
 - [ ] 集成测试宿主已授权相册，29 条真实 HEIC / 分享 / 快捷指令测试通过。
 - [ ] XCUITest 启动冒烟通过（首页、设置、Pro 入口）。
-- [x] GitHub Actions CI 已成功运行：[run 42378432683](https://github.com/LingXiFox/LingXiStyle/actions/runs/42378432683)
-      （1.7.1 / commit `b5e2ace`；Policy、macOS 单测、iOS 18.5、iOS 26.x 全绿；XcodeGen 生成工程与仓库一致）。
+- [x] GitHub Actions CI 已成功运行：[run 42435430433](https://github.com/LingXiFox/LingXiStyle/actions/runs/42435430433)
+      （1.7.1 / commit `365abf5`；Policy、macOS 单测、iOS 18.5、iOS 26.x 全绿；两条集成均 29/29、0 跳过）。
       1.7.0 的 [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297) 亦全绿。
 - [ ] 设置页 Pro 行只显示「一次购买，永久不限张数。」或已购状态，不显示价格。
 - [ ] 浅色 / 深色、Dynamic Type、Reduce Motion、VoiceOver 通过。
 - [ ] 四语言商店文案与可部署隐私 / 支持页已复核：`docs/app-store/listing.md`、`docs/privacy/index.html`、`docs/support/index.html`。
 - [ ] 真实 App 截图已按 `docs/app-store/screenshots.md` 捕获；未使用 `Tests/Fixtures/IMG_5296.HEIC` 或合成图。
 - [ ] 中国大陆 App 备案 / ICP 信息已按 `docs/app-store/china-mainland.md` 完成；未取得真实号码前不提交中国大陆区。
-- [x] App target 已提供 `PrivacyInfo.xcprivacy`（`UserDefaults` / `CA92.1`）；如扩展或 SDK 新增 required reason API，需补充独立清单。
+- [x] App target 已提供 `PrivacyInfo.xcprivacy`（`UserDefaults` / `CA92.1`）；Share Extension 已提供独立清单（`FileTimestamp` / `C617.1`）。
 - [ ] 隐私说明、支持 URL、审核备注已填写。
 - [ ] Archive 使用 Release、正确 Team、上传 App Store Connect。
 

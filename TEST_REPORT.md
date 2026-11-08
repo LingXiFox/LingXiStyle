@@ -7,6 +7,7 @@
   `ConversionService`、写入 PhotoKit 并扣减 Keychain 额度，另有 1 项 XCUITest 覆盖
   安装、启动、首页、设置与 Pro 入口。iPhone 17（iOS 27.3）签名构建完成目视验证；
   Duo 验证首页、设置与 Pro 页，选片仍受模拟器远程输入限制。
+  CI 的 iOS 18.5 与 26.x 集成测试均 29 项执行 / 0 跳过 / 0 失败；此前两条 PhotoKit 保存测试已实际执行。
   本机没有 iOS 18 / 26 运行时；真机、真实 App Store 交易与部分失败路径仍未验证。
   本报告只记录实际执行过的证据。
 
@@ -76,7 +77,30 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiStyle \
   - 1.7.1 新增“Run launch smoke test”：`LingXiUITests` 启动 / 首页 / 设置 / Pro 入口。
   - 日志写入 `.build/logs/integration-build.log`、`integration-tests.log`、`ui-smoke.log`。
 - 本地已用 Ruby Psych 解析 YAML，并按 CI 的同一顺序预演集成测试：29 / 29 通过。
-- 1.7.1 推送后的 GitHub Actions：[run 42378432683](https://github.com/LingXiFox/LingXiStyle/actions/runs/42378432683)，commit `b5e2ace`，**success**。四个 job 全绿；iOS 集成测试两条运行时均 29 项执行 / 2 项跳过 / 0 失败，UI 冒烟均 1/1。跳过项是 1 条 `ConversionIntegrationTests` 与 1 条 `ShortcutIntegrationTests`（宿主环境不具备对应条件）。
+- 1.7.1 发布验证 GitHub Actions：[run 42435430433](https://github.com/LingXiFox/LingXiStyle/actions/runs/42435430433)，commit `365abf5`，**success**。四个 job 全绿；iOS 18.5 购买 / Keychain 23/23、集成 29/29、UI 冒烟 1/1；iOS 26 购买 / Keychain 24 项执行（23 通过、1 项本地 Offer Code 运行期跳过）、集成 29/29、UI 冒烟 1/1。
+- PhotoKit 集成测试此前在 iOS 26 跳过，根因是 `simctl privacy grant photos` 写入 `kTCCServicePhotos.auth_version=1`，PhotoKit 只认 `auth_version=2`；CI 在关机状态把宿主 TCC 行改为 `auth_value=2` / `auth_version=2` 后重启，测试仍要求真实读写权限，权限不生效会失败而不是跳过。`boot-simulator.sh` 为 `bootstatus` 加硬超时与一次重启重试，避免半启动模拟器把 job 卡到 20 分钟超时。
+- StoreKitTest 在 iOS 18.5 首次购买冷启动实测 107–571 秒；移除无效的 warm-up，保留 900 秒断言超时，避免把真实挂起误判为通过。
+
+### 2.4 发布资料与隐私清单
+
+- `docs/app-store/listing.md`：zh-Hans / zh-Hant / en / ja 四语言名称、副标题、推广文本、
+  关键词、描述与 What's New，字符数均低于 Apple 上限；价格、隐私 URL、支持邮箱、审核联系人、
+  备案号均保留占位符，没有编造真实世界信息。
+- `docs/privacy/index.html` 与 `docs/support/index.html`：各 4 个语言 section
+  （`#zh-Hans` / `#zh-Hant` / `#en` / `#ja`），无 JavaScript、Cookie 或第三方请求。
+  `docs/index.html` 的语言导航已补齐对应 `li` id，锚点可用。
+- `docs/app-store/screenshots.md`：6.9 英寸 1320 × 2868 规格、6 页清单与四语言截图文案；
+  明确禁止使用 `Tests/Fixtures/IMG_5296.HEIC`、合成图或虚构界面。
+- `docs/app-store/china-mainland.md`：区分 App 备案与 ICP，列出主体、App、技术、内容材料；
+  `<APP_RECORD_NUMBER>` / `<ICP_FILING_NUMBER>` 未取得前不得填写或提交中国大陆区。
+- `App/Resources/PrivacyInfo.xcprivacy`：不跟踪、不收集数据、`UserDefaults` / `CA92.1`。
+  新增 `ShareExtension/Resources/PrivacyInfo.xcprivacy`：`FileTimestamp` / `C617.1`，
+  仅用于清理扩展自身 `LingXiShare-*` 临时目录；扩展未使用 UserDefaults。
+- `Tests/Fixtures/IMG_5296.HEIC` 隐私复核：ImageIO / mdls 未发现 GPS、Artist / Owner /
+  Copyright、设备序列号或 XMP 作者字段；画面为室外建筑与水面，无特写人脸、证件或私密室内。
+  文件仍为 5,924,047 bytes、8064 × 6048、SHA-256
+  `7edf1625cc05836dadb1749ad92860abc04ebb21e4848d587cf39cf345c5c2db`，仅用于测试，
+  不用于 App Store 截图。
 
 ## 3. 模拟器端到端
 
@@ -149,6 +173,7 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiStyle \
 | `LingXiUITests` | TEST SUCCEEDED | 1 | 1 | 0 |
 
 本机（iPhone 17 / iOS 27.3）合计执行 98 项，96 项通过，2 项因缺少外部 fixture 跳过。
+CI 的 iOS 18.5 与 26.x 集成测试均 29 项执行 / 0 跳过 / 0 失败；两条此前的 PhotoKit 保存测试已实际执行。
 
 CI 运行时差异（同一份测试代码，1.7.0 结果）：
 
@@ -280,7 +305,7 @@ StoreKit 授权只接受 `.verified` 交易；未验签、pending、取消、网
 | --- | --- | --- |
 | Xcode 16.4 编译失败 | 源码 + CI 构建 | ✅ 移除对 `StoreKitError.invalidPresentationContext` 的直接匹配；旧 SDK 不再报 `_ErrorCodeProtocol` 错误 |
 | Xcode 16.4 类型检查超时 | 源码 + CI 构建 | ✅ `PeopleDetection` 的 `matteSize`、`RasterImport` 的 `appleExif` 与 Core 测试 fixture 拼接拆分，旧编译器通过 |
-| CI 设计 | GitHub Actions + 本地 YAML 解析 | ✅ 双 SDK 矩阵、策略检查、macOS 单测、集成测试与启动冒烟已接入；1.7.1 run 42378432683 四个 job 全绿 |
+| CI 设计 | GitHub Actions + 本地 YAML 解析 | ✅ 双 SDK 矩阵、策略检查、macOS 单测、集成测试与启动冒烟已接入；1.7.1 run 42435430433 四个 job 全绿，PhotoKit TCC auth_version 与模拟器启动超时已修复 |
 | 分享扩展阻塞 | 源码 + 统一日志 + 模拟器闭环 | ✅ `process` 不再把 `reading` 当忙碌；读取、转换、保存、额度同步全部通过 |
 | 分享读取超时 / 回退 | 自动化 | ✅ 3 秒 data fallback、15 秒 deadline、`E_SHARE_READ_TIMEOUT`；12 条状态机测试通过 |
 | 分享取消 / 重试 | 自动化 | ✅ 取消递增 generation，清理回退 / 超时任务；取消时删除 `LingXiShare-*` 临时目录 |
@@ -302,9 +327,9 @@ StoreKit 授权只接受 `.verified` 交易；未验签、pending、取消、网
 | 系统 | 设备 / 环境 | 构建 | 启动 | 主流程 | 已知问题 | 验证方式 |
 | --- | --- | --- | --- | --- | --- | --- |
 | iOS 18.0 | 无 | 🟡 以 iOS 18.5 SDK、部署目标 18.0 编译 | ⚪ | ⚪ | 无运行时；最低版本只有编译覆盖，不等于运行兼容 | CI `ios-18` |
-| iOS 18.5 | CI iPhone 16 模拟器 | ✅ | ✅ | ⚪ | Debug / Release + 23 项购买 / Keychain + 29 项集成（2 跳过）+ 1 项 UI 冒烟通过；完整 UI 主流程未人工操作 | CI `ios-18` |
+| iOS 18.5 | CI iPhone 16 模拟器 | ✅ | ✅ | ⚪ | Debug / Release + 23 项购买 / Keychain + 29 项集成（0 跳过）+ 1 项 UI 冒烟通过；完整 UI 主流程未人工操作 | CI `ios-18` |
 | iOS 18.6 | CI 运行器已安装但未选中 | ⚪ | ⚪ | ⚪ | 未构建、未运行 | 未执行 |
-| iOS 26.0（26.0.1） | CI iPhone 16 模拟器 | ✅ | ✅ | ⚪ | Debug / Release + 24 项测试（23 通过、1 项本地 Offer Code 运行期跳过）+ 29 项集成（2 跳过）+ 1 项 UI 冒烟通过；完整 UI 主流程未人工操作 | CI `ios-26` |
+| iOS 26.0（26.0.1） | CI iPhone 16 模拟器 | ✅ | ✅ | ⚪ | Debug / Release + 24 项测试（23 通过、1 项本地 Offer Code 运行期跳过）+ 29 项集成（0 跳过）+ 1 项 UI 冒烟通过；完整 UI 主流程未人工操作 | CI `ios-26` |
 | iOS 26.1 | CI 运行器已安装但未选中 | ⚪ | ⚪ | ⚪ | 未构建、未运行 | 未执行 |
 | iOS 26.2 | CI 运行器已安装但未选中 | ⚪ | ⚪ | ⚪ | 未构建、未运行 | 未执行 |
 | iOS 27.0 – 27.2 | 无 | ⚪ | ⚪ | ⚪ | 本机无对应运行时 | 未执行 |
@@ -324,8 +349,7 @@ iOS 18 / 26 的启动和主流程没有在本机执行，不能因为 CI 编译�
    iOS 18 / 26 的本地 StoreKitTest 不支持该配置（一个被旧编译器排除，一个运行期跳过）。
    生产环境的 Offer Code 需要商品可发放、App 已发布或符合 Apple 的兑换条件，
    且必须在 App Store Connect 创建。
-4. **iOS 18 / 26 只覆盖构建与购买 / Keychain 单测。** 本机没有对应运行时，启动、主流程、
-   PhotosPicker、分享扩展与 UI 适配未在这些系统上运行；不能因为 CI 编译通过就写成系统兼容通过。
+4. **iOS 18 / 26 覆盖构建、购买 / Keychain 与集成测试，但不等同完整系统兼容。** 本机没有对应运行时，启动、主流程、PhotosPicker、分享扩展 UI 与 UI 适配未在这些系统上运行；不能因为 CI 编译通过就写成系统兼容通过。
 5. **分享扩展 UI 只人工验证成功与已处理。** 取消、15 秒超时、非 HEIC、额度耗尽、
    相册写入失败由状态机测试覆盖，未逐项在扩展 UI 中构造。
 6. **快捷指令未运行 UI。** 9 条集成测试覆盖参数、批量、仅检查、仅保存、额度与 Pro；
@@ -347,15 +371,16 @@ iOS 18 / 26 的启动和主流程没有在本机执行，不能因为 CI 编译�
 ## 8. GitHub Actions
 
 - 工作流：`.github/workflows/ci.yml`
-- 1.7.1 完整运行：[run 42378432683](https://github.com/LingXiFox/LingXiStyle/actions/runs/42378432683)
-  （commit `b5e2ace`）— **success**。
-  - `Policy and project checks`：成功（26s）；XcodeGen 一致、四语言、StoreKit 配置、凭据扫描通过。
-  - `macOS unit tests`：成功（2m21s）；Kit 28、Engine 2、Core 14（2 跳过）。
-  - `iOS 18.5 compatibility`：成功（11m21s）；Debug / Release 构建通过，购买 / Keychain 23/23，
-    集成 29 项执行 / 2 跳过 / 0 失败，UI 冒烟 1/1。
-  - `iOS 26.x current`：成功（14m34s）；Debug / Release 构建通过，购买 / Keychain 24 项执行 /
-    23 通过 / 1 项本地 Offer Code 运行期跳过，集成 29 项执行 / 2 跳过 / 0 失败，UI 冒烟 1/1。
-  - 两条 iOS job 的跳过项均为 1 条 `ConversionIntegrationTests` 与 1 条 `ShortcutIntegrationTests`。
+- 1.7.1 发布验证：[run 42435430433](https://github.com/LingXiFox/LingXiStyle/actions/runs/42435430433)
+  （commit `365abf5`）— **success**。
+  - `Policy and project checks`：成功；XcodeGen 一致、四语言、StoreKit 配置、凭据扫描通过。
+  - `macOS unit tests`：成功；Kit 28、Engine 2、Core 14（2 跳过）。
+  - `iOS 18.5 compatibility`：成功；Debug / Release 构建通过，购买 / Keychain 23/23，
+    集成 29 项执行 / 0 跳过 / 0 失败，UI 冒烟 1/1。
+  - `iOS 26.x current`：成功；Debug / Release 构建通过，购买 / Keychain 24 项执行 /
+    23 通过 / 1 项本地 Offer Code 运行期跳过，集成 29 项执行 / 0 跳过 / 0 失败，UI 冒烟 1/1。
+  - 两条 iOS job 的 `testConvertAndSaveToPhotoLibrary` 与 `testSaveOnlyDoesNotReturnAFileButDoesSave`
+    均已实际执行并通过，不再跳过。
 - 1.7.0 完整运行（历史）：[run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297)
   （commit `24bfa3c`）— **success**。
   - `Policy and project checks`：成功；XcodeGen 一致、四语言、StoreKit 配置、凭据扫描通过。
