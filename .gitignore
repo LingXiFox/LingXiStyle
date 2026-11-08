@@ -12,3 +12,6 @@ xcuserdata/
 *.p12
 *.cer
 Secrets.xcconfig
+
+# Local App Store screenshot delivery (24 PNGs, ~49MB)
+AppStoreScreenshots/

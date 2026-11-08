@@ -1,7 +1,8 @@
 # Texel 1.7.1 — App Store screenshots
 
-本文件只定义**截图规格、页面清单、四语言文案与拍摄步骤**。仓库中不包含、也不生成
-App 截图；所有截图必须从真实运行的 App 捕获。不要用合成图、设计稿或伪造的界面代替。
+本文件定义**截图规格、页面清单、四语言文案与拍摄步骤**。1.7.1 的 24 张截图保存在本地
+`AppStoreScreenshots/`（每种语言 6 张，1320 × 2868，RGB，无 alpha），不提交公开仓库；交付 ZIP 在同目录。
+所有截图必须从真实运行的 App 捕获。不要用合成图、设计稿或伪造的界面代替。
 
 ## 1. Apple 规格（iPhone）
 
@@ -121,24 +122,35 @@ xcrun simctl io booted screenshot screenshots/zh-Hans/01-home.png
 | 5 | 一度の購入で無制限 | Texel Pro はサブスクリプションではありません |
 | 6 | 4 言語に対応 | 簡体字中国語、繁体字中国語、英語、日本語 |
 
+## 4.1 1.7.1 实际交付（2026-11-08）
+
+- 24 张截图：`AppStoreScreenshots/{zh-Hans,zh-Hant,en,ja}/01-home.png` … `06-settings.png`。
+- 全部为 6.9 英寸竖屏 1320 × 2868、PNG、RGB、无 alpha；`SHA256SUMS` 可校验。
+- 预览索引：`AppStoreScreenshots/index.html`；交付包：`AppStoreScreenshots/Texel-1.7.1-AppStoreScreenshots.zip`。
+- 截图来自真实运行的 1.7.1 (9)；样本照片为 CC0 Wikimedia Commons 图片，经 App 内部转换生成测试 HEIC，不是 iPhone 原始拍摄。来源与许可见同目录 `README.md`。
+- 第 5 张是真实的“今日免费额度已用完”半屏，不是 Pro 购买页。Pro 页未拍：本地模拟器没有 StoreKit 商品，页面显示“App Store 暂时没有返回这个商品”；待 App Store Connect 商品可用后用实时 `Product.displayPrice` 补拍。
+- 英文截图拍摄时发现并修复：`App/Sources/Components/PrimaryActionButton.swift` 的 `SecondaryActionButton` 改用 `Text(LocalizedStringKey(title))`，避免 `ConvertingView` 的“取消”在英文/日文界面漏出中文。
+- 截图目录不提交公开仓库，避免 49MB 素材进入 Git 历史；`.gitignore` 已加入 `AppStoreScreenshots/`。
+
 ## 5. 交付前检查
 
-- [ ] 6.9 英寸竖屏 1320 × 2868，PNG/JPG，无 alpha
-- [ ] 每种语言 3–10 张，顺序一致；四语言都已准备或明确只发布已完成的语言
-- [ ] 所有画面来自真实 App，未修改 UI、未伪造进度/价格/评分
-- [ ] 照片有再分发授权，未使用 `Tests/Fixtures/IMG_5296.HEIC`
-- [ ] 状态栏 9:41、满电、无真实运营商/个人信息
-- [ ] 截图中无邮箱、设备名、真实姓名、位置或诊断信息
-- [ ] 价格（如出现）来自实时 `Product.displayPrice`，且与提交地区一致
-- [ ] 截图文案与 `docs/app-store/listing.md` 的版本/功能描述一致
-- [ ] 不展示“已通过审核”“App Store 推荐”等未发生状态
+- [x] 6.9 英寸竖屏 1320 × 2868，PNG，RGB，无 alpha
+- [x] 每种语言 3–10 张，四语言各 6 张，顺序一致
+- [x] 所有画面来自真实 App，未修改 UI、未伪造进度/价格/评分
+- [x] 照片有再分发授权（CC0），未使用 `Tests/Fixtures/IMG_5296.HEIC`
+- [x] 状态栏 9:41、满电、无真实运营商/个人信息
+- [x] 截图中无邮箱、设备名、真实姓名、位置或诊断信息
+- [x] 未展示价格；第 5 张为真实额度用完页，Pro 页待商品配置后补拍
+- [x] 截图为原始 App UI，无叠加文案；文案与 `docs/app-store/listing.md` 的功能描述一致
+- [x] 不展示“已通过审核”“App Store 推荐”等未发生状态
 
 ## 6. 人工待办
 
-- [ ] 准备有再分发授权的 HEIC 样片（不要用测试 fixture）。
-- [ ] 在 iPhone 16/17 Pro Max 模拟器或真机按上面 6 个页面逐页捕获。
-- [ ] 将截图放入 App Store Connect 对应语言；如暂不本地化截图，至少完成 zh-Hans 与 en。
-- [ ] 逐张核对无隐私信息、无虚构价格、无未验证功能。
-- [ ] 如后续新增页面或改版，重新捕获；不要复用旧版截图冒充 1.7.1。
+- [x] 准备有再分发授权的 HEIC 样片（不要用测试 fixture）。
+- [x] 在 6.9 英寸 iPhone 模拟器按上面 6 个页面逐页捕获。
+- [ ] 将截图上传到 App Store Connect 对应语言（zh-Hans / zh-Hant / en / ja）。
+- [ ] App Store Connect 商品可用后，用实时 `Product.displayPrice` 补拍 Pro 页面并替换/追加第 5 张。
+- [x] 逐张核对无隐私信息、无虚构价格、无未验证功能。
+- [x] 1.7.1 截图已按版本记录；后续改版重新捕获，不复用旧图冒充新版本。
 
-> 本文件是拍摄与交付规范，不是截图本身。仓库不会生成或提交虚假的 App 截图。
+> 本文件是拍摄与交付规范。1.7.1 的真实截图保存在本地 `AppStoreScreenshots/` 并打包为 ZIP，不提交公开仓库；仓库内不会生成或提交虚假的 App 截图。

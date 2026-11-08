@@ -299,6 +299,14 @@ StoreKit 授权只接受 `.verified` 交易；未验签、pending、取消、网
 选择照片、文件导入、设置、额度四个入口；打开设置，点击 Pro 行，断言 `Texel Pro`，
 关闭 Pro 页并返回首页。只验证安装、启动与入口，不伪造转换结果。
 
+### 4.7 1.7.1 截图轮次回归（2026-11-08）
+
+- 目的：交付四语言 App Store 截图，同时复核 1.7.1 构建、本地化修复与既有自动化测试。
+- 本机重跑：`LingXiKitTests` 28、`LingXiPurchaseTests` 24、`LingXiEngineTests` 2、`StylePortCoreTests` 14（2 skipped）、`LingXiIntegrationTests` 29、`LingXiUITests` 1；合计 98 项，96 通过、2 跳过、0 失败。
+- iOS generic 构建：`BUILD SUCCEEDED`；本地 Team 通过命令行传入，未写入仓库。
+- 截图：24 张，1320 × 2868，RGB，无 alpha；交付记录见 `docs/app-store/screenshots.md` 4.1。
+- 修复：`SecondaryActionButton` 改用 `Text(LocalizedStringKey(title))`，英文 processing 截图中的 Cancel 已正确本地化。
+
 ## 5. 1.7.1 实现审查
 
 | 项 | 验证方式 | 结论 |

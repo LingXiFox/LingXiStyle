@@ -64,7 +64,7 @@ struct SecondaryActionButton: View {
                     Image(systemName: systemImage)
                         .font(.system(.body, design: .default, weight: .medium))
                 }
-                Text(title).font(Typography.bodyEmphasized)
+                Text(LocalizedStringKey(title)).font(Typography.bodyEmphasized)
             }
             .frame(maxWidth: .infinity, minHeight: Layout.secondaryButtonHeight)
             .foregroundStyle(Palette.textPrimary)
