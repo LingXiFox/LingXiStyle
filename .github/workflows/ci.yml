@@ -183,6 +183,9 @@ jobs:
     name: iOS ${{ matrix.label }}
     runs-on: macos-15
     timeout-minutes: 90
+    env:
+      # Indexing is not needed in CI and roughly doubles clean build time.
+      COMPILER_INDEX_STORE_ENABLE: NO
     strategy:
       fail-fast: false
       matrix:
@@ -283,17 +286,19 @@ jobs:
           fi
 
       - name: Run purchase and keychain tests
-        timeout-minutes: 20
+        timeout-minutes: 30
         run: |
           set -euo pipefail
           DEVICE_ID="${{ steps.simulator.outputs.device_id }}"
-          xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
-          xcrun simctl bootstatus "$DEVICE_ID" -b
+          bash .github/scripts/boot-simulator.sh "$DEVICE_ID" 180
+          # StoreKitTest's first purchase on the iOS 18.5 runtime has taken
+          # 107-571s while its daemon starts. Keep the assertion timeout well
+          # above that observed cold start; do not use it to hide a real hang.
           xcodebuild -project LingXiStyle.xcodeproj \
             -scheme LingXiPurchaseTests -configuration Debug \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.device_id }}" \
             -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO \
-            -test-timeouts-enabled YES -default-test-execution-time-allowance 240 \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 900 \
             test 2>&1 | tee .build/logs/purchase-tests.log
 
       - name: Run conversion, share, and shortcut integration tests
@@ -303,8 +308,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .build/logs
-          xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
-          xcrun simctl bootstatus "$DEVICE_ID" -b
+          bash .github/scripts/boot-simulator.sh "$DEVICE_ID" 180
           # Build the simulator products with ad-hoc signing. PhotoKit's TCC
           # identity is tied to the signed app on older simulator runtimes.
           xcodebuild -project LingXiStyle.xcodeproj \
@@ -326,20 +330,30 @@ jobs:
           xcrun simctl privacy "$DEVICE_ID" grant photos "$TEST_BUNDLE_ID" || true
           xcrun simctl privacy "$DEVICE_ID" grant photos-add "$TEST_BUNDLE_ID" || true
           xcrun simctl spawn "$DEVICE_ID" launchctl kickstart -k system/com.apple.tccd || true
-          # iOS 26.0.1 can keep returning notDetermined even after the TCC row is
-          # written. Reboot the simulator once so tccd and PhotoKit reload the
-          # granted state before the test process starts.
+          # iOS 26's simctl writes kTCCServicePhotos with auth_version=1, which
+          # PhotoKit ignores even though TCC reports authorized. A real in-app
+          # grant stores auth_version=2. Update it while the simulator is shut
+          # down, then reboot so tccd and PhotoKit reload the grant. This is a
+          # simulator-runtime bug, not app behavior; tests still require real
+          # read/write access and fail if this workaround stops working.
           xcrun simctl shutdown "$DEVICE_ID"
-          xcrun simctl boot "$DEVICE_ID"
-          xcrun simctl bootstatus "$DEVICE_ID" -b
           TCC_DB="$HOME/Library/Developer/CoreSimulator/Devices/$DEVICE_ID/data/Library/TCC/TCC.db"
-          if [ -f "$TCC_DB" ]; then
-            sqlite3 "$TCC_DB" \
-              "SELECT service, client, client_type, auth_value, auth_reason FROM access WHERE client IN ('$BUNDLE_ID', '$TEST_BUNDLE_ID') AND service IN ('kTCCServicePhotos', 'kTCCServicePhotosAdd') ORDER BY service, client;" \
-              | tee .build/logs/photo-tcc-before.log || true
-          else
-            echo "TCC database not found at $TCC_DB" | tee .build/logs/photo-tcc-before.log
+          if [ ! -f "$TCC_DB" ]; then
+            echo "TCC database not found at $TCC_DB" >&2
+            exit 1
           fi
+          sqlite3 "$TCC_DB" \
+            "UPDATE access SET auth_value=2, auth_version=2 WHERE service='kTCCServicePhotos' AND client IN ('$BUNDLE_ID', '$TEST_BUNDLE_ID'); PRAGMA wal_checkpoint(FULL);"
+          PHOTOS_GRANTS=$(sqlite3 "$TCC_DB" \
+            "SELECT COUNT(*) FROM access WHERE service='kTCCServicePhotos' AND client='$BUNDLE_ID' AND auth_value=2 AND auth_version=2;")
+          if [ "$PHOTOS_GRANTS" -eq 0 ]; then
+            echo "PhotoKit read/write grant is missing or not version 2" >&2
+            exit 1
+          fi
+          bash .github/scripts/boot-simulator.sh "$DEVICE_ID" 180
+          sqlite3 "$TCC_DB" \
+            "SELECT service, client, client_type, auth_value, auth_reason, auth_version FROM access WHERE client IN ('$BUNDLE_ID', '$TEST_BUNDLE_ID') AND service IN ('kTCCServicePhotos', 'kTCCServicePhotosAdd') ORDER BY service, client;" \
+            | tee .build/logs/photo-tcc-before.log
           xcodebuild -project LingXiStyle.xcodeproj \
             -scheme LingXiIntegrationTests -configuration Debug \
             -destination "platform=iOS Simulator,id=$DEVICE_ID" \
@@ -361,7 +375,7 @@ jobs:
             TCC_DB="$HOME/Library/Developer/CoreSimulator/Devices/$DEVICE_ID/data/Library/TCC/TCC.db"
             if [ -f "$TCC_DB" ]; then
               sqlite3 "$TCC_DB" \
-                "SELECT service, client, auth_value, auth_reason FROM access WHERE service IN ('kTCCServicePhotos', 'kTCCServicePhotosAdd') ORDER BY service, client;" || true
+                "SELECT service, client, auth_value, auth_reason, auth_version FROM access WHERE service IN ('kTCCServicePhotos', 'kTCCServicePhotosAdd') ORDER BY service, client;" || true
             else
               echo "TCC database not found at $TCC_DB"
             fi
