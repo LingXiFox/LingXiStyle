@@ -438,3 +438,14 @@ iOS 18 / 26 的启动和主流程没有在本机执行，不能因为 CI 编译�
 7. 在 App Store Connect 创建 100% Offer Code，用 Sandbox 账号兑换，确认
    `Transaction.currentEntitlements` 出现 Pro 且可恢复。
 8. 在 Duo 真机或可交互模拟器上完成选片 / 转换 / 结果页，补上折叠屏主流程证据。
+
+## 2026-11-09：稳定版正式分发与提审资料
+
+Xcode 27.2（27B52）/ iPhoneOS 27.2 完成 1.7.1（9）手动分发签名 Archive、
+xcodebuild 导出上传；Apple 构建 b05e844e-a74c-4578-8d48-6d16c5085f2e 已 VALID。
+修复 Share Extension 重复嵌入 framework 导致的 Apple 上传校验失败，framework 只由主 App 携带。
+修复后 generic iOS Debug 构建（不签名）与 Release 分发归档通过，Debug 仍自动开发签名。
+27 项发布客户端回归通过。App 和 Pro 已加入同一份未提交审核草稿，两个条目 READY_FOR_REVIEW。
+这不是新增真机业务验收；没有执行生产购买、退款、HEIC 转换或完整兼容矩阵复验。
+完整资料、证书/描述文件有效期、截图验证与执行边界见
+[正式分发记录](docs/app-store/release-report-2026-11-09.md)。未提交审核或正式发布。

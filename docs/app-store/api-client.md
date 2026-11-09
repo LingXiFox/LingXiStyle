@@ -118,12 +118,61 @@ uv run --frozen --script tools/appstoreconnect.py request PATCH appStoreVersionL
 # The previous command only previews. Add --apply for an authorized metadata write.
 ```
 
-通用 GET 可读取官方 v1 资源；POST/PATCH 写入仅允许商店本地化、审核资料、
-图片预约/提交、placement 与排序，使用官方 JSON:API 请求体。
-没有删除、提审、发布、价格、销售地区、证书、财务或密钥修改接口。
-内购只查询 `apps/{id}/inAppPurchasesV2`；商品不存在时预览四语言创建方案，
-不创建商品。现代商品创建接口是官方 `/v2/inAppPurchases`，超出本轮 v1 限定。
-美国 $2.99 是用户目标，尚未设置，实际价格和销售地区需另行批准。
+通用 GET 支持官方 v1。`--allow-v2` 仅放行官方内购和应用销售地区资源；
+`--release-setup` 开启另行授权的发布资料、年龄分级、价格/地区、内购资料和未提交审核草稿操作。
+这些开关不代替用户对价格、地区的明确授权。删除、实际提交审核、发布、证书撤销、财务和 API 密钥修改始终禁止。
+`--signing-setup` 仅允许创建证书/描述文件，不允许撤销。
+
+本账户已经按用户单独批准配置：App 免费、仅美国；Texel Pro 非消耗型、美国 $2.99、仅美国。
+常规文案和发布流程不会再次修改这些商业配置。
+
+## 本机正式签名、归档、上传
+
+```bash
+uv run --frozen --script tools/appstoreconnect.py --signing-setup release signing
+uv run --frozen --script tools/appstoreconnect.py release archive --output .tmp/asc-release-1
+uv run --frozen --script tools/appstoreconnect.py release upload --output .tmp/asc-release-1
+uv run --frozen --script tools/appstoreconnect.py --allow-v2 --release-setup release prepare --output .tmp/asc-release-1
+```
+
+当前验证环境固定为稳定版 Xcode 27.2 / iPhoneOS 27.2 SDK；无需下载模拟器运行时。
+升级 Xcode 时需同步更新 `release_appstore.py` 的 SDK/Xcode 检查并重新验收。
+以后版本通过顶层 `--version` 指定，版本号/构建号仍在 `project.yml` 修改并重新生成项目。
+
+已授权建立的证书、私钥和状态保存在 `~/.config/appstoreconnect/signing/`，目录 0700、文件 0600。
+`signing` 验证本地私钥与 Apple 证书、公钥、Team 和有效期，复用 Keychain 现有身份；
+缺少身份时用 Apple 原生工具导入，临时 PKCS#12 用随机密码并在退出时删除。
+首次 codesign 如请求 Keychain 授权，需要用户在本机允许，不把密码传给脚本。
+该命令不会再次创建分发证书；当前证书失效时需要另行授权更新。
+
+为两个准确 Bundle ID 复用或创建 IOS_APP_STORE 描述文件，校验证书、Team、有效期、
+非调试 entitlement、App ID 和共享 Keychain 组后安装到 Xcode 用户目录。
+Release 手动签名、Debug 自动开发签名；本地 xcconfig 提供两个 profile UUID，Git 只保存变量引用。
+Framework 仅嵌入主 App，Share Extension 通过 `@executable_path/../../Frameworks` 加载同一份 framework。
+
+`archive` 运行 XcodeGen 和官方 `xcodebuild archive`，检查两个 bundle 的签名、版本/构建号、
+共享 Keychain entitlement、分发描述文件、SDK、扩展无嵌套 Frameworks，以及没有本地 StoreKit 配置。
+输出目录禁止覆盖已有 Archive/日志；失败后选择新目录，保留错误证据。
+`upload` 通过 `xcodebuild -exportArchive`、本地手动签名、ASC API Key 上传，保留原构建号，
+不使用云端签名、浏览器认证或重签名服务。若相同版本和构建号已在 Apple 上出现，先返回现有状态，避免重复上传。
+
+`prepare` 最长 30 分钟、每分钟查询 Apple 实际处理状态，VALID 后关联当前版本，
+声明与 App Info.plist 一致的非豁免加密状态，并把 App 和当前内购版本加入未提交审核草稿。
+先读现有草稿和条目，避免重复创建；任一 409 立即返回原始原因，绝不设置 `submitted`。
+处理状态写入 `processing.json`，通过后保存 `ready-for-user-review.json`。
+
+内购审核截图单独使用已审核的真实 Pro 页面 RGB PNG：
+
+```bash
+uv run --frozen --script tools/appstoreconnect.py --allow-v2 --release-setup release review-screenshot --screenshot /absolute/path/texel-pro-review-rgb.png
+```
+
+使用父商品的官方审核截图接口；它与 App Asset Library、1024×1024 推广图是不同资源。
+按 Apple 预约 PUT 分片，提交 MD5 后回读实际处理状态与校验和；已有预约续传，不删除或替换不同截图。
+PUT 仅允许 Apple 的 blobstore 子域或官方 Transporter 文档中的
+`northamerica-1.object-storage.apple.com`，不带 JWT，不跟随重定向。
+本次真实设备截图经用户批准用原生 ImageIO 去掉完全不透明的 alpha 通道，保留 1320×2868，
+并逐像素比较解码结果一致；原截图保留在本地 `.tmp/`，不提交 Git。
 
 ## 验证与边界
 

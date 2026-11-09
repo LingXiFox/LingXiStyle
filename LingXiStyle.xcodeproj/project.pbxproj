@@ -16,7 +16,6 @@
 		0DCAF30CEF57C94A29ABC543 /* QuotaBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0602C6C067E890AC26EDB5B /* QuotaBadge.swift */; };
 		0E8A57F2781D5811E0361676 /* Compatibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE724434D6EE530D128D251F /* Compatibility.swift */; };
 		0EE32442CFA1FAEB3A70F0C1 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 6CE0EEACA3A1A458614DE7E1 /* Localizable.xcstrings */; };
-		0EEA3B4D9518910AF86F3162 /* LingXiEngine.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = B75EE5AEA092772368AF0C2D /* LingXiEngine.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		0F8937EAB8216BC8B283A8FA /* LingXiStyleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9517117A78ABBEA1E64B92E /* LingXiStyleApp.swift */; };
 		167A06298B1EE41635FA43B6 /* BinaryPlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62382516A5245A914637F3F7 /* BinaryPlist.swift */; };
 		1BD4E9811384AF8E3543BD5F /* KeychainQuotaStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 364D92C36CBCEB08AA32DE74 /* KeychainQuotaStore.swift */; };
@@ -86,7 +85,6 @@
 		9573DCCD48F55E97CB1DE38C /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 6CE0EEACA3A1A458614DE7E1 /* Localizable.xcstrings */; };
 		97F2916E71FEC95A4C74EE66 /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEFFA53B2F02492B261BC28A /* ResultView.swift */; };
 		97F8754DF1A8C13B6C46C897 /* Profiles in Resources */ = {isa = PBXBuildFile; fileRef = 0AD777003922D54C8B27D3A4 /* Profiles */; };
-		9A6C77120F579D2A1B7A6FD2 /* StylePortCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 6647713B5C86FADAEFB05D9E /* StylePortCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		9DD3415A513CA8B0EC048330 /* PreviewSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51D710DD7541EE112F40F08E /* PreviewSupport.swift */; };
 		9F1892EA90009AF636FC2D33 /* QuotaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C1C3C91864507F56BC68505 /* QuotaTests.swift */; };
 		A1C976595234AF4D8746EC0E /* LingXiServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8D43CFB4D22CAA063C1A80D1 /* LingXiServices.framework */; };
@@ -106,7 +104,6 @@
 		C298DAF973597B4B9983AE69 /* Tokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8FF26036224B3841ECEAE /* Tokens.swift */; };
 		C54A4AB13A46FBE1FC9DD53E /* LingXiStyleShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9765D5ADE76251DA40CAE6AB /* LingXiStyleShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C675AD10FE36B538333A200F /* QuotaExhaustedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E307123479D7893A2D2AEC2 /* QuotaExhaustedView.swift */; };
-		C7A99EED5A9710B62FADF775 /* LingXiServices.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 8D43CFB4D22CAA063C1A80D1 /* LingXiServices.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C8B25F429D34DC84C1258C55 /* LingXiEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B75EE5AEA092772368AF0C2D /* LingXiEngine.framework */; };
 		C99EA4D8BB37A6ED77724D66 /* LingXiKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 154F183BEF663EE14ADFE5F4 /* LingXiKit.framework */; };
 		CF170CD44233338325074771 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 43B3E163C07FA88E843A48AF /* InfoPlist.xcstrings */; };
@@ -132,7 +129,6 @@
 		E9D093E213C37640071AE4ED /* LingXiServices.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 8D43CFB4D22CAA063C1A80D1 /* LingXiServices.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		EA77773FB9FAB895BE763582 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26DD5412ED9392D4C9EC400 /* SettingsView.swift */; };
 		ED4F884DDA19BD4097C9202C /* ConversionSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5877E669EBEA93F9E2ED30CE /* ConversionSummaryCard.swift */; };
-		ED9DD60CA9FCFAEF08B85D80 /* LingXiKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 154F183BEF663EE14ADFE5F4 /* LingXiKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		F29804AAD5616F6A2A4B80A4 /* SelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3833F2345FCC16B709C0599C /* SelectionView.swift */; };
 		F6FA5A0717D8790668CE8FC8 /* StylePortCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6078DBCBF6EA885B571F04E /* StylePortCoreTests.swift */; };
 		F8398A16CE79091FE51F0A2A /* AmbientBackdrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9B90BC33C4AF97168F32FA1 /* AmbientBackdrop.swift */; };
@@ -367,20 +363,6 @@
 				E53F97BDE303E436DD333E37 /* LingXiKit.framework in Embed Frameworks */,
 				927F190F2EF59A5DCD195734 /* LingXiEngine.framework in Embed Frameworks */,
 				E9D093E213C37640071AE4ED /* LingXiServices.framework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		645EF3F61AA053431B210084 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				9A6C77120F579D2A1B7A6FD2 /* StylePortCore.framework in Embed Frameworks */,
-				ED9DD60CA9FCFAEF08B85D80 /* LingXiKit.framework in Embed Frameworks */,
-				0EEA3B4D9518910AF86F3162 /* LingXiEngine.framework in Embed Frameworks */,
-				C7A99EED5A9710B62FADF775 /* LingXiServices.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1208,7 +1190,6 @@
 				6F0C9D9F885E81B46011603D /* Sources */,
 				FE7053E443BD5F5BC46C1433 /* Resources */,
 				CF08868AE7C4FB1F51A95862 /* Frameworks */,
-				645EF3F61AA053431B210084 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -1876,12 +1857,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = App/Resources/LingXiStyle.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";
 				INFOPLIST_FILE = App/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "$(TEXEL_APP_STORE_PROFILE)";
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -1954,7 +1937,6 @@
 				INFOPLIST_FILE = ShareExtension/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.Share;
@@ -1997,7 +1979,9 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";
 				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_STYLE[sdk=iphoneos*]" = Manual;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 9;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -2258,7 +2242,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -2315,13 +2299,14 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/Resources/LingXiStyleShare.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";
 				INFOPLIST_FILE = ShareExtension/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.Share;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "$(TEXEL_SHARE_APP_STORE_PROFILE)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";

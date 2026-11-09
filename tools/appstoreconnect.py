@@ -34,6 +34,32 @@ WRITE_ATTRIBUTES = {
     "appAssetLibraryPlacements": {"placementType", "placementGroup"},
     "appAssetLibraryPlacementOrderingRequests": {"placementGroup"},
 }
+RELEASE_ATTRIBUTES = {
+    "apps": {"contentRightsDeclaration"},
+    "appInfos": set(),
+    "appStoreVersions": {"copyright", "usesIdfa"},
+    "builds": {"usesNonExemptEncryption"},
+    "ageRatingDeclarations": {
+        "advertising", "alcoholTobaccoOrDrugUseOrReferences", "contests", "gambling",
+        "gamblingSimulated", "gunsOrOtherWeapons", "healthOrWellnessTopics", "lootBox",
+        "medicalOrTreatmentInformation", "messagingAndChat", "parentalControls", "profanityOrCrudeHumor",
+        "ageAssurance", "sexualContentGraphicAndNudity", "sexualContentOrNudity", "socialMedia",
+        "socialMediaAgeRestricted", "horrorOrFearThemes", "matureOrSuggestiveThemes", "unrestrictedWebAccess",
+        "userGeneratedContent", "violenceCartoonOrFantasy", "violenceRealisticProlongedGraphicOrSadistic",
+        "violenceRealistic", "ageRatingOverride", "ageRatingOverrideV2", "kidsAgeBand",
+    },
+    "inAppPurchases": {"name", "productId", "inAppPurchaseType", "reviewNote"},
+    "inAppPurchaseVersions": set(),
+    "inAppPurchaseLocalizations": {"locale", "name", "description"},
+    "inAppPurchaseAppStoreReviewScreenshots": {"fileName", "fileSize", "sourceFileChecksum", "uploaded"},
+    "appPriceSchedules": set(),
+    "inAppPurchasePriceSchedules": set(),
+    "appAvailabilities": {"availableInNewTerritories"},
+    "inAppPurchaseAvailabilities": {"availableInNewTerritories"},
+    "reviewSubmissions": {"platform"},
+    "reviewSubmissionItems": set(),
+}
+V2_RESOURCES = {"inAppPurchases", "inAppPurchaseLocalizations", "appAvailabilities"}
 
 
 def dump(value):
@@ -92,7 +118,9 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 class Client:
-    def __init__(self):
+    def __init__(self, allow_v2=False, release_setup=False, signing_setup=False):
+        self.allow_v2, self.release_setup = allow_v2, release_setup
+        self.signing_setup = signing_setup
         config_path = Path.home() / ".config/appstoreconnect/config.json"
         config = json.loads(config_path.read_text()) if config_path.exists() else {}
         values = {k: os.environ.get(k) or config.get(k) for k in (
@@ -124,18 +152,35 @@ class Client:
         return self._token
 
     def request(self, method, path, body=None, params=None):
-        url = path if path.startswith("https://") else BASE + path.removeprefix("/v1/").lstrip("/")
+        if path.startswith("https://"):
+            url = path
+        elif path.startswith(("/v1/", "/v2/")):
+            url = "https://api.appstoreconnect.apple.com" + path
+        else:
+            url = BASE + path.lstrip("/")
         parsed = urllib.parse.urlsplit(url)
         decoded_path = urllib.parse.unquote(parsed.path)
-        if parsed.scheme != "https" or parsed.netloc != "api.appstoreconnect.apple.com" or not decoded_path.startswith("/v1/") or ".." in decoded_path or parsed.fragment:
-            raise ValueError("Only the official /v1/ API is allowed.")
+        allowed_version = decoded_path.startswith("/v1/") or (getattr(self, "allow_v2", False) and decoded_path.startswith("/v2/") and decoded_path.split("/")[2] in V2_RESOURCES)
+        if parsed.scheme != "https" or parsed.netloc != "api.appstoreconnect.apple.com" or not allowed_version or ".." in decoded_path or parsed.fragment:
+            raise ValueError("Official API version/resource not enabled; v2 requires explicit --allow-v2.")
         if method != "GET":
-            parts = decoded_path.removeprefix("/v1/").split("/")
+            parts = decoded_path.split("/")[2:]
             kind = parts[0]
-            if method not in {"POST", "PATCH"} or kind not in WRITE_ATTRIBUTES or len(parts) != (1 if method == "POST" else 2):
+            allowed = dict(WRITE_ATTRIBUTES)
+            if getattr(self, "release_setup", False):
+                allowed.update(RELEASE_ATTRIBUTES)
+            if getattr(self, "signing_setup", False) and method == "POST":
+                allowed.update(certificates={"csrContent", "certificateType"}, profiles={"name", "profileType"})
+            build_link = getattr(self, "release_setup", False) and method == "PATCH" and len(parts) == 4 and parts[0] == "appStoreVersions" and parts[2:] == ["relationships", "build"]
+            if build_link:
+                if not body or set(body) != {"data"} or body["data"].get("type") != "builds" or set(body["data"]) != {"type", "id"}:
+                    raise ValueError("Only an existing build may be linked.")
+            elif method not in {"POST", "PATCH"} or kind not in allowed or len(parts) != (1 if method == "POST" else 2):
                 raise ValueError("Write blocked: only listing and screenshot operations are allowed.")
-            if not body or body.get("data", {}).get("type") != kind or set(body["data"].get("attributes", {})) - WRITE_ATTRIBUTES[kind]:
+            elif not body or body.get("data", {}).get("type") != kind or set(body["data"].get("attributes", {})) - allowed[kind]:
                 raise ValueError("Write blocked: unsupported resource attributes.")
+            if kind in {"reviewSubmissions", "reviewSubmissionItems"} and method != "POST":
+                raise ValueError("Only draft review preparation is allowed; submitting is blocked.")
             for key, value in body["data"].get("attributes", {}).items():
                 if key.startswith("contact") and isinstance(value, str) and value:
                     self.secrets.append(value)
@@ -482,8 +527,8 @@ def upload_parts(client, asset, path):
     expected_offset = 0
     for op in sorted(operations, key=lambda x: x["offset"]):
         url = urllib.parse.urlsplit(op["url"])
-        if url.scheme != "https" or not url.hostname or not url.hostname.endswith(".blobstore.apple.com") or url.username or url.password or url.port not in {None, 443}:
-            raise ValueError("Untrusted Apple asset upload URL.")
+        if url.scheme != "https" or not url.hostname or not (url.hostname.endswith(".blobstore.apple.com") or url.hostname == "northamerica-1.object-storage.apple.com") or url.username or url.password or url.port not in {None, 443}:
+            raise ValueError("Untrusted Apple asset upload host: " + (url.hostname or "<missing>"))
         if op["method"] != "PUT" or op["offset"] != expected_offset or op["length"] <= 0:
             raise ValueError("Invalid upload range or method.")
         expected_offset += op["length"]
@@ -589,6 +634,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--app-id", default=APP_ID)
     parser.add_argument("--version", default="1.7.1")
+    parser.add_argument("--allow-v2", action="store_true", help="Explicitly allow official IAP/availability v2 endpoints.")
+    parser.add_argument("--release-setup", action="store_true", help="Apply separately approved release metadata, prices and territories; never submits.")
+    parser.add_argument("--signing-setup", action="store_true", help="Explicitly permit creating local distribution certificates/profiles; never revokes.")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("self-test", help="Run offline regression tests without loading credentials.")
     raw = sub.add_parser("request", help="Official GET, POST or PATCH; writes require --apply.")
@@ -610,14 +658,19 @@ def main():
     screenshots.add_argument("--output", type=Path)
     screenshots.add_argument("--apply-plan", type=Path)
     screenshots.add_argument("--journal", type=Path)
+    from release_appstore import add_parser
+    add_parser(sub)
     args = parser.parse_args()
     try:
         if args.command == "self-test":
             import unittest
             suite = unittest.defaultTestLoader.discover(str(Path(__file__).parent), pattern="test_appstoreconnect.py")
             return int(not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful())
-        client = Client()
-        if args.command == "request":
+        client = Client(args.allow_v2, args.release_setup, args.signing_setup)
+        if args.command == "release":
+            from release_appstore import execute
+            result = execute(args, client)
+        elif args.command == "request":
             body = json.loads(args.body.read_text()) if args.body else None
             if args.method != "GET" and not args.apply:
                 print(dump({"preview": True, "method": args.method, "path": args.path, "body": body}))

@@ -108,6 +108,47 @@ class ClientTests(unittest.TestCase):
         self.assertTrue(result["contactFirstName"])
         self.assertEqual(result["detail"], "[JWT_REDACTED]")
 
+    def test_v2_is_explicit_and_scoped_to_approved_resources(self):
+        c = client()
+        with self.assertRaises(ValueError):
+            c.request("GET", "/v2/inAppPurchases/item")
+        c.allow_v2 = True
+        c.opener = FakeOpener([{"data": []}])
+        c.request("GET", "/v2/inAppPurchases/item")
+        self.assertEqual(c.opener.requests[0].full_url, "https://api.appstoreconnect.apple.com/v2/inAppPurchases/item")
+        with self.assertRaises(ValueError):
+            c.request("GET", "/v2/certificates")
+
+    def test_release_writes_require_flag_and_never_submit(self):
+        c = client()
+        body = asc.resource("ageRatingDeclarations", {"advertising": False}, "id")
+        with self.assertRaises(ValueError):
+            c.request("PATCH", "ageRatingDeclarations/id", body)
+        c.release_setup = True
+        c.opener = FakeOpener([{"data": {}}])
+        c.request("PATCH", "ageRatingDeclarations/id", body)
+        for method, path, data in (("PATCH", "reviewSubmissions/id", {"submitted": True}),
+                ("POST", "reviewSubmissions", {"platform": "IOS", "submitted": True}),
+                ("POST", "appStoreVersionSubmissions", {}),
+                ("POST", "appStoreVersionReleaseRequests", {})):
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                c.request(method, path, asc.resource(path.split('/')[0], data))
+
+    def test_build_attachment_is_only_enabled_relationship_write(self):
+        c = client()
+        c.release_setup = True
+        c.opener = FakeOpener([{}])
+        c.request("PATCH", "appStoreVersions/id/relationships/build", {"data": {"type": "builds", "id": "build"}})
+        with self.assertRaises(ValueError):
+            c.request("PATCH", "appStoreVersions/id/relationships/appStoreVersionSubmission", {"data": {"type": "appStoreVersionSubmissions", "id": "id"}})
+
+    def test_release_draft_review_create_is_allowed_without_submission(self):
+        c = client()
+        c.release_setup = True
+        c.opener = FakeOpener([{"data": {"id": "draft"}}])
+        result = c.request("POST", "reviewSubmissions", asc.resource("reviewSubmissions", {"platform": "IOS"}, relationships={"app": asc.relationship("apps", asc.APP_ID)}))
+        self.assertEqual(result["data"]["id"], "draft")
+
 
 class MetadataTests(unittest.TestCase):
     def test_missing_localization_creates_once_and_appeared_resource_stops(self):
@@ -277,10 +318,80 @@ class ScreenshotTests(unittest.TestCase):
             asc.upload_parts(c, {"attributes": {"uploadOperations": [op]}}, path)
             self.assertNotIn("Authorization", c.opener.requests[0].headers)
             self.assertEqual(c.opener.requests[0].data, b"test")
-            for bad in (dict(op, url="https://evil.example/path"), dict(op, offset=1), dict(op, length=3)):
+            c.opener = FakeOpener([{}])
+            asc.upload_parts(c, {"attributes": {"uploadOperations": [dict(op,
+                url="https://northamerica-1.object-storage.apple.com/path?signed=hidden")]}}, path)
+            self.assertNotIn("Authorization", c.opener.requests[0].headers)
+            for bad in (dict(op, url="https://northamerica-1.object-storage.apple.com.evil.example/path"), dict(op, url="https://evil.example/path"), dict(op, offset=1), dict(op, length=3)):
                 with self.assertRaises(ValueError):
                     asc.upload_parts(c, {"attributes": {"uploadOperations": [bad]}}, path)
 
+
+
+class ReleaseTests(unittest.TestCase):
+    def test_distribution_profile_rejects_wrong_bundle_cert_and_debug(self):
+        import release_appstore as release
+        from datetime import datetime, timedelta, timezone
+        profile = {'TeamIdentifier': [release.TEAM],
+            'Entitlements': {'application-identifier': release.TEAM+'.'+release.BUNDLES[0],
+                             'keychain-access-groups': [release.TEAM+'.*'], 'get-task-allow': False},
+            'ExpirationDate': datetime.now(timezone.utc)+timedelta(days=1), 'DeveloperCertificates': [b'cert']}
+        release.validate_profile(profile, release.BUNDLES[0], b'cert')
+        for bundle, cert in ((release.BUNDLES[1], b'cert'), (release.BUNDLES[0], b'other')):
+            with self.assertRaises(ValueError):
+                release.validate_profile(profile, bundle, cert)
+        profile['Entitlements']['get-task-allow'] = True
+        with self.assertRaises(ValueError):
+            release.validate_profile(profile, release.BUNDLES[0], b'cert')
+
+    def test_prepare_existing_items_is_idempotent_and_never_submits(self):
+        import release_appstore as release
+        from unittest.mock import Mock
+        c = Mock()
+        build = {'id': 'build', 'attributes': {'processingState': 'VALID', 'expired': False, 'usesNonExemptEncryption': False}}
+        draft = {'id': 'draft', 'attributes': {'platform': 'IOS', 'state': 'READY_FOR_REVIEW', 'submittedDate': None}}
+        items = [
+            {'attributes': {'state': 'READY_FOR_REVIEW'}, 'relationships': {'appStoreVersion': asc.relationship('appStoreVersions', 'version'), 'inAppPurchaseVersion': {'data': None}}},
+            {'attributes': {'state': 'READY_FOR_REVIEW'}, 'relationships': {'appStoreVersion': {'data': None}, 'inAppPurchaseVersion': asc.relationship('inAppPurchaseVersions', 'iap-version')}}]
+        def listing(path, params=None):
+            if path == 'reviewSubmissions':
+                return [draft]
+            if path.endswith('/versions'):
+                return [{'id': 'iap-version', 'attributes': {'state': 'PREPARE_FOR_SUBMISSION'}}]
+            return items
+        c.list.side_effect = listing
+        c.request.side_effect = lambda method, path: {'data': draft if path == 'reviewSubmissions/draft' else {'id': 'build'}}
+        with tempfile.TemporaryDirectory() as tmp, patch.object(release, 'matching_builds', return_value=[build]), patch.object(asc, 'target', return_value=({}, {'id': 'version'}, [])):
+            result = release.prepare(c, Path(tmp), [{'CFBundleShortVersionString': '1.7.1', 'CFBundleVersion': '9'}])
+        self.assertFalse(result['submitted'])
+        self.assertTrue(all(call.args[0] == 'GET' for call in c.request.call_args_list))
+
+    def test_review_screenshot_reuses_processed_source_name(self):
+        import hashlib
+        import release_appstore as release
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'pro.png'
+            path.write_bytes(png())
+            attrs = {'fileName': 'SOURCE', 'fileSize': path.stat().st_size,
+                'sourceFileChecksum': hashlib.md5(path.read_bytes()).hexdigest(),
+                'assetDeliveryState': {'state': 'COMPLETE'}, 'imageAsset': {'width': 2, 'height': 2}}
+            c = Mock(allow_v2=True, release_setup=True)
+            c.request.return_value = {'data': {'id': 'existing', 'attributes': attrs}}
+            result = release.execute(SimpleNamespace(action='review-screenshot', screenshot=path), c)
+            self.assertEqual(result['state'], 'COMPLETE')
+            self.assertTrue(all(call.args[0] == 'GET' for call in c.request.call_args_list))
+
+    def test_local_signing_files_are_private(self):
+        import release_appstore as release
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'state.json'
+            path.write_text('old')
+            path.chmod(0o644)
+            release.private_write(path, b'new')
+            self.assertEqual(path.read_bytes(), b'new')
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
 
 if __name__ == "__main__":
     unittest.main()
