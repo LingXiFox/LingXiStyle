@@ -12,6 +12,13 @@ xcuserdata/
 *.p12
 *.cer
 Secrets.xcconfig
+*.p8
+*.pem
+__pycache__/
+
+# App Store Connect credentials stay under ~/.config/appstoreconnect/.
+asc-config*.json
+review-contact*.json
 
 # Local App Store screenshot delivery (24 PNGs, ~49MB)
 AppStoreScreenshots/
