@@ -26,6 +26,12 @@
   两个 bundle 的 `codesign --verify --strict` 均通过。未手动重签。
 - 内购 Product ID `com.lingxifox.LingXiStyle.pro`、Keychain 服务名与额度逻辑未改。
   新 Bundle ID / 共享组不迁移旧安装的沙盒、授权或额度账本。
+- 首轮 [CI run 42580207574](https://github.com/LingXiFox/LingXiStyle/actions/runs/42580207574)
+  未通过：macOS 测试因 CI 缺少 Team 对应的 Mac Development 私钥而取消；另有 XcodeGen 下载
+  HTTP 504 与 iOS 26 模拟器启动超时。不能将该轮 CI 记为通过。
+- CI 的三套 macOS 测试改用 `CODE_SIGN_IDENTITY=-`，仅使用 ad-hoc 签名，不依赖开发证书；
+  所有 target 的 `DEVELOPMENT_TEAM` 仍为 `R9UJHHAZQ4`。本地按新命令验证 Kit 28、Engine 2、
+  Core 14 项执行，合计 42 通过 / 2 跳过 / 0 失败；测试 bundle 签名确认为 `Signature=adhoc`。
 - 本次未验证真机 provisioning / distribution 签名、真实 App Store 交易与完整照片转换流程。
   下方 2026-11-07 的证据属于旧 Bundle ID，不代表新标识已完成同等验收。
 
