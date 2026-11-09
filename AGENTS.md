@@ -37,8 +37,8 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiUITests \
 ```
 
 集成测试运行前必须给宿主授权：
-`xcrun simctl privacy booted grant photos com.lingxifox.LingXiStyle.IntegrationHost`
-和 `xcrun simctl privacy booted grant photos-add com.lingxifox.LingXiStyle.IntegrationHost`。
+`xcrun simctl privacy booted grant photos com.lingxifox.Texel.IntegrationHost`
+和 `xcrun simctl privacy booted grant photos-add com.lingxifox.Texel.IntegrationHost`。
 
 改了 `project.yml` 或新增文件后必须重新 `xcodegen generate`，否则 target 源列表不会更新
 （历史坑：测试 target 空源，报 `Cannot find executable for CFBundle ... xctest`）。
@@ -108,7 +108,9 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiUITests \
 - Swift 5 模式，iOS 18+；App 为 SwiftUI，分享扩展用 `UIHostingController` 承载 SwiftUI。
 - 注释与 commit message 用英文；用户可见文案全部走 `Resources/Localization/*.xcstrings`，源语言
   `zh-Hans`，当前支持 zh-Hans / zh-Hant / en / ja。不要在 Swift 里写只适配一种语言的拼接文案。
-  内部 Bundle ID、Keychain 服务名、StoreKit Product ID 与仓库名保留 LingXiStyle，避免升级断档。
+  Bundle ID 使用 `com.lingxifox.Texel` 及对应 target 后缀，共享 Keychain 组使用
+  `$(AppIdentifierPrefix)com.lingxifox.Texel.shared`；Keychain 服务名、StoreKit Product ID
+  与仓库名保留 LingXiStyle。
 - 新增公开 API 要显式 `public`，并保持值类型 `Sendable`。
 - 临时文件只写 `FileManager.default.temporaryDirectory`，任务结束删除；探针脚本放 `/tmp` 或 `.tmp/`，
   不提交。

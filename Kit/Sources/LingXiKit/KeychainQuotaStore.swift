@@ -51,7 +51,7 @@ final class KeychainQuotaStore: @unchecked Sendable {
     }
 
     /// Reads the team-prefixed group from the target's Info.plist. The build setting expands to
-    /// e.g. TEAMID.com.lingxifox.LingXiStyle.shared; unsigned test builds have no group and fall
+    /// e.g. TEAMID.com.lingxifox.Texel.shared; unsigned test builds have no group and fall
     /// back to the process default Keychain group. Simulator builds signed by Xcode carry the
     /// same simulated entitlement as device builds, so the production path is exercised there.
     static func defaultAccessGroup(bundle: Bundle = .main) -> String? {

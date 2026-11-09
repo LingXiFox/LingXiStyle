@@ -1,7 +1,7 @@
 # Texel 1.7.1 — App Store listing copy
 
 可复制到 App Store Connect 的四语言商店文案。版本 **1.7.1 (9)**，Bundle ID
-`com.lingxifox.LingXiStyle`。内容依据仓库 README、`AppStoreRelease.md`、本地化文件与
+`com.lingxifox.Texel`。内容依据仓库 README、`AppStoreRelease.md`、本地化文件与
 实际代码行为整理；不包含虚构的价格、联系方式、备案号或审核状态。
 
 > 发布前必须替换的占位符见文末 **Manual placeholders**，并同步到
@@ -30,7 +30,7 @@ Apple 的字符上限与本文文案的实际字符数（按 Unicode 字符计�
 | App 名称（App Store Connect） | 按语言填写下方 Name | 可复制 |
 | 版本 | 1.7.1 | 与 `project.yml` 一致 |
 | Build | 9 | 与 `CURRENT_PROJECT_VERSION` 一致 |
-| Bundle ID | `com.lingxifox.LingXiStyle` | 已配置 |
+| Bundle ID | `com.lingxifox.Texel` | 已配置 |
 | 主要分类 | Photo & Video | 建议，提交时以 App Store Connect 可选值为准 |
 | 次要分类 | 可不填；如需要可选 Graphics & Design | 建议，不要为了排名堆分类 |
 | 版权 | `© 2026 LingXiFox` | 来自 LICENSE；如使用其他法律实体需替换 |

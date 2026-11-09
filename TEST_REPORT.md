@@ -11,6 +11,24 @@
   本机没有 iOS 18 / 26 运行时；真机、真实 App Store 交易与部分失败路径仍未验证。
   本报告只记录实际执行过的证据。
 
+## 2026-11-09 Bundle Identifier 同步验证
+
+- 主 App 改为 `com.lingxifox.Texel`，分享扩展为 `com.lingxifox.Texel.Share`；
+  framework、测试 bundle、测试宿主同步使用 Texel 前缀，14 个 target / 28 个构建配置检查通过。
+- `project.yml`、生成工程、Info.plist、entitlements、CI 相册授权命令与发布文档已同步；
+  连续运行 XcodeGen 后工程保持一致。保留 Xcode 已选择的 Team，并应用到所有 target。
+- `generic/platform=iOS` Debug / Release 构建通过（`CODE_SIGNING_ALLOWED=NO`）；
+  产物中主 App / 分享扩展的 Bundle ID 与 Keychain 组一致。
+- macOS arm64：Kit 28 项通过；iPhone 17 / iOS 27.3 模拟器：KeychainQuotaTests 10 项通过；
+  合计 38 项，0 失败、0 跳过。
+- Debug 模拟器自动签名构建通过，主 App 与分享扩展的 `Simulated.xcent` 均包含
+  `R9UJHHAZQ4.com.lingxifox.Texel.shared`，application-identifier 分别匹配新 Bundle ID；
+  两个 bundle 的 `codesign --verify --strict` 均通过。未手动重签。
+- 内购 Product ID `com.lingxifox.LingXiStyle.pro`、Keychain 服务名与额度逻辑未改。
+  新 Bundle ID / 共享组不迁移旧安装的沙盒、授权或额度账本。
+- 本次未验证真机 provisioning / distribution 签名、真实 App Store 交易与完整照片转换流程。
+  下方 2026-11-07 的证据属于旧 Bundle ID，不代表新标识已完成同等验收。
+
 ## 1. 环境
 
 | 项 | 值 |
@@ -202,8 +220,8 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiUITests \
 集成测试运行前必须给宿主授权：
 
 ```bash
-xcrun simctl privacy booted grant photos com.lingxifox.LingXiStyle.IntegrationHost
-xcrun simctl privacy booted grant photos-add com.lingxifox.LingXiStyle.IntegrationHost
+xcrun simctl privacy booted grant photos com.lingxifox.Texel.IntegrationHost
+xcrun simctl privacy booted grant photos-add com.lingxifox.Texel.IntegrationHost
 ```
 
 ### 4.1 LingXiKitTests（28）

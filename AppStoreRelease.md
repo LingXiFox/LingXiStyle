@@ -19,10 +19,10 @@ UI 与测试都不得把它当作生产价格。
 - 加入 Apple Developer Program（付费）。免费 Personal Team 不能创建可售内购，也不能上架。
 - 在 App Store Connect 接受 **Paid Apps Agreement**。
 - 完成税务信息与银行账户；未完成时商品可能显示为不可售。
-- App 的 Bundle ID 与仓库一致：`com.lingxifox.LingXiStyle`。
-- 分享扩展 Bundle ID：`com.lingxifox.LingXiStyle.Share`。
+- App 的 Bundle ID 与仓库一致：`com.lingxifox.Texel`。
+- 分享扩展 Bundle ID：`com.lingxifox.Texel.Share`。
 - 若要跨 App / 分享扩展共享免费额度，两个 target 必须使用同一个 Keychain Access Group；
-  仓库 entitlements 使用 `$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared`。
+  仓库 entitlements 使用 `$(AppIdentifierPrefix)com.lingxifox.Texel.shared`。
   免费 Personal Team 的个人资料没有 App Groups，因此默认不依赖 App Group。
 
 ## 2. 创建非消耗型商品
@@ -55,7 +55,7 @@ App 代码只读取 `Product.displayPrice`，不包含任何美元 / 人民币 /
 1. 在 Xcode → target `LingXiStyle` → Signing & Capabilities，选择付费 Team。
 2. 为 `LingXiStyle` 与 `LingXiStyleShare` 使用相同的 Team。
 3. 确认两个 target 的 Keychain Sharing 都包含：
-   `$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared`
+   `$(AppIdentifierPrefix)com.lingxifox.Texel.shared`
 4. 不需要 App Groups；免费额度默认使用 Keychain 槽位账本。
 5. 真实内购不需要额外的 StoreKit entitlement，但需要 App Store Connect 商品与有效签名。
 

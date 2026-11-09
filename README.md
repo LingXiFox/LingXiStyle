@@ -1,6 +1,6 @@
 # 纹粒 / Texel（LingXiStyle）
 
-公开品牌：简体中文「纹粒」，繁体中文 / 英文 / 日文「Texel」；仓库、Bundle ID 与 StoreKit Product ID 仍沿用 LingXiStyle。
+公开品牌：简体中文「纹粒」，繁体中文 / 英文 / 日文「Texel」；App Bundle ID 为 `com.lingxifox.Texel`，分享扩展为 `com.lingxifox.Texel.Share`；仓库、Keychain 服务名与 StoreKit Product ID 仍沿用 LingXiStyle。
 
 给 iPhone 16 / 17 系列 HEIC 原片追加纹理与颗粒（Texture / Grain），另存为一张新的 HEIC。
 原图不会被覆盖、不会被转码，照片不离开设备。
@@ -22,7 +22,7 @@
 - 自动化测试：本机 `LingXiKitTests` 28/28、`LingXiPurchaseTests` 24/24（14 个 StoreKit + 10 个 Keychain）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）、`LingXiIntegrationTests` 29/29（8 真实转换 / PhotoKit、12 分享扩展、9 快捷指令）、`LingXiUITests` 1/1 启动冒烟。合计执行 98 项，96 项通过，2 项跳过。1.7.1 的 [run 42435430433](https://github.com/LingXiFox/LingXiStyle/actions/runs/42435430433) 全绿（commit `365abf5`：Policy、macOS 单测、iOS 18.5、iOS 26.x 四个 job 全部 success；两条运行时集成均为 29 项执行 / 0 跳过 / 0 失败）；1.7.0 的 [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297) 也曾全绿。
 - `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift 源码 warning；签名 Debug 构建与模拟器签名构建通过。
 - 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.2 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过；1.3 沿用同一引擎并在模拟器保存成功。
-- 1.7 在同一台 iPhone 17（iOS 27.3）完成分享扩展端到端：从「照片」分享 5,924,047 字节原片，读入、转换、另存成功，额度从 4 / 5 变为 3 / 5；分享已处理过的照片会提示「无需重复处理」且不扣额度。签名模拟器构建的 App 与扩展均生成同一 Keychain Access Group（`$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared`）。
+- 1.7 在同一台 iPhone 17（iOS 27.3）完成分享扩展端到端：从「照片」分享 5,924,047 字节原片，读入、转换、另存成功，额度从 4 / 5 变为 3 / 5；分享已处理过的照片会提示「无需重复处理」且不扣额度。当时的签名模拟器构建使用同一旧 Keychain Access Group（`$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared`）；当前 Bundle ID 与共享组已切换为 Texel，需重新验证签名。
 - 兼容性验证边界：本机只有 iOS 27.3 运行时，已完成安装、启动、首页、设置、Pro、相册导入与真实 HEIC 转换；1.7.1 起 CI 在 iOS 18.5 与 iOS 26.0 上新增集成测试和启动冒烟，但完整 UI 主流程与真机仍未验证；iOS 18.0 只有编译目标，没有运行时证据。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 
 ## 它做什么
@@ -110,7 +110,7 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiUITests \
 
 `LingXiIntegrationTests` 使用仓库内的 48MP HEIC fixture，真实调用 `ConversionService`、PhotoKit
 保存与 Keychain 额度账本；运行前需要给宿主 App 授权相册：
-`xcrun simctl privacy booted grant photos com.lingxifox.LingXiStyle.IntegrationHost` 与
+`xcrun simctl privacy booted grant photos com.lingxifox.Texel.IntegrationHost` 与
 `xcrun simctl privacy booted grant photos-add ...`。`LingXiUITests` 只验证安装、启动、首页、
 设置与 Pro 入口，不伪造转换结果。
 
@@ -234,7 +234,7 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 `reserved` 槽位。30 分钟未提交的预留会被回收，跨天自动从新槽位开始。
 
 - App 与分享扩展共享 Keychain Access Group
-  `$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared`，不依赖 App Group。
+  `$(AppIdentifierPrefix)com.lingxifox.Texel.shared`，不依赖 App Group。
 - 使用 Xcode 自动签名构建的模拟器产物会生成 `Simulated.xcent`，其中包含同一共享组；
   1.7 已用该构建验证扩展转换后主 App 额度同步减少。手动 `codesign --deep` 会抹掉模拟授权，
   不要用它重签 QA 包。真机 distribution 签名下的共享组仍需在真机复验。

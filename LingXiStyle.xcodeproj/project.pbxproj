@@ -1403,46 +1403,60 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					050BCED409E8514C78A7BFE9 = {
+						DevelopmentTeam = R9UJHHAZQ4;
 						ProvisioningStyle = Automatic;
 					};
 					05DE45A1293EB19E3C284FAA = {
+						DevelopmentTeam = R9UJHHAZQ4;
 						ProvisioningStyle = Automatic;
 					};
 					06A1F19D7D36F7C3AC618C23 = {
+						DevelopmentTeam = R9UJHHAZQ4;
 						ProvisioningStyle = Automatic;
 					};
 					0A4D0F517AC44D78F525E04D = {
+						DevelopmentTeam = R9UJHHAZQ4;
 						ProvisioningStyle = Automatic;
 					};
 					4154C4A202A326BFE24E930B = {
+						DevelopmentTeam = R9UJHHAZQ4;
 						ProvisioningStyle = Automatic;
 					};
 					6F2159DC23AC462F51ABA4A0 = {
+						DevelopmentTeam = R9UJHHAZQ4;
 						ProvisioningStyle = Automatic;
 					};
 					71F39CBFE3E83199973F74C7 = {
+						DevelopmentTeam = R9UJHHAZQ4;
 						ProvisioningStyle = Automatic;
 					};
 					9C15528E7EAFFEC5C1980804 = {
+						DevelopmentTeam = R9UJHHAZQ4;
 						ProvisioningStyle = Automatic;
 					};
 					B3873EC0950304DF344669A3 = {
+						DevelopmentTeam = R9UJHHAZQ4;
 						ProvisioningStyle = Automatic;
 					};
 					BB1C0B6C4DCA985E826EC3D3 = {
+						DevelopmentTeam = R9UJHHAZQ4;
 						ProvisioningStyle = Automatic;
 					};
 					C288C78B2230EDAE393B0337 = {
+						DevelopmentTeam = R9UJHHAZQ4;
 						ProvisioningStyle = Automatic;
 						TestTargetID = D9CE69A01CB54F24C9966AAA;
 					};
 					D6F4929190B05389A213EF9D = {
+						DevelopmentTeam = R9UJHHAZQ4;
 						ProvisioningStyle = Automatic;
 					};
 					D9CE69A01CB54F24C9966AAA = {
+						DevelopmentTeam = R9UJHHAZQ4;
 						ProvisioningStyle = Automatic;
 					};
 					EE1AE553C025DF74C306A858 = {
+						DevelopmentTeam = R9UJHHAZQ4;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -1867,7 +1881,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel;
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -1889,7 +1903,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.Services;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.Services;
 				PRODUCT_NAME = LingXiServices;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -1909,7 +1923,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.PurchaseHost;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.PurchaseHost;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -1926,7 +1940,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.IntegrationHost;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.IntegrationHost;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -1943,7 +1957,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.Share;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.Share;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -1987,6 +2001,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 9;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = R9UJHHAZQ4;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -2049,6 +2064,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 9;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = R9UJHHAZQ4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -2091,7 +2107,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.IntegrationTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.IntegrationTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LingXiIntegrationHost.app/LingXiIntegrationHost";
@@ -2102,6 +2118,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -2113,7 +2130,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.StylePortCore;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.StylePortCore;
 				PRODUCT_NAME = StylePortCore;
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
@@ -2142,7 +2159,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.Engine;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.Engine;
 				PRODUCT_NAME = LingXiEngine;
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
@@ -2165,7 +2182,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.IntegrationTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.IntegrationTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LingXiIntegrationHost.app/LingXiIntegrationHost";
@@ -2183,7 +2200,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.LingXiKitTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.LingXiKitTests;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -2198,7 +2215,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.UITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.UITests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = LingXiStyle;
@@ -2216,7 +2233,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.EngineTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.EngineTests;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -2232,7 +2249,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.StylePortCoreTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.StylePortCoreTests;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -2241,6 +2258,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -2252,7 +2270,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.StylePortCore;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.StylePortCore;
 				PRODUCT_NAME = StylePortCore;
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
@@ -2285,7 +2303,7 @@
 					"-framework",
 					StoreKitTest,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.PurchaseTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.PurchaseTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LingXiPurchaseHost.app/LingXiPurchaseHost";
@@ -2303,7 +2321,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.Share;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.Share;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -2329,7 +2347,7 @@
 					"-framework",
 					StoreKitTest,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.PurchaseTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.PurchaseTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LingXiPurchaseHost.app/LingXiPurchaseHost";
@@ -2347,7 +2365,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.EngineTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.EngineTests;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -2364,7 +2382,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel;
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -2386,7 +2404,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.Services;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.Services;
 				PRODUCT_NAME = LingXiServices;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -2410,7 +2428,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.LingXiKit;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.LingXiKit;
 				PRODUCT_NAME = LingXiKit;
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
@@ -2434,7 +2452,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.IntegrationHost;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.IntegrationHost;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -2455,7 +2473,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.Engine;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.Engine;
 				PRODUCT_NAME = LingXiEngine;
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
@@ -2478,7 +2496,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.UITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.UITests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = LingXiStyle;
@@ -2496,7 +2514,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.StylePortCoreTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.StylePortCoreTests;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -2516,7 +2534,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.LingXiKit;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.LingXiKit;
 				PRODUCT_NAME = LingXiKit;
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
@@ -2540,7 +2558,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.LingXiKitTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.LingXiKitTests;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -2556,7 +2574,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.LingXiStyle.PurchaseHost;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.PurchaseHost;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};

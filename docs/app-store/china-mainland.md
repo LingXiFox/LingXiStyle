@@ -21,7 +21,7 @@
 
 以下描述来自仓库代码与文档，填写备案/审核材料时应保持一致：
 
-- App 名称：简体中文「纹粒」，其他语言「Texel」；Bundle ID `com.lingxifox.LingXiStyle`；
+- App 名称：简体中文「纹粒」，其他语言「Texel」；Bundle ID `com.lingxifox.Texel`；
   版本 1.7.1（build 9）。
 - 功能：读取用户选择的 iPhone 16 / 17 HEIC 原片，在本机追加纹理与颗粒，另存为相册新照片。
 - 不覆盖原图、不转码、不上传照片；开发者不运营服务器。
@@ -52,7 +52,7 @@
 ### 3.2 App 材料
 
 - [ ] App 名称：纹粒 / Texel（与商店名称、安装包显示名称一致）。
-- [ ] Bundle ID：`com.lingxifox.LingXiStyle`。
+- [ ] Bundle ID：`com.lingxifox.Texel`。
 - [ ] 版本号：1.7.1；Build：9。
 - [ ] 安装包签名信息（证书、签名指纹等，按备案系统要求提供）。
 - [ ] App 图标、截图、功能简介与类目（Photo & Video）。

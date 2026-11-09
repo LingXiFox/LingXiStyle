@@ -152,7 +152,7 @@ final class KeychainQuotaTests: XCTestCase {
     func testConfiguredSharedGroupWithoutEntitlementFailsClosed() throws {
         let clock = KeychainTestClock()
         let store = KeychainQuotaStore(service: service,
-                                       accessGroup: "com.lingxifox.LingXiStyle.shared",
+                                       accessGroup: "com.lingxifox.Texel.shared",
                                        limit: QuotaConfiguration.freeDailyLimit,
                                        now: { clock.now() })
         stores.append(store)
@@ -168,9 +168,9 @@ final class KeychainQuotaTests: XCTestCase {
         XCTAssertNil(KeychainQuotaStore.accessGroup(from: nil))
         XCTAssertNil(KeychainQuotaStore.accessGroup(from: ""))
         XCTAssertNil(KeychainQuotaStore.accessGroup(from: "   "))
-        XCTAssertNil(KeychainQuotaStore.accessGroup(from: "$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared"))
-        XCTAssertEqual(KeychainQuotaStore.accessGroup(from: " 4VXWMYSQG8.com.lingxifox.LingXiStyle.shared "),
-                       "4VXWMYSQG8.com.lingxifox.LingXiStyle.shared")
+        XCTAssertNil(KeychainQuotaStore.accessGroup(from: "$(AppIdentifierPrefix)com.lingxifox.Texel.shared"))
+        XCTAssertEqual(KeychainQuotaStore.accessGroup(from: " 4VXWMYSQG8.com.lingxifox.Texel.shared "),
+                       "4VXWMYSQG8.com.lingxifox.Texel.shared")
     }
 
     func testProBypassesKeychainStore() throws {

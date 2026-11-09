@@ -320,8 +320,8 @@ jobs:
           echo "install start $(date -u +%H:%M:%S)"
           xcrun simctl install "$DEVICE_ID" "$HOST_APP"
           echo "install done $(date -u +%H:%M:%S)"
-          BUNDLE_ID="com.lingxifox.LingXiStyle.IntegrationHost"
-          TEST_BUNDLE_ID="com.lingxifox.LingXiStyle.IntegrationTests"
+          BUNDLE_ID="com.lingxifox.Texel.IntegrationHost"
+          TEST_BUNDLE_ID="com.lingxifox.Texel.IntegrationTests"
           # TCC attributes access to the host process, but some simulator runtimes
           # consult the embedded test bundle as the responsible process. Grant both
           # and do not pre-launch the host, so no stale notDetermined state is cached.
@@ -380,8 +380,8 @@ jobs:
               echo "TCC database not found at $TCC_DB"
             fi
             echo "== Installed integration host =="
-            xcrun simctl get_app_container "$DEVICE_ID" com.lingxifox.LingXiStyle.IntegrationHost app || true
-            HOST_APP=$(xcrun simctl get_app_container "$DEVICE_ID" com.lingxifox.LingXiStyle.IntegrationHost app 2>/dev/null || true)
+            xcrun simctl get_app_container "$DEVICE_ID" com.lingxifox.Texel.IntegrationHost app || true
+            HOST_APP=$(xcrun simctl get_app_container "$DEVICE_ID" com.lingxifox.Texel.IntegrationHost app 2>/dev/null || true)
             if [ -n "${HOST_APP:-}" ] && [ -d "$HOST_APP" ]; then
               codesign -dv --verbose=4 "$HOST_APP" 2>&1 | head -30 || true
               /usr/libexec/PlistBuddy -c 'Print :NSPhotoLibraryUsageDescription' "$HOST_APP/Info.plist" 2>&1 || true
