@@ -1,0 +1,59 @@
+name: App Store archive
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  archive:
+    name: Archive with a release SDK
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          xcode: /Applications/Xcode_26.3.app
+      - name: Generate and archive without credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodegen generate
+          mkdir -p .build/app-store
+          xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiStyle \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -derivedDataPath .build/ArchiveDerivedData \
+            -archivePath .build/app-store/Texel.xcarchive \
+            CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO archive \
+            2>&1 | tee .build/app-store/archive.log
+          python3 - <<'PY'
+          import json, pathlib, plistlib, subprocess
+          root = pathlib.Path('.build/app-store')
+          archive = root / 'Texel.xcarchive'
+          info = plistlib.loads((archive / 'Info.plist').read_bytes())
+          app = archive / 'Products' / info['ApplicationProperties']['ApplicationPath']
+          data = plistlib.loads((app / 'Info.plist').read_bytes())
+          assert data['CFBundleIdentifier'] == 'com.lingxifox.Texel'
+          assert data['CFBundleShortVersionString'] == '1.7.1'
+          assert data['CFBundleVersion'] == '9'
+          assert data['DTSDKName'].startswith('iphoneos26.')
+          assert not list(app.rglob('*.storekit'))
+          (root / 'provenance.json').write_text(json.dumps({
+              'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+              'version': data['CFBundleShortVersionString'], 'build': data['CFBundleVersion'],
+              'sdk': data['DTSDKName'], 'xcode': data['DTXcodeBuild'], 'signed': False
+          }, indent=2))
+          PY
+          ditto -c -k --keepParent .build/app-store/Texel.xcarchive .build/app-store/Texel.xcarchive.zip
+      - name: Upload unsigned archive and provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: texel-app-store-archive
+          path: |
+            .build/app-store/Texel.xcarchive.zip
+            .build/app-store/provenance.json
+            .build/app-store/archive.log
+          if-no-files-found: error
+          retention-days: 7
