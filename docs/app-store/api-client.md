@@ -120,11 +120,13 @@ uv run --frozen --script tools/appstoreconnect.py request PATCH appStoreVersionL
 
 通用 GET 支持官方 v1。`--allow-v2` 仅放行官方内购和应用销售地区资源；
 `--release-setup` 开启另行授权的发布资料、年龄分级、价格/地区、内购资料和未提交审核草稿操作。
-这些开关不代替用户对价格、地区的明确授权。删除、实际提交审核、发布、证书撤销、财务和 API 密钥修改始终禁止。
+这些开关不代替用户对价格、地区的明确授权。删除、App 版本实际提交审核/发布、证书撤销、财务和 API 密钥修改始终禁止。
+单张创意图片有独立的显式审核开关，见后文；它不能提交混有 App 或内购条目的审核草稿。
 `--signing-setup` 仅允许创建证书/描述文件，不允许撤销。
 
-本账户已经按用户单独批准配置：App 免费、仅美国；Texel Pro 非消耗型、美国 $2.99、仅美国。
-常规文案和发布流程不会再次修改这些商业配置。
+2026-11-09 的初始批准范围是仅美国。2026-11-10 用户另行批准 App 与 Pro 同步
+开放所有现有地区、仅排除中国大陆；App 免费，Pro 非消耗型，美国基准 $2.99，其他地区自动本地定价。
+常规文案和构建流程不会修改这些商业配置，地区变更需使用后文的显式预览/应用命令。
 
 ## 本机正式签名、归档、上传
 
@@ -193,3 +195,43 @@ PNG 拒绝条件、动态规格、上传范围/主机/无 JWT、已有资产重�
 - [图片预约、上传、提交](https://developer.apple.com/documentation/appstoreconnectapi/uploading-and-managing-image-assets)
 - [Placement 与排序](https://developer.apple.com/documentation/appstoreconnectapi/placing-assets-on-your-app-store-surfaces)
 - [当前截图要求](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/)
+
+
+## 已上架版本：扩展地区与搜索创意图
+
+2026-11-10 用户明确批准 App 与 Pro 同步开放全部现有地区、只排除 CHN，
+保留美国 $2.99 基准和自动本地定价，不开启未来地区。其他任务不得把此授权视为通用授权。
+
+```bash
+uv run --frozen --script tools/appstoreconnect.py --allow-v2 --release-setup release availability --output .tmp/market-preview
+uv run --frozen --script tools/appstoreconnect.py --allow-v2 --release-setup release availability --apply-plan .tmp/market-preview/availability-plan.json --output .tmp/market-preview
+```
+
+先查询全部 territory、App/IAP 可售地区、未来地区开关、美国基准和现有手工价，
+生成精确增删清单。应用预览时重新核对价格和 Apple 当前地区全集；只 PATCH 需要变化的
+territoryAvailabilities.available，不改日期或预购状态。IAP 使用官方 POST 更新完整地区集合。
+先完成 IAP 并回读，再修改 App；每个已修改地区写入进度，失败不循环重试，
+重跑从真实状态恢复。最终 App 与 IAP 都必须正好等于当前所有地区减 CHN，价格必须与预览一致。
+本流程不修改价格、协议、DSA、身份、税务或银行资料；合规限制如实留在 contentStatuses 中。
+
+Apple 搜索创意素材与普通 App 截图分开；缺少时回退使用截图。新图片先校验当前
+appAssetLibraryRefData 的类型映射、实际像素、PNG CRC/解压、RGB 和无 alpha，
+用 SHA-256 referenceName 复用预约，只有 Apple 实际 specId/尺寸匹配才继续。
+
+```bash
+uv run --frozen --script tools/appstoreconnect.py --allow-v2 --release-setup release creative --image /absolute/approved-search.png --submit-asset-review --publish-approved --watch-approval --output .tmp/creative-run
+```
+
+这三个开关必须在用户批准该具体图片、独立素材审核和获批后使用之后才启用。
+`--submit-asset-review` 创建只含这一张图片的审核草稿，客户端在 PATCH submitted 前
+再次 GET 草稿和所有条目，拒绝其他图片、App 版本、内购或任何混合内容。
+未启用图片审核作用域时，既有 App 提审保护仍生效。
+`--publish-approved` 仅在图片 APPROVED 且原版本仍 READY_FOR_SALE 时，为当前四语言添加搜索 placement。
+不会覆盖不同的已有素材，也不会删除资源。无 1.7.2 或新 IPA 创建步骤。
+`--watch-approval` 每分钟查询一次，最多 24 小时，遇到 FAILED/REJECTED/ARCHIVED 立即退出。
+等待期间 creative-state.json 保存真实状态；获批后才绑定页面，未获批不宣称已展示。
+后台任务是有明确期限的授权素材发布工作；结束后应清理临时 worktree 和工具进程。
+
+图片本地保存在 AppStoreScreenshots/Creative/（仍不提交 Git），旁边的 prompt 文件记录
+内置生图提示词、原始 1536×1024 和用户批准的 ImageIO 3072×2048 放大导出。
+它是品牌创意插画，不作为真实 App 截图，也不宣称原生生成分辨率达到 3072。

@@ -1,4 +1,4 @@
-"""Texel's local manual-signing release workflow; never submits or publishes."""
+"""Texel signing, markets and approved creatives; never submits or releases App versions."""
 import argparse
 import base64
 from datetime import datetime, timezone
@@ -195,6 +195,10 @@ def prepare(client, output, verified):
     _, version, _ = asc.target(client, asc.APP_ID, verified[0]['CFBundleShortVersionString'])
     endpoint = 'appStoreVersions/'+version['id']+'/relationships/build'
     linked = client.request('GET', endpoint)['data']
+    if version.get('attributes', {}).get('appStoreState') == 'READY_FOR_SALE':
+        if not linked or linked['id'] != build['id']:
+            raise ValueError('Published version uses a different build; no review draft was created.')
+        return {'build_id': build['id'], 'build_processing': state, 'already_released': True, 'submitted': False}
     if not linked or linked['id'] != build['id']:
         client.request('PATCH', endpoint, asc.relationship('builds', build['id']))
     if client.request('GET', endpoint)['data']['id'] != build['id']:
@@ -233,6 +237,10 @@ def prepare(client, output, verified):
     return result
 
 def execute(args, client):
+    if args.action == 'availability':
+        return availability(args, client)
+    if args.action == 'creative':
+        return creative(args, client)
     if args.action == 'signing':
         if not client.signing_setup:
             raise ValueError('Local signing setup requires --signing-setup.')
@@ -308,7 +316,205 @@ def execute(args, client):
 
 
 def add_parser(sub):
-    parser = sub.add_parser('release', help='Local manual signing, stable archive and upload; never submits.')
-    parser.add_argument('action', choices=['signing', 'archive', 'upload', 'review-screenshot', 'prepare'])
+    parser = sub.add_parser('release', help='Local signing, market preparation and creative assets; never submits App versions.')
+    parser.add_argument('action', choices=['signing', 'archive', 'upload', 'review-screenshot', 'prepare', 'availability', 'creative'])
+    parser.add_argument('--apply-plan', type=Path)
+    parser.add_argument('--image', type=Path)
+    parser.add_argument('--submit-asset-review', action='store_true')
+    parser.add_argument('--publish-approved', action='store_true')
+    parser.add_argument('--watch-approval', action='store_true')
     parser.add_argument('--screenshot', type=Path)
     parser.add_argument('--output', type=Path, default=Path('.tmp/appstoreconnect/manual-release'))
+
+
+def market_snapshot(client):
+    territories = client.list('territories', {'limit': 200})
+    app = client.request('GET', f'apps/{asc.APP_ID}/appAvailabilityV2')['data']
+    rows = client.list(f'/v2/appAvailabilities/{app["id"]}/territoryAvailabilities', {'include': 'territory', 'limit': 200})
+    iap = client.request('GET', '/v2/inAppPurchases/6832499022/inAppPurchaseAvailability')['data']
+    enabled = client.list(f'inAppPurchaseAvailabilities/{iap["id"]}/availableTerritories', {'limit': 200})
+    base = client.request('GET', 'inAppPurchasePriceSchedules/6832499022/baseTerritory')['data']['id']
+    manual = client.request('GET', 'inAppPurchasePriceSchedules/6832499022/manualPrices',
+                            params={'include': 'inAppPurchasePricePoint,territory', 'limit': 200})
+    points = [p for p in manual.get('included', []) if p['type'] == 'inAppPurchasePricePoints']
+    if base != 'USA' or len(manual['data']) != 1 or not any(p['attributes']['customerPrice'] == '2.99' for p in points):
+        raise ValueError('Expected the unchanged USA $2.99 base price; no price write is permitted.')
+    return {'territories': sorted(t['id'] for t in territories), 'app_id': app['id'],
+            'app_new_territories': app['attributes']['availableInNewTerritories'],
+            'iap_new_territories': iap['attributes']['availableInNewTerritories'],
+            'app_rows': rows, 'iap_available': sorted(t['id'] for t in enabled),
+            'prices': {'base': base, 'manual': manual['data'], 'points': points}}
+
+
+def market_plan(snapshot):
+    wanted = sorted(t for t in snapshot['territories'] if t != 'CHN')
+    if 'CHN' not in snapshot['territories'] or 'USA' not in wanted:
+        raise ValueError('Unexpected Apple territory inventory.')
+    app = {r['relationships']['territory']['data']['id']: r['attributes']['available'] for r in snapshot['app_rows']}
+    if set(app) != set(snapshot['territories']):
+        raise ValueError('Incomplete app territory inventory; refusing a partial plan.')
+    if snapshot['app_new_territories'] or snapshot['iap_new_territories']:
+        raise ValueError('Disable automatic future territories before applying this workflow.')
+    current = sorted(t for t, available in app.items() if available)
+    return {'app_id': asc.APP_ID, 'product_id': asc.PRODUCT_ID, 'excluded': ['CHN'],
+            'territories': snapshot['territories'], 'desired': wanted, 'future_territories': False,
+            'before': {'app': current, 'iap': snapshot['iap_available']},
+            'add': {'app': sorted(set(wanted)-set(current)), 'iap': sorted(set(wanted)-set(snapshot['iap_available']))},
+            'remove': {'app': sorted(set(current)-set(wanted)), 'iap': sorted(set(snapshot['iap_available'])-set(wanted))},
+            'prices': snapshot['prices']}
+
+
+def availability(args, client):
+    if not (client.allow_v2 and client.release_setup):
+        raise ValueError('Market preparation requires --allow-v2 --release-setup.')
+    output = args.output.resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    current = market_snapshot(client)
+    if not args.apply_plan:
+        plan = market_plan(current)
+        asc.save(output/'availability-plan.json', plan)
+        return plan
+    plan = json.loads(args.apply_plan.read_text())
+    expected = sorted(t for t in current['territories'] if t != 'CHN')
+    if (plan['app_id'] != asc.APP_ID or plan['product_id'] != asc.PRODUCT_ID or plan['desired'] != expected
+            or plan['excluded'] != ['CHN'] or plan['future_territories'] is not False
+            or current['prices'] != plan['prices'] or current['app_new_territories'] or current['iap_new_territories']):
+        raise ValueError('Availability preview, price or future-territory settings changed.')
+    if current['iap_available'] not in [plan['before']['iap'], expected]:
+        raise ValueError('IAP territory selection changed since preview.')
+    asc.save(output/f'availability-before-{int(time.time())}.json', current)
+    if current['iap_available'] != expected:
+        client.request('POST', 'inAppPurchaseAvailabilities', asc.resource('inAppPurchaseAvailabilities',
+            {'availableInNewTerritories': False}, relationships={
+                'inAppPurchase': asc.relationship('inAppPurchases', '6832499022'),
+                'availableTerritories': {'data': [{'type': 'territories', 'id': t} for t in expected]}}))
+        readback = client.list('inAppPurchaseAvailabilities/6832499022/availableTerritories', {'limit': 200})
+        if sorted(t['id'] for t in readback) != expected:
+            raise ValueError('IAP territory readback mismatch; App territories remain unchanged.')
+    changed = []
+    for row in current['app_rows']:
+        territory = row['relationships']['territory']['data']['id']
+        wanted = territory != 'CHN'
+        if row['attributes']['available'] != wanted:
+            response = client.request('PATCH', 'territoryAvailabilities/'+row['id'],
+                asc.resource('territoryAvailabilities', {'available': wanted}, row['id']))['data']
+            if response['attributes']['available'] != wanted:
+                raise ValueError('App territory response mismatch: '+territory)
+            changed.append(territory)
+            private_write(output/'availability-progress.json', asc.dump({'changed': changed}).encode())
+    after = market_snapshot(client)
+    available = sorted(r['relationships']['territory']['data']['id'] for r in after['app_rows'] if r['attributes']['available'])
+    if available != expected or after['iap_available'] != expected or after['prices'] != plan['prices']:
+        raise ValueError('Final availability or price readback mismatch.')
+    private_write(output/'availability-verified.json', asc.dump(after).encode())
+    return {'configured': len(expected), 'excluded': ['CHN'], 'future_territories': False,
+            'app_changed': changed, 'iap_matches_app': True,
+            'territory_states': {r['relationships']['territory']['data']['id']: r['attributes']['contentStatuses'] for r in after['app_rows']}}
+
+
+def creative(args, client):
+    if not args.image:
+        raise ValueError('--image must name the approved search-results creative.')
+    image = asc.png_info(args.image.resolve())
+    refdata = client.request('GET', 'appAssetLibraryRefData')['data'][0]['attributes']
+    placement_type = 'APP_STORE_SEARCH_RESULTS_ASSET'
+    mapping = next(p for p in refdata['placementTypes'] if p['placementTypeId'] == placement_type)
+    specs = [s for s in refdata['imageSpecs'] if s['specId'] in mapping['specMappings'][0]['specs']]
+    matches = [s for s in specs if s['dimensions']['minWidth'] <= image['width'] <= s['dimensions']['maxWidth']
+               and s['dimensions']['minHeight'] <= image['height'] <= s['dimensions']['maxHeight']
+               and (s.get('aspectRatio') != '3:2' or image['width']*2 == image['height']*3)]
+    if len(matches) != 1:
+        raise ValueError('Creative dimensions do not match exactly one live Apple image specification.')
+    output = args.output.resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    app, version, _ = asc.target(client, asc.APP_ID, args.version)
+    if app['attributes']['bundleId'] != BUNDLES[0]:
+        raise ValueError('Unexpected app identity.')
+    library = client.request('GET', f'apps/{asc.APP_ID}/assetLibrary')['data']
+    assets = client.list(f'appAssetLibraries/{library["id"]}/images')
+    reference = 'texel-search-'+image['sha256']
+    candidates = [a for a in assets if a['attributes'].get('referenceName') == reference]
+    if len(candidates) > 1:
+        raise ValueError('Duplicate creative reservations; no resources were modified.')
+    asset = candidates[0] if candidates else client.request('POST', 'appAssetLibraryImages', asc.resource(
+        'appAssetLibraryImages', {'fileName': image['fileName'], 'fileSize': image['fileSize'],
+            'category': 'CREATIVE_ASSETS', 'referenceName': reference},
+        relationships={'assetLibrary': asc.relationship('appAssetLibraries', library['id'])}))['data']
+    endpoint = 'appAssetLibraryImages/'+asset['id']
+    asset = client.request('GET', endpoint)['data']
+    if asset['attributes']['state'] == 'AWAITING_UPLOAD':
+        asc.upload_parts(client, asset, args.image)
+        client.request('PATCH', endpoint, asc.resource('appAssetLibraryImages', {'uploaded': True}, asset['id']))
+    deadline = time.monotonic()+600
+    while True:
+        asset = client.request('GET', endpoint)['data']
+        state = asset['attributes']['state']
+        if state != 'UPLOAD_COMPLETE' or time.monotonic() >= deadline:
+            break
+        time.sleep(15)
+    if state in {'FAILED', 'REJECTED', 'ARCHIVED', 'AWAITING_UPLOAD', 'UPLOAD_COMPLETE'}:
+        raise ValueError('Creative asset not ready: '+state)
+    dimensions = asset['attributes'].get('imageAsset') or {}
+    if asset['attributes']['specId'] != matches[0]['specId'] or (dimensions.get('width'), dimensions.get('height')) != (image['width'], image['height']):
+        raise ValueError('Apple processed creative dimensions/specification mismatch.')
+    review = None
+    if args.submit_asset_review and state in {'PREPARE_FOR_SUBMISSION', 'COMPLETE', 'READY_FOR_REVIEW'}:
+        if not client.release_setup:
+            raise ValueError('--release-setup is required for the separately authorized creative review.')
+        drafts = [d for d in client.list('reviewSubmissions', {'filter[app]': asc.APP_ID})
+                  if d['attributes']['state'] == 'READY_FOR_REVIEW' and not d['attributes'].get('submittedDate')]
+        candidates = []
+        for draft in drafts:
+            items = client.list('reviewSubmissions/'+draft['id']+'/items', {'include': 'appAssetLibraryImage,appStoreVersion,inAppPurchaseVersion'})
+            if items and all((i.get('relationships', {}).get('appAssetLibraryImage', {}).get('data') or {}).get('id') == asset['id'] for i in items):
+                candidates.append(draft)
+        if len(candidates) > 1:
+            raise ValueError('Multiple creative review drafts; no duplicate will be created.')
+        if candidates:
+            review = candidates[0]
+        else:
+            review = client.request('POST', 'reviewSubmissions', asc.resource('reviewSubmissions', {'platform': 'IOS'},
+                relationships={'app': asc.relationship('apps', asc.APP_ID)}))['data']
+            client.request('POST', 'reviewSubmissionItems', asc.resource('reviewSubmissionItems', {}, relationships={
+                'reviewSubmission': asc.relationship('reviewSubmissions', review['id']),
+                'appAssetLibraryImage': asc.relationship('appAssetLibraryImages', asset['id'])}))
+        client.creative_review_image = asset['id']
+        client.request('PATCH', 'reviewSubmissions/'+review['id'], asc.resource('reviewSubmissions', {'submitted': True}, review['id']))
+        review = client.request('GET', 'reviewSubmissions/'+review['id'])['data']
+        asset = client.request('GET', endpoint)['data']
+        state = asset['attributes']['state']
+    if args.watch_approval and state != 'APPROVED':
+        deadline = time.monotonic()+86400
+        while state != 'APPROVED':
+            private_write(output/'creative-state.json', asc.dump({'asset_id': asset['id'], 'state': state, 'publish_deferred': True}).encode())
+            if state in {'FAILED', 'REJECTED', 'ARCHIVED'} or time.monotonic() >= deadline:
+                raise ValueError('Creative approval watcher stopped: '+state)
+            time.sleep(60)
+            asset = client.request('GET', endpoint)['data']
+            state = asset['attributes']['state']
+    placements = []
+    if args.publish_approved and state == 'APPROVED':
+        live = client.request('GET', 'appStoreVersions/'+version['id'])['data']
+        if live['attributes']['appStoreState'] != 'READY_FOR_SALE':
+            raise ValueError('The reviewed App version is no longer live; automatic placement stopped.')
+        for locale in client.list('appStoreVersions/'+version['id']+'/appStoreVersionLocalizations'):
+            existing = client.list('appStoreVersionLocalizations/'+locale['id']+'/placements', {'include': 'image'})
+            relevant = [p for p in existing if p['attributes']['placementType'] == placement_type]
+            if relevant:
+                if len(relevant) != 1 or relevant[0]['relationships']['image']['data']['id'] != asset['id']:
+                    raise ValueError('A different search creative exists; no replacement/deletion is authorized.')
+                placement = relevant[0]
+            else:
+                placement = client.request('POST', 'appAssetLibraryPlacements', asc.resource('appAssetLibraryPlacements',
+                    {'placementType': placement_type, 'placementGroup': mapping['specMappings'][0]['placementGroupId']}, relationships={
+                        'image': asc.relationship('appAssetLibraryImages', asset['id']),
+                        'appStoreVersionLocalization': asc.relationship('appStoreVersionLocalizations', locale['id'])}))['data']
+            readback = client.request('GET', 'appAssetLibraryPlacements/'+placement['id'])['data']
+            if readback['attributes']['state'] not in {'ACTIVE', 'PARENT_APPROVED'}:
+                raise ValueError('Search creative placement is not active: '+readback['attributes']['state'])
+            placements.append({'locale': locale['attributes']['locale'], 'id': placement['id'], 'state': readback['attributes']['state']})
+    result = {'asset_id': asset['id'], 'state': state, 'image': image,
+              'review': {'id': review['id'], 'state': review['attributes']['state'], 'submittedDate': review['attributes'].get('submittedDate')} if review else None,
+              'placements': placements, 'publish_deferred': bool(args.publish_approved and state != 'APPROVED')}
+    private_write(output/'creative-state.json', asc.dump(result).encode())
+    return result

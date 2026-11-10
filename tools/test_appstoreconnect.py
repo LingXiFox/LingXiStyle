@@ -383,6 +383,94 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(result['state'], 'COMPLETE')
             self.assertTrue(all(call.args[0] == 'GET' for call in c.request.call_args_list))
 
+    def test_market_plan_excludes_mainland_and_new_territories(self):
+        import release_appstore as release
+        snapshot = {'territories': ['CHN', 'JPN', 'USA'], 'app_new_territories': False,
+            'iap_new_territories': False, 'iap_available': ['USA'], 'prices': {'base': 'USA'},
+            'app_rows': [{'attributes': {'available': t == 'USA'},
+                'relationships': {'territory': {'data': {'id': t}}}} for t in ['CHN', 'JPN', 'USA']]}
+        plan = release.market_plan(snapshot)
+        self.assertEqual(plan['desired'], ['JPN', 'USA'])
+        self.assertEqual(plan['add'], {'app': ['JPN'], 'iap': ['JPN']})
+        self.assertFalse(plan['future_territories'])
+        with self.assertRaises(ValueError):
+            release.market_plan(dict(snapshot, app_new_territories=True))
+        with self.assertRaises(ValueError):
+            release.market_plan(dict(snapshot, app_rows=snapshot['app_rows'][:1]))
+
+    def test_tampered_market_plan_stops_before_writes(self):
+        import release_appstore as release
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        current = {'territories': ['CHN', 'USA'], 'prices': {},
+            'app_new_territories': False, 'iap_new_territories': False}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'plan.json'
+            path.write_text(json.dumps({'app_id': asc.APP_ID, 'product_id': asc.PRODUCT_ID,
+                'desired': ['CHN', 'USA'], 'excluded': ['CHN'], 'future_territories': False, 'prices': {}}))
+            c = Mock(allow_v2=True, release_setup=True)
+            with patch.object(release, 'market_snapshot', return_value=current), self.assertRaises(ValueError):
+                release.availability(SimpleNamespace(output=Path(tmp), apply_plan=path), c)
+            c.request.assert_not_called()
+
+    def test_creative_review_is_scoped_to_one_image_and_rejects_mixed_draft(self):
+        c = client()
+        c.release_setup = True
+        c.creative_review_image = 'approved-image'
+        draft = {'data': {'attributes': {'state': 'READY_FOR_REVIEW', 'submittedDate': None}}}
+        item = {'relationships': {'appAssetLibraryImage': asc.relationship('appAssetLibraryImages', 'approved-image'),
+                                 'appStoreVersion': {'data': None}, 'inAppPurchaseVersion': {'data': None}}}
+        body = asc.resource('reviewSubmissions', {'submitted': True}, 'draft')
+        c.opener = FakeOpener([draft, {'data': [item]}, {'data': {'id': 'draft'}}])
+        c.request('PATCH', 'reviewSubmissions/draft', body)
+        self.assertEqual([r.method for r in c.opener.requests], ['GET', 'GET', 'PATCH'])
+        item['relationships']['appStoreVersion'] = asc.relationship('appStoreVersions', 'live-app-version')
+        c.opener = FakeOpener([draft, {'data': [item]}])
+        with self.assertRaises(ValueError):
+            c.request('PATCH', 'reviewSubmissions/draft', body)
+        self.assertEqual([r.method for r in c.opener.requests], ['GET', 'GET'])
+        with self.assertRaises(ValueError):
+            c.request('PATCH', 'reviewSubmissions/draft', asc.resource('reviewSubmissions', {'canceled': True}, 'draft'))
+
+    def test_pending_creative_is_not_published(self):
+        import release_appstore as release
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as tmp:
+            image = Path(tmp)/'search.png'
+            image.write_bytes(png())
+            info = asc.png_info(image)
+            asset = {'id': 'asset', 'attributes': {'referenceName': 'texel-search-'+info['sha256'],
+                'state': 'WAITING_FOR_REVIEW', 'specId': 'spec', 'imageAsset': {'width': 2, 'height': 2}}}
+            ref = {'placementTypes': [{'placementTypeId': 'APP_STORE_SEARCH_RESULTS_ASSET',
+                'specMappings': [{'placementGroupId': 'group', 'specs': ['spec']}]}],
+                'imageSpecs': [{'specId': 'spec', 'dimensions': {'minWidth': 2, 'maxWidth': 2, 'minHeight': 2, 'maxHeight': 2}}]}
+            c = Mock()
+            c.list.return_value = [asset]
+            c.request.side_effect = lambda method, path: ({'data': [{'attributes': ref}]} if path == 'appAssetLibraryRefData'
+                else {'data': {'id': 'library'}} if path.endswith('/assetLibrary') else {'data': asset})
+            args = SimpleNamespace(image=image, output=Path(tmp), version='1.7.1',
+                submit_asset_review=False, publish_approved=True, watch_approval=False)
+            with patch.object(asc, 'target', return_value=({'attributes': {'bundleId': release.BUNDLES[0]}}, {'id': 'version'}, [])):
+                result = release.creative(args, c)
+            self.assertTrue(result['publish_deferred'])
+            self.assertEqual(result['placements'], [])
+            self.assertTrue(all(call.args[0] == 'GET' for call in c.request.call_args_list))
+
+    def test_prepare_live_version_never_creates_another_review_draft(self):
+        import release_appstore as release
+        from unittest.mock import Mock
+        c = Mock()
+        c.request.return_value = {'data': {'id': 'build'}}
+        build = {'id': 'build', 'attributes': {'processingState': 'VALID', 'expired': False, 'usesNonExemptEncryption': False}}
+        version = {'id': 'version', 'attributes': {'appStoreState': 'READY_FOR_SALE'}}
+        with tempfile.TemporaryDirectory() as tmp, patch.object(release, 'matching_builds', return_value=[build]), patch.object(asc, 'target', return_value=({}, version, [])):
+            result = release.prepare(c, Path(tmp), [{'CFBundleShortVersionString': '1.7.1', 'CFBundleVersion': '9'}])
+        self.assertTrue(result['already_released'])
+        self.assertFalse(result['submitted'])
+        c.list.assert_not_called()
+        self.assertTrue(all(call.args[0] == 'GET' for call in c.request.call_args_list))
+
     def test_local_signing_files_are_private(self):
         import release_appstore as release
         with tempfile.TemporaryDirectory() as tmp:

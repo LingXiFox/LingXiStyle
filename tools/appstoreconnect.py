@@ -55,6 +55,7 @@ RELEASE_ATTRIBUTES = {
     "appPriceSchedules": set(),
     "inAppPurchasePriceSchedules": set(),
     "appAvailabilities": {"availableInNewTerritories"},
+    "territoryAvailabilities": {"available"},
     "inAppPurchaseAvailabilities": {"availableInNewTerritories"},
     "reviewSubmissions": {"platform"},
     "reviewSubmissionItems": set(),
@@ -172,14 +173,31 @@ class Client:
             if getattr(self, "signing_setup", False) and method == "POST":
                 allowed.update(certificates={"csrContent", "certificateType"}, profiles={"name", "profileType"})
             build_link = getattr(self, "release_setup", False) and method == "PATCH" and len(parts) == 4 and parts[0] == "appStoreVersions" and parts[2:] == ["relationships", "build"]
-            if build_link:
+            image_review = (getattr(self, 'creative_review_image', None) and method == 'PATCH'
+                            and kind == 'reviewSubmissions' and len(parts) == 2)
+            if image_review:
+                expected = resource('reviewSubmissions', {'submitted': True}, parts[1])
+                if body != expected:
+                    raise ValueError('Only submission of the approved creative image is enabled.')
+                draft = self.request('GET', 'reviewSubmissions/'+parts[1])['data']
+                items = self.list('reviewSubmissions/'+parts[1]+'/items',
+                    {'include': 'appAssetLibraryImage,appStoreVersion,inAppPurchaseVersion'})
+                if draft['attributes']['state'] != 'READY_FOR_REVIEW' or draft['attributes'].get('submittedDate') or not items:
+                    raise ValueError('Creative review draft is not editable or empty.')
+                for item in items:
+                    rels = item.get('relationships', {})
+                    if (rels.get('appAssetLibraryImage', {}).get('data') or {}).get('id') != self.creative_review_image:
+                        raise ValueError('Draft contains a resource other than the approved creative image.')
+                    if any((value.get('data') or {}) for key, value in rels.items() if key not in {'appAssetLibraryImage', 'reviewSubmission'}):
+                        raise ValueError('Mixed creative/App review submission is forbidden.')
+            elif build_link:
                 if not body or set(body) != {"data"} or body["data"].get("type") != "builds" or set(body["data"]) != {"type", "id"}:
                     raise ValueError("Only an existing build may be linked.")
             elif method not in {"POST", "PATCH"} or kind not in allowed or len(parts) != (1 if method == "POST" else 2):
                 raise ValueError("Write blocked: only listing and screenshot operations are allowed.")
             elif not body or body.get("data", {}).get("type") != kind or set(body["data"].get("attributes", {})) - allowed[kind]:
                 raise ValueError("Write blocked: unsupported resource attributes.")
-            if kind in {"reviewSubmissions", "reviewSubmissionItems"} and method != "POST":
+            if kind in {"reviewSubmissions", "reviewSubmissionItems"} and method != "POST" and not image_review:
                 raise ValueError("Only draft review preparation is allowed; submitting is blocked.")
             for key, value in body["data"].get("attributes", {}).items():
                 if key.startswith("contact") and isinstance(value, str) and value:
@@ -635,7 +653,7 @@ def main():
     parser.add_argument("--app-id", default=APP_ID)
     parser.add_argument("--version", default="1.7.1")
     parser.add_argument("--allow-v2", action="store_true", help="Explicitly allow official IAP/availability v2 endpoints.")
-    parser.add_argument("--release-setup", action="store_true", help="Apply separately approved release metadata, prices and territories; never submits.")
+    parser.add_argument("--release-setup", action="store_true", help="Enable separately approved metadata/market changes; App version submission stays blocked.")
     parser.add_argument("--signing-setup", action="store_true", help="Explicitly permit creating local distribution certificates/profiles; never revokes.")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("self-test", help="Run offline regression tests without loading credentials.")
