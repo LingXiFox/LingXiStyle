@@ -36,8 +36,8 @@ jobs:
           app = archive / 'Products' / info['ApplicationProperties']['ApplicationPath']
           data = plistlib.loads((app / 'Info.plist').read_bytes())
           assert data['CFBundleIdentifier'] == 'com.lingxifox.Texel'
-          assert data['CFBundleShortVersionString'] == '1.7.1'
-          assert data['CFBundleVersion'] == '9'
+          assert data['CFBundleShortVersionString'] == '1.8.1'
+          assert data['CFBundleVersion'] == '10'
           assert data['DTSDKName'].startswith('iphoneos26.')
           assert not list(app.rglob('*.storekit'))
           (root / 'provenance.json').write_text(json.dumps({

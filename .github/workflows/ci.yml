@@ -3,7 +3,9 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'feature/**'
   workflow_dispatch:
 
 permissions:
@@ -78,6 +80,40 @@ jobs:
               print("\n".join(failures))
               sys.exit(1)
           print("All catalogs have four non-empty localizations and the expected display names.")
+          PY
+
+      - name: Validate Live Photo fixtures and tutorial coverage
+        run: |
+          python3 - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          failures = []
+          fixtures = [
+              pathlib.Path("Tests/Fixtures/LivePhoto/IMG_5963.HEIC"),
+              pathlib.Path("Tests/Fixtures/LivePhoto/IMG_5963.MOV"),
+          ]
+          for path in fixtures:
+              if not path.is_file() or path.stat().st_size < 1_000_000:
+                  failures.append(f"missing or too small: {path}")
+              else:
+                  print(f"{path}: {path.stat().st_size} bytes")
+
+          with open("Resources/Localization/Localizable.xcstrings", encoding="utf-8") as handle:
+              strings = json.load(handle)["strings"]
+          steps = ("layers", "styles", "compatibility", "pick", "livePhoto",
+                   "result", "edit", "invisible", "quota")
+          required = [f"tutorial.step.{step}.{field}" for step in steps for field in ("title", "body")]
+          required += ["tutorial.art.stillFrame", "tutorial.art.allFrames", "tutorial.art.recents"]
+          for key in required:
+              if key not in strings:
+                  failures.append(f"missing tutorial key: {key}")
+
+          if failures:
+              print("\n".join(failures))
+              sys.exit(1)
+          print(f"{len(required)} tutorial keys and {len(fixtures)} Live Photo fixtures are present.")
           PY
 
       - name: Validate StoreKit product configuration
@@ -301,8 +337,8 @@ jobs:
             -test-timeouts-enabled YES -default-test-execution-time-allowance 900 \
             test 2>&1 | tee .build/logs/purchase-tests.log
 
-      - name: Run conversion, share, and shortcut integration tests
-        timeout-minutes: 20
+      - name: Run conversion, Live Photo, share, and shortcut integration tests
+        timeout-minutes: 25
         env:
           DEVICE_ID: ${{ steps.simulator.outputs.device_id }}
         run: |
@@ -389,8 +425,8 @@ jobs:
             fi
           } | tee "$LOG"
 
-      - name: Run launch smoke test
-        timeout-minutes: 15
+      - name: Run tutorial and launch smoke UI tests
+        timeout-minutes: 25
         env:
           DEVICE_ID: ${{ steps.simulator.outputs.device_id }}
         run: |
@@ -399,6 +435,7 @@ jobs:
             -scheme LingXiUITests -configuration Debug \
             -destination "platform=iOS Simulator,id=$DEVICE_ID" \
             -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 180 \
             test CODE_SIGNING_ALLOWED=NO \
             2>&1 | tee .build/logs/ui-smoke.log
 
