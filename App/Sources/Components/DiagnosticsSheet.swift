@@ -43,5 +43,6 @@ struct DiagnosticsSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+        .duoFormWidth()
     }
 }

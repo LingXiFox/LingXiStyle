@@ -8,16 +8,25 @@ struct PhotoThumbnailStrip: View {
     var onRemove: (PhotoItem) -> Void
     var onAdd: () -> Void
     var canAdd: Bool = true
-
-    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
-    @Environment(\.reduceMotionOverride) private var reduceMotionOverride
-    private var reduceMotion: Bool { systemReduceMotion || reduceMotionOverride }
+    var side: CGFloat = Layout.thumbnailSide
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(items) { item in
-                    thumbnail(for: item)
+                    PhotoThumbnailTile(
+                        item: item,
+                        side: side,
+                        isSelected: item.id == selectedID,
+                        onSelect: {
+                            if reduceMotion {
+                                selectedID = item.id
+                            } else {
+                                withAnimation(Motion.selection) { selectedID = item.id }
+                            }
+                        },
+                        onRemove: { onRemove(item) }
+                    )
                 }
                 if canAdd {
                     addTile
@@ -26,23 +35,44 @@ struct PhotoThumbnailStrip: View {
             .padding(.horizontal, Spacing.m)
             .padding(.vertical, Spacing.xs)
         }
-        .frame(height: Layout.thumbnailSide + Spacing.xs * 2)
+        .frame(height: side + Spacing.xs * 2)
         .scrollClipDisabled()
     }
 
-    private func thumbnail(for item: PhotoItem) -> some View {
-        let isSelected = item.id == selectedID
-        return Button {
-            if reduceMotion {
-                selectedID = item.id
-            } else {
-                withAnimation(Motion.selection) { selectedID = item.id }
-            }
-        } label: {
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
+    @Environment(\.reduceMotionOverride) private var reduceMotionOverride
+    private var reduceMotion: Bool { systemReduceMotion || reduceMotionOverride }
+
+    private var addTile: some View {
+        Button(action: onAdd) {
+            RoundedRectangle(cornerRadius: Radius.thumbnail, style: .continuous)
+                .strokeBorder(Palette.hairline, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+                .frame(width: side, height: side)
+                .overlay(
+                    Image(systemName: "plus")
+                        .font(.system(.headline, design: .default, weight: .semibold))
+                        .foregroundStyle(Palette.textSecondary)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("继续添加照片")
+    }
+}
+
+/// Shared square thumbnail used by the horizontal strip and the inner-display queue grid.
+struct PhotoThumbnailTile: View {
+    let item: PhotoItem
+    var side: CGFloat = Layout.thumbnailSide
+    let isSelected: Bool
+    let onSelect: () -> Void
+    let onRemove: () -> Void
+
+    var body: some View {
+        Button(action: onSelect) {
             Image(uiImage: item.image)
                 .resizable()
                 .scaledToFill()
-                .frame(width: Layout.thumbnailSide, height: Layout.thumbnailSide)
+                .frame(width: side, height: side)
                 .clipShape(RoundedRectangle(cornerRadius: Radius.thumbnail, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: Radius.thumbnail, style: .continuous)
@@ -50,7 +80,7 @@ struct PhotoThumbnailStrip: View {
                                       lineWidth: isSelected ? 2 : 1)
                 )
                 .overlay(alignment: .topTrailing) {
-                    if willSkip(item) {
+                    if willSkip {
                         Image(systemName: "minus")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(Palette.textSecondary)
@@ -66,28 +96,13 @@ struct PhotoThumbnailStrip: View {
         .accessibilityLabel(String(localized: "thumbnail.accessibilityLabel", defaultValue: "\(item.displayName)，\(item.accessibilityDescription)"))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .contextMenu {
-            Button(role: .destructive) { onRemove(item) } label: {
+            Button(role: .destructive, action: onRemove) {
                 Label("移出队列", systemImage: "trash")
             }
         }
     }
 
-    private var addTile: some View {
-        Button(action: onAdd) {
-            RoundedRectangle(cornerRadius: Radius.thumbnail, style: .continuous)
-                .strokeBorder(Palette.hairline, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
-                .frame(width: Layout.thumbnailSide, height: Layout.thumbnailSide)
-                .overlay(
-                    Image(systemName: "plus")
-                        .font(.system(.headline, design: .default, weight: .semibold))
-                        .foregroundStyle(Palette.textSecondary)
-                )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("继续添加照片")
-    }
-
-    private func willSkip(_ item: PhotoItem) -> Bool {
+    private var willSkip: Bool {
         guard let verdict = item.verdict else { return false }
         return !verdict.isReady
     }

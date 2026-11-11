@@ -55,7 +55,10 @@ struct PrimaryActionLabel: View {
 struct SecondaryActionButton: View {
     let title: String
     var systemImage: String?
+    /// Duo cover pairs this button with a 52pt primary action.
+    var height: CGFloat = Layout.secondaryButtonHeight
     let action: () -> Void
+
 
     var body: some View {
         Button(action: action) {
@@ -66,7 +69,7 @@ struct SecondaryActionButton: View {
                 }
                 Text(LocalizedStringKey(title)).font(Typography.bodyEmphasized)
             }
-            .frame(maxWidth: .infinity, minHeight: Layout.secondaryButtonHeight)
+            .frame(maxWidth: .infinity, minHeight: height)
             .foregroundStyle(Palette.textPrimary)
             .background(Palette.fillControl,
                         in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))

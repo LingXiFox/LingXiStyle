@@ -69,7 +69,7 @@ struct ProPurchaseView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
         }
-        .duoSheetWidth()
+        .duoFormWidth()
         .task {
             await purchases.start()
             if purchases.product == nil {

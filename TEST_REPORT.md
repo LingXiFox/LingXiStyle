@@ -68,10 +68,12 @@
   摄像头一侧控件统一加 `duoControlInset`；首页按钮从 350 pt 变为 434 pt，设置 / Pro /
   额度 sheet 的关闭按钮避开右上摄像头（`pro.close` 从 x390 移到 x306）。
 - 内屏双栏：`RootView.isTwoColumn` 要求 `horizontalSizeClass == .regular`、
-  `verticalSizeClass == .regular` 且宽度 ≥ 640 pt；左侧 `WorkspaceRail` 队列，右侧详情。
+  `verticalSizeClass == .regular` 且宽度 ≥ 600 pt；空态左列品牌与能力卡、右列选择入口，
+  进入选择后左列 `DuoQueueGrid` 队列、右列预览与操作。
   Duo 内屏通过 DeviceHub 底部姿态按钮切到内屏后实测：AX 窗口 669 × 951 pt，
-  `home.root` 宽 650 pt、`workspace.rail` 在左、详情在右，确认双栏实际渲染；设置与 Pro sheet 正常打开。
-- 折叠 / 展开状态连续：外屏已验证选择、转换、结果、设置、教程各阶段；内屏验证了空队列、
+  `home.root` 容器、`home.quota`、`home.settings`、`home.selectPhotos` 均独立可访问，确认双栏实际渲染；
+  设置与 Pro sheet 正常打开（`HomeSmokeTests` 在 Duo 内屏以 `test-without-building` 通过）。
+- 折叠 / 展开状态连续：外屏已验证选择、转换、结果、设置、教程各阶段；内屏验证了空态双栏、
   设置与 Pro，但未在内屏执行完整转换，折叠中间态未能执行，不能记为通过。
 
 ### 5. 自动化与回归
@@ -88,11 +90,11 @@
 
 - Kit 35 含 `LivePhotoModeTests` 6；Integration 34 含 Conversion 8、LivePhoto 5、
   ShareFlow 12、Shortcut 9。
-- 构建：Debug / Release `generic/platform=iOS` 均 BUILD SUCCEEDED；修复
-  `PhotoLibraryService` 的 `@Sendable` 进度闭包警告后复验。
-- Release archive 成功：`build/Texel-1.8.1.xcarchive`，1.8.1 / build 10，
+- 构建：Debug / Release `generic/platform=iOS` 均 BUILD SUCCEEDED；DuoChrome 内屏无障碍容器
+  修复与缩进整理后再次复验。
+- Release archive 成功：`build/Texel-1.8.1-final.xcarchive`，1.8.1 / build 10，
   `Apple Distribution: Zhihan Zhu (R9UJHHAZQ4)` 签名，主 App 与分享扩展均嵌入 App Store profile；
-  已导出 `build/export-1.8.1/LingXiStyle.ipa`（3.0 MB，`UIDeviceFamily = [1]`），包内无 `.storekit` 测试商品。
+  已导出 `build/export-1.8.1-final/LingXiStyle.ipa`（3.2 MB，`UIDeviceFamily = [1]`），包内无 `.storekit` 测试商品。
 - 1.7.1 的分享扩展、快捷指令、Keychain 额度、StoreKit 2、48MP HEIC 回归全部保留并通过。
 - 未重跑 CI；本轮结果来自本机 Xcode 27.2 / iOS 27.2。
 
@@ -103,7 +105,8 @@
 - 90+ 帧素材是 53 帧循环合成的 106 帧文件，辅助风格轨由原始素材复制；不是原生 90+ 帧拍摄。
 - 本机只有 iOS 27.2 运行时，未验证 iOS 18 / 26。
 - 未连接真实 App Store，未做真实交易 / 退款；TestFlight 上传未执行（archive 与 IPA 已生成）。
-- Duo 外屏顶部状态栏 / 摄像头浮层仍会压住 sheet 右侧空白区，功能不受影响，视觉未完全干净。
+- Duo 外屏 sheet 已尊重右侧安全区，状态栏保留在空白条；Pro 外屏 sheet 仅通过 HomeSmoke
+  入口验证，未逐项视觉复核。
 
 ### 7. 是否具备提审条件
 

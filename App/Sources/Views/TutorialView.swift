@@ -12,7 +12,7 @@ struct TutorialView: View {
     @Environment(\.contentMargin) private var margin
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
+    @Environment(\.duoControlInset) private var controlInset
     @State private var stepIndex = 0
     @State private var scrollTarget: Int?
 
@@ -31,23 +31,23 @@ struct TutorialView: View {
                     bottomBar
                 }
             }
-            .duoSheetWidth()
+            .padding(.trailing, controlInset)
             .navigationTitle(String(localized: "tutorial.title", defaultValue: "使用教程"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if !isLastStep {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: onClose) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Palette.textSecondary)
-                            .frame(width: 30, height: 30)
-                            .background(Palette.fillControl, in: Circle())
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(action: onClose) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Palette.textSecondary)
+                                .frame(width: 30, height: 30)
+                                .background(Palette.fillControl, in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(String(localized: "tutorial.close", defaultValue: "关闭教程"))
+                        .accessibilityIdentifier("tutorial.done")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(String(localized: "tutorial.close", defaultValue: "关闭教程"))
-                    .accessibilityIdentifier("tutorial.done")
-                }
                 }
             }
         }
@@ -81,6 +81,7 @@ struct TutorialView: View {
             .scrollTargetBehavior(.paging)
             .scrollPosition(id: $scrollTarget)
             .scrollIndicators(.hidden)
+            .clipped()
             .onChange(of: stepIndex) { _, newValue in
                 guard scrollTarget != newValue else { return }
                 withAnimation(Motion.respectingReduceMotion(reduceMotion, Motion.selection)) {

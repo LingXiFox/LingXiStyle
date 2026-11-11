@@ -115,7 +115,7 @@ struct SettingsView: View {
                 .scrollContentBackground(.hidden)
                 .background(Color.clear)
             }
-            .duoSheetWidth()
+            .duoFormWidth()
             .navigationTitle(String(localized: "settings.title", defaultValue: "设置"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

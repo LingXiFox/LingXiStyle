@@ -51,6 +51,7 @@
 		4502B54815F1C9C73B716DDF /* InlineErrorNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B7A2E2D94C52D6DD8DC3DE0 /* InlineErrorNotice.swift */; };
 		47AC3BDB7F42C56CFA3BA925 /* LingXiEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B75EE5AEA092772368AF0C2D /* LingXiEngine.framework */; };
 		4A743FC5FC9D6D414D0A4349 /* LingXiKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 154F183BEF663EE14ADFE5F4 /* LingXiKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		50907534EF2C457E73CBC68C /* DuoChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 095B917823B39B8D09D5AAB1 /* DuoChrome.swift */; };
 		548CFA7613F49907CAF72FD7 /* AppShortcuts.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B45977A16895362CC618641A /* AppShortcuts.xcstrings */; };
 		5ACD261902AB33FA1FAD07EA /* StyleMaps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8671E6B1008C10EC462AF59C /* StyleMaps.swift */; };
 		5B3D55EB7F21D0A55366A54D /* LivePhotoConversion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FEDF5148812B5EF86A0ADD7 /* LivePhotoConversion.swift */; };
@@ -62,6 +63,7 @@
 		64E6F94FBE99BE8B32022C04 /* LingXiKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 154F183BEF663EE14ADFE5F4 /* LingXiKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		6686A8D593EC16C1E25E6546 /* IntegrityVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 811D8FEDA7A9A580339A6D3F /* IntegrityVerifier.swift */; };
 		66D40FD519ACB1EE7C2D202B /* LingXiEngine.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = B75EE5AEA092772368AF0C2D /* LingXiEngine.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		67005213EDA55E1ACF658027 /* DuoLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E18190603B014951C41BB99 /* DuoLayout.swift */; };
 		67E218EF1CD4175DECB4AF1E /* LingXiKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 154F183BEF663EE14ADFE5F4 /* LingXiKit.framework */; };
 		688E79FEA0E43520B38C9DA2 /* LivePhotoAperture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A29B74DB7F4B7C2A66DAF05D /* LivePhotoAperture.swift */; };
 		6A5B380BF25236B6901B49F0 /* IMG_5963-long.MOV in Resources */ = {isa = PBXBuildFile; fileRef = 66CA895589D440E5B2A339E2 /* IMG_5963-long.MOV */; };
@@ -458,6 +460,7 @@
 		04A4922CE443C77C2D2E2674 /* LingXiIntegrationTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LingXiIntegrationTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		04DAF5465D6ACFB52DB741B2 /* TutorialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialView.swift; sourceTree = "<group>"; };
 		05A8FF26036224B3841ECEAE /* Tokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tokens.swift; sourceTree = "<group>"; };
+		095B917823B39B8D09D5AAB1 /* DuoChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuoChrome.swift; sourceTree = "<group>"; };
 		0AD777003922D54C8B27D3A4 /* Profiles */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Profiles; path = Core/Resources/Profiles; sourceTree = SOURCE_ROOT; };
 		0B89F9A6D1054F62C2C20946 /* IMG_5963.HEIC */ = {isa = PBXFileReference; path = IMG_5963.HEIC; sourceTree = "<group>"; };
 		0E307123479D7893A2D2AEC2 /* QuotaExhaustedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaExhaustedView.swift; sourceTree = "<group>"; };
@@ -477,6 +480,7 @@
 		2AE477FABCECC91384EC02B3 /* IMG_5296.HEIC */ = {isa = PBXFileReference; path = IMG_5296.HEIC; sourceTree = "<group>"; };
 		2B7A2E2D94C52D6DD8DC3DE0 /* InlineErrorNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineErrorNotice.swift; sourceTree = "<group>"; };
 		2C1AF0097EF22C890494A925 /* TutorialIllustrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialIllustrations.swift; sourceTree = "<group>"; };
+		2E18190603B014951C41BB99 /* DuoLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuoLayout.swift; sourceTree = "<group>"; };
 		33A69E7C3E7BC63EA6319803 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		364D92C36CBCEB08AA32DE74 /* KeychainQuotaStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainQuotaStore.swift; sourceTree = "<group>"; };
 		3833F2345FCC16B709C0599C /* SelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionView.swift; sourceTree = "<group>"; };
@@ -891,6 +895,7 @@
 				E28ABF1B2B7FD838A70C075F /* CompatibilityBadge.swift */,
 				5877E669EBEA93F9E2ED30CE /* ConversionSummaryCard.swift */,
 				4AF34B250C87F99242234F4F /* DiagnosticsSheet.swift */,
+				095B917823B39B8D09D5AAB1 /* DuoChrome.swift */,
 				2B7A2E2D94C52D6DD8DC3DE0 /* InlineErrorNotice.swift */,
 				9CA42970FF262142AA1573B1 /* LivePhotoModeSelector.swift */,
 				B574C6A870CB44A7B9B83720 /* PhotoHeroCard.swift */,
@@ -1104,6 +1109,7 @@
 			children = (
 				D9B90BC33C4AF97168F32FA1 /* AmbientBackdrop.swift */,
 				DF7A30E5D6D5665E47BDCCBA /* BrandMark.swift */,
+				2E18190603B014951C41BB99 /* DuoLayout.swift */,
 				1D3F382732918695FBA19433 /* Motion.swift */,
 				05A8FF26036224B3841ECEAE /* Tokens.swift */,
 			);
@@ -1664,6 +1670,8 @@
 				ED4F884DDA19BD4097C9202C /* ConversionSummaryCard.swift in Sources */,
 				9125C7E2B27B63146A8DAD71 /* ConvertingView.swift in Sources */,
 				1E15058699F42025217CA747 /* DiagnosticsSheet.swift in Sources */,
+				50907534EF2C457E73CBC68C /* DuoChrome.swift in Sources */,
+				67005213EDA55E1ACF658027 /* DuoLayout.swift in Sources */,
 				304AD79C202EB0D04024C035 /* EmptyStateView.swift in Sources */,
 				4502B54815F1C9C73B716DDF /* InlineErrorNotice.swift in Sources */,
 				0F8937EAB8216BC8B283A8FA /* LingXiStyleApp.swift in Sources */,

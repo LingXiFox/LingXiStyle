@@ -6,6 +6,7 @@ struct ResultView: View {
     @ObservedObject var model: AppModel
     var onShowDiagnostics: () -> Void
     @Environment(\.contentMargin) private var margin
+    @Environment(\.duoLayout) private var duoLayout
     @State private var viewer: ViewerPayload?
 
     private var summary: ConversionSummary { model.summary ?? ConversionSummary(items: model.items) }
@@ -26,43 +27,217 @@ struct ResultView: View {
     }
 
     var body: some View {
+        Group {
+            switch duoLayout {
+            case .phone: phoneBody
+            case .cover: coverBody
+            case .inner: innerBody
+            }
+        }
+        .fullScreenCover(item: $viewer) { payload in
+            SavedResultsViewer(items: savedItems, startIndex: payload.index)
+        }
+    }
+
+    private var phoneBody: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 header
-
                 statsRow
-
                 if let preview = previewedItem {
                     previewCard(preview, index: previewedIndex)
                 }
-
-                if !savedItems.isEmpty {
-                    nextSteps
-                }
-
-                if let integrity {
-                    integrityGroup(integrity)
-                }
-
-                if !warnedItems.isEmpty { warningNotice }
-
-                if !summary.failures.isEmpty { failuresGroup }
-
-                if !summary.skippedReasons.isEmpty { skippedGroup }
-
-                if model.deferredCount > 0 { deferredCard }
-
-                if integrity == nil { diagnosticsRow }
+                if !savedItems.isEmpty { nextSteps }
+                outcomeDetails
             }
             .padding(.horizontal, margin)
             .padding(.top, Spacing.s)
             .padding(.bottom, Spacing.l)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
-        .fullScreenCover(item: $viewer) { payload in
-            SavedResultsViewer(items: savedItems, startIndex: payload.index)
+    }
+
+    // MARK: Duo cover
+
+    private var coverBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.s) {
+                header
+                coverStatsRow
+                if let preview = previewedItem {
+                    previewCard(preview, index: previewedIndex,
+                                height: DuoMetrics.coverResultPreviewHeight,
+                                showsShare: false)
+                }
+                if !savedItems.isEmpty { nextSteps }
+                outcomeDetails
+            }
+            .padding(.horizontal, DuoMetrics.coverMargin)
+            .padding(.trailing, DuoMetrics.coverRailWidth)
+            .padding(.top, Spacing.s)
+            .padding(.bottom, DuoMetrics.coverBottom)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) { coverBottomBar }
+        .overlay(alignment: .topTrailing) {
+            if let url = previewedItem?.outputURL {
+                DuoCoverRail {
+                    DuoRailShareButton(url: url, label: String(localized: "分享这张 HEIC"))
+                }
+            }
         }
     }
+
+    private var coverStatsRow: some View {
+        HStack(spacing: Spacing.xs) {
+            inlineStat(String(localized: "成功"), value: summary.savedCount, symbol: "checkmark", tint: Palette.success)
+            inlineStat(String(localized: "跳过"), value: summary.skippedCount, symbol: "minus", tint: Palette.textTertiary)
+            inlineStat(String(localized: "失败"), value: summary.failedCount, symbol: "xmark", tint: Palette.error)
+        }
+    }
+
+    private func inlineStat(_ title: String, value: Int, symbol: String, tint: Color) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: symbol)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(tint)
+            Text(title)
+                .font(Typography.caption)
+                .foregroundStyle(Palette.textSecondary)
+            Spacer(minLength: 2)
+            Text("\(value)")
+                .font(Typography.numeric)
+                .foregroundStyle(value == 0 ? Palette.textTertiary : Palette.textPrimary)
+        }
+        .padding(.horizontal, Spacing.s)
+        .frame(maxWidth: .infinity, minHeight: 36)
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.stat, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(String(localized: "summary.countAccessibility", defaultValue: "\(title) \(value) 张"))
+    }
+
+    private var coverBottomBar: some View {
+        VStack(spacing: Spacing.xs) {
+            if summary.failedCount > 0 {
+                SecondaryActionButton(title: String(localized: "重试失败项"), systemImage: "arrow.clockwise") {
+                    model.retryFailed()
+                }
+            }
+            PrimaryActionButton(title: String(localized: "result.continueNew", defaultValue: "继续处理新照片"), systemImage: "plus") {
+                model.reset()
+            }
+        }
+        .padding(.horizontal, DuoMetrics.coverMargin)
+        .padding(.top, Spacing.s)
+        .padding(.bottom, Spacing.xs)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Palette.hairline).frame(height: 0.5)
+        }
+    }
+
+    // MARK: Duo inner
+
+    private var innerBody: some View {
+        Group {
+            if let preview = previewedItem {
+                DuoInnerSplit {
+                    innerPreview(preview, index: previewedIndex)
+                } trailing: {
+                    innerDetails
+                }
+            } else {
+                innerDetails
+                    .frame(maxWidth: DuoMetrics.innerFormMaxWidth)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.top, Spacing.s)
+        .padding(.bottom, DuoMetrics.innerBottom)
+        .padding(.leading, DuoMetrics.innerLeadingPadding)
+        .padding(.trailing, DuoMetrics.innerRightPadding)
+    }
+
+    private func innerPreview(_ item: PhotoItem, index: Int) -> some View {
+        VStack(spacing: Spacing.s) {
+            ZStack {
+                Color.black.opacity(0.92)
+                Button {
+                    viewer = ViewerPayload(index: index)
+                } label: {
+                    Image(uiImage: item.image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "查看已保存照片"))
+                .accessibilityHint(String(localized: "打开成果预览"))
+
+                if let url = item.outputURL {
+                    ShareLink(item: url) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(.black.opacity(0.42), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(String(localized: "分享这张 HEIC"))
+                    .padding(10)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+
+            previewCaption(item, index: index)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var innerDetails: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.m) {
+                    header
+                    statsRow
+                    if !savedItems.isEmpty { nextSteps }
+                    outcomeDetails
+                }
+                .padding(.bottom, Spacing.s)
+            }
+            innerBottomBar
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var innerBottomBar: some View {
+        VStack(spacing: Spacing.xs) {
+            if summary.failedCount > 0 {
+                SecondaryActionButton(title: String(localized: "重试失败项"), systemImage: "arrow.clockwise") {
+                    model.retryFailed()
+                }
+            }
+            PrimaryActionButton(title: String(localized: "result.continueNew", defaultValue: "继续处理新照片"), systemImage: "plus") {
+                model.reset()
+            }
+        }
+        .padding(.top, Spacing.s)
+    }
+
+    @ViewBuilder
+    private var outcomeDetails: some View {
+        if let integrity {
+            integrityGroup(integrity)
+        }
+        if !warnedItems.isEmpty { warningNotice }
+        if !summary.failures.isEmpty { failuresGroup }
+        if !summary.skippedReasons.isEmpty { skippedGroup }
+        if model.deferredCount > 0 { deferredCard }
+        if integrity == nil { diagnosticsRow }
+    }
+
 
     // MARK: Header and stats
 
@@ -135,7 +310,7 @@ struct ResultView: View {
 
     // MARK: Preview
 
-    private func previewCard(_ item: PhotoItem, index: Int) -> some View {
+    private func previewCard(_ item: PhotoItem, index: Int, height: CGFloat? = 270, showsShare: Bool = true) -> some View {
         VStack(spacing: Spacing.xs) {
             ZStack {
                 Color.black.opacity(0.92)
@@ -152,7 +327,7 @@ struct ResultView: View {
                 .accessibilityLabel(String(localized: "查看已保存照片"))
                 .accessibilityHint(String(localized: "打开成果预览"))
 
-                if let url = item.outputURL {
+                if showsShare, let url = item.outputURL {
                     ShareLink(item: url) {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 18, weight: .semibold))
@@ -161,36 +336,40 @@ struct ResultView: View {
                             .background(.black.opacity(0.42), in: Circle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("分享这张 HEIC")
+                    .accessibilityLabel(String(localized: "分享这张 HEIC"))
                     .padding(10)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 270)
+            .frame(height: height)
             .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
 
-            HStack(spacing: Spacing.s) {
-                Text(item.outputURL?.lastPathComponent ?? item.displayName)
-                    .font(Typography.monospaced)
-                    .foregroundStyle(Palette.textSecondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Spacer(minLength: 0)
-                if savedItems.count > 1 {
-                    HStack(spacing: 5) {
-                        ForEach(0..<savedItems.count, id: \.self) { i in
-                            Capsule()
-                                .fill(i == index ? Palette.textPrimary : Palette.textTertiary.opacity(0.4))
-                                .frame(width: i == index ? 16 : 6, height: 6)
-                        }
-                    }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(String(localized: "result.pages", defaultValue: "第 \(index + 1) 张，共 \(savedItems.count) 张"))
-                }
-            }
-            .padding(.horizontal, Spacing.xxs)
+            previewCaption(item, index: index)
         }
+    }
+
+    private func previewCaption(_ item: PhotoItem, index: Int) -> some View {
+        HStack(spacing: Spacing.s) {
+            Text(item.outputURL?.lastPathComponent ?? item.displayName)
+                .font(Typography.monospaced)
+                .foregroundStyle(Palette.textSecondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: 0)
+            if savedItems.count > 1 {
+                HStack(spacing: 5) {
+                    ForEach(0..<savedItems.count, id: \.self) { i in
+                        Capsule()
+                            .fill(i == index ? Palette.textPrimary : Palette.textTertiary.opacity(0.4))
+                            .frame(width: i == index ? 16 : 6, height: 6)
+                    }
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(String(localized: "result.pages", defaultValue: "第 \(index + 1) 张，共 \(savedItems.count) 张"))
+            }
+        }
+        .padding(.horizontal, Spacing.xxs)
     }
 
     // MARK: Next steps
@@ -654,5 +833,6 @@ struct PermissionDeniedView: View {
             .padding(.horizontal, margin)
             .frame(maxWidth: .infinity)
         }
+        .duoFormWidth()
     }
 }

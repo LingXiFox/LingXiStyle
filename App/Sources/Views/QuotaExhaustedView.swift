@@ -69,7 +69,7 @@ struct QuotaExhaustedView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
         }
-        .duoSheetWidth()
+        .duoFormWidth()
         .accessibilityElement(children: .contain)
         .accessibilityLabel("今日免费额度已用完")
     }

@@ -8,6 +8,7 @@ struct RootView: View {
     @State private var diagnostics: DiagnosticsPayload?
     @State private var duoControlInset: CGFloat = 0
     @State private var displayCornerInset: CGFloat = 0
+    @State private var duoLayout: DuoLayoutMode = .phone
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.reduceMotionOverride) private var reduceMotionOverride
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -27,32 +28,18 @@ struct RootView: View {
         GeometryReader { proxy in
             let expansion = horizontalExpansion(for: proxy)
             let cornerInset = cornerSafeInset(for: proxy)
+            let layout = duoLayoutMode(for: proxy.size, expansion: expansion)
             ZStack {
                 Palette.background.ignoresSafeArea()
                 AmbientBackdrop(intensity: ambient)
-                Group {
-                    if isTwoColumn(proxy.size) {
-                        HStack(spacing: 0) {
-                            WorkspaceRail(model: model)
-                                .frame(width: railWidth(for: proxy.size))
-
-                            Rectangle()
-                                .fill(Palette.hairline)
-                                .frame(width: 0.5)
-
-                            content
-                                .environment(\.contentMargin, Spacing.margin(for: min(proxy.size.width - railWidth(for: proxy.size), Layout.iPadContentMaxWidth)))
-                                .frame(maxWidth: Layout.iPadContentMaxWidth)
-                                .frame(maxWidth: .infinity)
-                        }
-                    } else {
-                        content
-                            .environment(\.contentMargin, Spacing.margin(for: min(proxy.size.width, Layout.iPadContentMaxWidth)))
-                            .frame(maxWidth: Layout.iPadContentMaxWidth)
-                            .frame(maxWidth: .infinity)
-                    }
-                }
-                .padding(.top, cornerInset)
+                content
+                    .environment(\.contentMargin, layout == .phone
+                        ? Spacing.margin(for: min(proxy.size.width, Layout.iPadContentMaxWidth))
+                        : DuoMetrics.coverMargin)
+                    .frame(maxWidth: layout == .phone ? Layout.iPadContentMaxWidth : .infinity)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .environment(\.duoLayout, layout)
+                    .padding(.top, cornerInset)
                     .animation(reduceMotion ? nil : Motion.entrance, value: model.screen)
             }
             .frame(width: expansion.width, alignment: .topLeading)
@@ -60,6 +47,7 @@ struct RootView: View {
             .onAppear {
                 duoControlInset = expansion.controlInset
                 displayCornerInset = cornerInset
+                duoLayout = layout
             }
             .onChange(of: expansion.controlInset) { _, newValue in
                 duoControlInset = newValue
@@ -67,10 +55,14 @@ struct RootView: View {
             .onChange(of: cornerInset) { _, newValue in
                 displayCornerInset = newValue
             }
+            .onChange(of: layout) { _, newValue in
+                duoLayout = newValue
+            }
         }
         .tint(Palette.accent)
         .environment(\.duoControlInset, duoControlInset)
         .environment(\.displayCornerInset, displayCornerInset)
+        .environment(\.duoLayout, duoLayout)
         .overlay(alignment: .top) { noticeBanner }
         .task {
             await model.onAppear()
@@ -168,10 +160,12 @@ struct RootView: View {
             && size.width >= Layout.duoBreakpoint
     }
 
-    /// Keep the persisted queue readable without squeezing the detail pane in a
-    /// floating or split-view window.
-    private func railWidth(for size: CGSize) -> CGFloat {
-        min(Layout.duoRailWidth, max(Layout.duoRailMinWidth, size.width * 0.38))
+    /// Three surfaces, two layout families: compact keeps one column, regular opens the
+    /// handoff's two panes. The cover screen is compact and carries the camera-island inset.
+    private func duoLayoutMode(for size: CGSize, expansion: HorizontalExpansion) -> DuoLayoutMode {
+        if isTwoColumn(size) { return .inner }
+        if horizontalSizeClass == .compact, expansion.controlInset > 0 { return .cover }
+        return .phone
     }
 
     private struct HorizontalExpansion {

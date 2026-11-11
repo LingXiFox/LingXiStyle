@@ -8,6 +8,8 @@ struct StageProgressView: View {
     /// Full Live Photo runs one extra frame pass; the list must match the engine, not a fixed list.
     var livePhotoMode: LivePhotoProcessingMode?
     var failed: Bool = false
+    /// Duo surfaces tighten the row to 40pt on the cover screen and open it to 48pt inside.
+    var rowHeight: CGFloat = 44
 
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.reduceMotionOverride) private var reduceMotionOverride
@@ -75,7 +77,7 @@ struct StageProgressView: View {
                 .foregroundStyle(Palette.textPrimary)
             Spacer(minLength: 0)
         }
-        .frame(minHeight: 44)
+        .frame(minHeight: rowHeight)
         .padding(.horizontal, Spacing.m)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(String(localized: "progress.stageAccessibility", defaultValue: "\(step.title)\(suffix)"))
