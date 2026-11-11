@@ -142,7 +142,6 @@
 		ED4F884DDA19BD4097C9202C /* ConversionSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5877E669EBEA93F9E2ED30CE /* ConversionSummaryCard.swift */; };
 		F15BA78FF09B8E391127C719 /* TutorialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04DAF5465D6ACFB52DB741B2 /* TutorialView.swift */; };
 		F29804AAD5616F6A2A4B80A4 /* SelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3833F2345FCC16B709C0599C /* SelectionView.swift */; };
-		F390A6DBC6D71961ABC5336B /* IPadLayoutUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DDDA0594B8E85B7CEA804C9 /* IPadLayoutUITests.swift */; };
 		F6FA5A0717D8790668CE8FC8 /* StylePortCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6078DBCBF6EA885B571F04E /* StylePortCoreTests.swift */; };
 		F8398A16CE79091FE51F0A2A /* AmbientBackdrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9B90BC33C4AF97168F32FA1 /* AmbientBackdrop.swift */; };
 		F930D58E23ECE80C5A572941 /* LivePhotoApertureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F76F42A264F86627334676C9 /* LivePhotoApertureTests.swift */; };
@@ -482,7 +481,6 @@
 		364D92C36CBCEB08AA32DE74 /* KeychainQuotaStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainQuotaStore.swift; sourceTree = "<group>"; };
 		3833F2345FCC16B709C0599C /* SelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionView.swift; sourceTree = "<group>"; };
 		38A0E57B9856FE5511B2909C /* Texture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Texture.swift; sourceTree = "<group>"; };
-		3DDDA0594B8E85B7CEA804C9 /* IPadLayoutUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPadLayoutUITests.swift; sourceTree = "<group>"; };
 		43B3E163C07FA88E843A48AF /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		44F88393D1E4B780835C2037 /* LivePhotoIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePhotoIntegrationTests.swift; sourceTree = "<group>"; };
 		4AF34B250C87F99242234F4F /* DiagnosticsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsSheet.swift; sourceTree = "<group>"; };
@@ -1037,7 +1035,6 @@
 			isa = PBXGroup;
 			children = (
 				20EEB5864BAF74C935D8CAE3 /* HomeSmokeTests.swift */,
-				3DDDA0594B8E85B7CEA804C9 /* IPadLayoutUITests.swift */,
 				56F10E738929A91449A851E0 /* TutorialUITests.swift */,
 			);
 			path = LingXiUITests;
@@ -1650,7 +1647,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				83FE08901E49C31F3BF6D411 /* HomeSmokeTests.swift in Sources */,
-				F390A6DBC6D71961ABC5336B /* IPadLayoutUITests.swift in Sources */,
 				0ACDE976E7B8E04925902FC3 /* TutorialUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1927,7 +1923,7 @@
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "$(TEXEL_APP_STORE_PROFILE)";
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -2002,7 +1998,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.Share;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -2369,7 +2365,7 @@
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "$(TEXEL_SHARE_APP_STORE_PROFILE)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -2430,7 +2426,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel;
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};

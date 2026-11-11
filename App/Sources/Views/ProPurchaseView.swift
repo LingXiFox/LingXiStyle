@@ -7,7 +7,7 @@ struct ProPurchaseView: View {
     @ObservedObject var purchases: PurchaseManager
     var onEntitlementChanged: () -> Void
     var onClose: () -> Void
-
+    @Environment(\.displayCornerInset) private var displayCornerInset
     var controlInset: CGFloat = 0
 
     private var purchaseTitle: String {
@@ -102,6 +102,7 @@ struct ProPurchaseView: View {
             .accessibilityIdentifier("pro.close")
         }
         .padding(.trailing, controlInset)
+        .padding(.top, displayCornerInset > 0 ? Spacing.s : 0)
     }
 
     private var benefits: some View {

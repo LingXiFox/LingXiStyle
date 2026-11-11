@@ -90,6 +90,10 @@ enum Layout {
     /// Two-column also requires regular size classes, so narrow split panes and
     /// floating windows stay single-column until there is real room.
     static let duoBreakpoint: CGFloat = 640
+    /// Duo's cover and inner displays report a zero top safe-area inset even though
+    /// their corners curve into the content. Custom chrome adds this inset so titles,
+    /// quota badges and close buttons stay clear of the display radius.
+    static let displayCornerInset: CGFloat = 32
     /// Native iPad detail panes get wide quickly; keep the reading column from
     /// stretching a single photo or a two-line paragraph across the whole screen.
     static let iPadContentMaxWidth: CGFloat = 720

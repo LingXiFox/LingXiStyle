@@ -7,6 +7,7 @@ struct RootView: View {
     @StateObject private var model = AppModel()
     @State private var diagnostics: DiagnosticsPayload?
     @State private var duoControlInset: CGFloat = 0
+    @State private var displayCornerInset: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.reduceMotionOverride) private var reduceMotionOverride
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -25,6 +26,7 @@ struct RootView: View {
     var body: some View {
         GeometryReader { proxy in
             let expansion = horizontalExpansion(for: proxy)
+            let cornerInset = cornerSafeInset(for: proxy)
             ZStack {
                 Palette.background.ignoresSafeArea()
                 AmbientBackdrop(intensity: ambient)
@@ -50,17 +52,25 @@ struct RootView: View {
                             .frame(maxWidth: .infinity)
                     }
                 }
+                .padding(.top, cornerInset)
                     .animation(reduceMotion ? nil : Motion.entrance, value: model.screen)
             }
             .frame(width: expansion.width, alignment: .topLeading)
             .offset(x: -expansion.leading)
-            .onAppear { duoControlInset = expansion.controlInset }
+            .onAppear {
+                duoControlInset = expansion.controlInset
+                displayCornerInset = cornerInset
+            }
             .onChange(of: expansion.controlInset) { _, newValue in
                 duoControlInset = newValue
+            }
+            .onChange(of: cornerInset) { _, newValue in
+                displayCornerInset = newValue
             }
         }
         .tint(Palette.accent)
         .environment(\.duoControlInset, duoControlInset)
+        .environment(\.displayCornerInset, displayCornerInset)
         .overlay(alignment: .top) { noticeBanner }
         .task {
             await model.onAppear()
@@ -187,6 +197,15 @@ struct RootView: View {
         )
     }
 
+    /// Duo's cover and inner displays report a zero top safe-area inset even though
+    /// their rounded corners still cut into the top-left and top-right corners. Add a
+    /// fixed inset only when the display is vertically regular and the system has not
+    /// already reserved space for a notch or status bar.
+    private func cornerSafeInset(for proxy: GeometryProxy) -> CGFloat {
+        guard verticalSizeClass == .regular, proxy.safeAreaInsets.top < 1 else { return 0 }
+        return Layout.displayCornerInset
+    }
+
     @ViewBuilder
     private var content: some View {
         switch model.screen {
@@ -241,7 +260,7 @@ struct RootView: View {
                 .strokeBorder(Palette.hairline, lineWidth: 0.5))
             .shadow(color: Palette.shadow, radius: 10, y: 4)
             .padding(.horizontal, Spacing.m)
-            .padding(.top, Spacing.xs)
+            .padding(.top, Spacing.xs + displayCornerInset)
             .transition(.move(edge: .top).combined(with: .opacity))
             .task(id: notice) {
                 try? await Task.sleep(nanoseconds: 5_000_000_000)
@@ -268,6 +287,21 @@ extension EnvironmentValues {
     var contentMargin: CGFloat {
         get { self[ContentMarginKey.self] }
         set { self[ContentMarginKey.self] = newValue }
+    }
+}
+
+// MARK: - Display corner inset
+
+/// Additional top inset for displays whose rounded corners cut into content while
+/// the system reports a zero safe-area inset (Duo cover and inner screens).
+struct DisplayCornerInsetKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
+extension EnvironmentValues {
+    var displayCornerInset: CGFloat {
+        get { self[DisplayCornerInsetKey.self] }
+        set { self[DisplayCornerInsetKey.self] = newValue }
     }
 }
 

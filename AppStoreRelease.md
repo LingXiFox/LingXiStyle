@@ -58,6 +58,7 @@ App 代码只读取 `Product.displayPrice`，不包含任何美元 / 人民币 /
    `$(AppIdentifierPrefix)com.lingxifox.Texel.shared`
 4. 不需要 App Groups；免费额度默认使用 Keychain 槽位账本。
 5. 真实内购不需要额外的 StoreKit entitlement，但需要 App Store Connect 商品与有效签名。
+6. 发布配置与 Debug 配置均为 iPhone-only（`TARGETED_DEVICE_FAMILY=1`）；宽屏双栏由 iPhone Duo 内屏的 regular size class 触发，不使用 iPad。
 
 ## 4. 本地与 Sandbox 验证
 
@@ -131,7 +132,7 @@ Offer Code，代码中不得出现固定兑换码、开发者账号白名单或�
 - [ ] Keychain 无共享组 entitlement 时 fail-closed，不静默拆成两套账本。
 - [ ] 分享扩展在真机完成读取、转换、保存；另测取消与 15 秒超时。
 - [ ] 集成测试宿主已授权相册，34 条真实 HEIC / 实况照片 / 分享 / 快捷指令测试通过。
-- [ ] XCUITest 教程分步、首页、设置与 Pro 入口冒烟通过；iPad 宽屏双栏测试通过。
+- [ ] XCUITest 教程分步、首页、设置与 Pro 入口冒烟通过；Duo 内屏双栏、设置与 Pro sheet 实测通过（发布版 iPhone-only）。
 - [x] GitHub Actions CI 已成功运行：[run 42435430433](https://github.com/LingXiFox/LingXiStyle/actions/runs/42435430433)
       （1.7.1 / commit `365abf5`；Policy、macOS 单测、iOS 18.5、iOS 26.x 全绿；两条集成均 29/29、0 跳过）。
       1.7.0 的 [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297) 亦全绿。
@@ -164,8 +165,7 @@ on the Pro page.
   1.7.0 已在 iOS 27.3 模拟器完成原片 → 读取 → 转换 → 保存 → 额度同步；真机分享扩展仍未验证。
 - 1.7.1 新增真实 48MP HEIC 端到端集成测试与 XCUITest 启动冒烟；本机六套测试合计
   98 项执行 / 96 通过 / 2 跳过。Duo 仅验证首页、设置与 Pro 页。
-- 1.8.1 本机七套测试 119 项执行 / 0 失败 / 3 跳过；实况双模式、106 帧额度、9 步教程、
-  Duo 外屏与 iPad 双栏已验证。无真机、无 iOS 18 / 26 运行时；Duo 内屏无法在 Xcode 27.2 展开。
+- 1.8.1 本机六套测试 118 项执行 / 0 失败 / 2 跳过；实况双模式、106 帧额度、9 步教程、Duo 外屏全流程与 Duo 内屏双栏已验证；无真机、无 iOS 18 / 26 运行时；Duo 内屏完整转换与折叠中间态未验证。
 - 100% Offer Code 的生产兑换依赖 App Store Connect 配置与商品可发放状态；
   本地配置不能替代生产资格检查。
 - 若未来改用 App Group + SQLite 作为额度存储，必须同时为 App 与扩展申请 App Group，

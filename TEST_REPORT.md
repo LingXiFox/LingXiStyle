@@ -3,9 +3,9 @@
 - 日期：2026-11-11
 - 版本：1.8.1（build 10）
 - 结论：本机 Debug / Release generic iOS 构建通过，Release archive 与 App Store IPA 导出通过；
-  七套自动化测试合计执行 119 项，0 失败、3 跳过；实况照片双模式、106 帧额度、9 步教程、
-  iPhone 17 / iPad 13 / Duo 外屏均完成实际交互验证。本机没有真机与 iOS 18 / 26 运行时；
-  Duo 内屏在 Xcode 27.2 无法展开，双栏改用 iPad 13 的 regular / regular 环境验证。
+  六套自动化测试合计执行 118 项，0 失败、2 跳过；实况照片双模式、106 帧额度、9 步教程、
+  iPhone 17 与 Duo 外屏完成实际交互验证；Duo 内屏通过 DeviceHub 姿态切换验证双栏、设置与 Pro。
+  本机没有真机与 iOS 18 / 26 运行时；Duo 内屏完整转换与折叠中间态未验证。
   TestFlight 上传未执行。报告只记录实际执行过的证据。
 
 ## 2026-11-11 1.8.1 验证
@@ -14,9 +14,9 @@
 
 | 项目 | 状态 | 证据 |
 | --- | --- | --- |
-| 实况照片双模式 | 完成 | 仅主帧模式 MOV 字节原样；完整处理追加 texture style 轨、帧数不变、音频 / 关键帧 / 配对保留；两种模式各只扣 1 张 |
+| 实况照片双模式 | 完成 | 仅主帧模式 MOV 字节原样；完整处理追加 `texturestyle-info` 轨、帧数不变、音频 / 关键帧 / 配对保留；轨道结构已回读，逐帧播放呈现未验证；两种模式各只扣 1 张 |
 | 9 步首次教程 | 完成 | 首启自动展示、可跳过、后续不自动弹；首页与设置均有入口；每步一图示、短文案；第 5 步可实际配置实况模式 |
-| Duo / iPad 布局 | 外屏完成，内屏未实测 | Duo 外屏全流程通过；宽屏双栏在 iPad 13 通过；Duo 内屏受 Xcode 27.2 无折叠能力限制 |
+| Duo 布局 | 外屏完成；内屏双栏完成，完整转换未测 | Duo 外屏全流程通过；Duo 内屏（669 × 951 pt）验证双栏、设置与 Pro sheet；完整转换与折叠中间态未执行 |
 
 ### 2. Live Photo 结果
 
@@ -25,6 +25,7 @@
 - 仅主帧：输出 MOV 与源 MOV 字节完全相等；静帧输出 HEIC 通过完整性校验；额度 5 → 4。
 - 完整处理：输出 MOV 比源文件更大，包含新增的 `texturestyle-info` 轨；主视频仍为 53 帧；
   `ConversionStage.processingFrames` 在 `verifying` 之前出现；额度 5 → 4。
+- 轨道结构：Core 测试 `testAddsTextureTrackAndReadsItBack` 把 `texturestyle-info` 轨写回后重新读取，确认 track handler 为 `meta`、sample 数等于 53 帧、sample 时间戳与主视频一致、moov `meta` 含 `com.apple.quicktime.texturestyle.`，并且写临时文件再读回后 parts 不变。这只证明容器 / 轨道结构正确，不等于系统「照片」播放时逐帧真的显示纹理与颗粒。
 - 配额红线：两种模式都只有 1 次 reserve / 1 次 commit / 0 次 release；不是按帧、资源、
   阶段或重试计数。
 - 90+ 帧：新增 `IMG_5963-long.MOV`，由 53 帧素材循环为 106 帧，并把原始辅助风格轨及其
@@ -50,7 +51,7 @@
 - 四语言：中文（简 / 繁）、英文、日文均补齐教程标题、正文、图示标签与按钮；
   `Localizable.xcstrings` 四语言完整性脚本 0 failures。
 - 适配：Dynamic Type、VoiceOver（分页只读当前页，`accessibilityHidden(index != stepIndex)`）、
-  Reduce Motion、Duo 外屏 466 pt 与 iPad 宽屏均实测。
+  Reduce Motion、Duo 外屏 466 pt 与 Duo 内屏 669 pt 布局均实测；教程分步在 iPhone 17 与 Duo 外屏实测。
 - 截图证据：`/tmp/duo-tutorial-custom-crop.png`、`/tmp/duo-tutorial-live-crop.png`、
   `/tmp/duo-tutorial-final-crop.png`。
 
@@ -67,11 +68,11 @@
   摄像头一侧控件统一加 `duoControlInset`；首页按钮从 350 pt 变为 434 pt，设置 / Pro /
   额度 sheet 的关闭按钮避开右上摄像头（`pro.close` 从 x390 移到 x306）。
 - 内屏双栏：`RootView.isTwoColumn` 要求 `horizontalSizeClass == .regular`、
-  `verticalSizeClass == .regular` 且宽度 ≥ 600 pt；左侧 `WorkspaceRail` 队列，右侧详情。
-  本机 Xcode 27.2 的 simctl / Device Hub 均没有 fold / pose 控制，无法把 Duo 展开到内屏；
-  因此用 iPad 13（regular / regular）验证双栏实际渲染与交互，1/1 通过。
-- 折叠 / 展开状态连续：外屏已验证选择、转换、结果、设置、教程各阶段；内屏折叠切换
-  未能在本机执行，不能记为通过。
+  `verticalSizeClass == .regular` 且宽度 ≥ 640 pt；左侧 `WorkspaceRail` 队列，右侧详情。
+  Duo 内屏通过 DeviceHub 底部姿态按钮切到内屏后实测：AX 窗口 669 × 951 pt，
+  `home.root` 宽 650 pt、`workspace.rail` 在左、详情在右，确认双栏实际渲染；设置与 Pro sheet 正常打开。
+- 折叠 / 展开状态连续：外屏已验证选择、转换、结果、设置、教程各阶段；内屏验证了空队列、
+  设置与 Pro，但未在内屏执行完整转换，折叠中间态未能执行，不能记为通过。
 
 ### 5. 自动化与回归
 
@@ -79,12 +80,11 @@
 | --- | ---: | ---: | ---: |
 | LingXiKitTests | 35 | 0 | 0 |
 | LingXiEngineTests | 5 | 0 | 0 |
-| StylePortCoreTests | 14 | 0 | 2 |
+| StylePortCoreTests | 15 | 0 | 2 |
 | LingXiPurchaseTests | 24 | 0 | 0 |
 | LingXiIntegrationTests | 34 | 0 | 0 |
-| LingXiUITests（iPhone 17） | 6 | 0 | 1 |
-| IPadLayoutUITests（iPad 13） | 1 | 0 | 0 |
-| **合计** | **119** | **0** | **3** |
+| LingXiUITests（iPhone 17） | 5 | 0 | 0 |
+| **合计** | **118** | **0** | **2** |
 
 - Kit 35 含 `LivePhotoModeTests` 6；Integration 34 含 Conversion 8、LivePhoto 5、
   ShareFlow 12、Shortcut 9。
@@ -92,14 +92,14 @@
   `PhotoLibraryService` 的 `@Sendable` 进度闭包警告后复验。
 - Release archive 成功：`build/Texel-1.8.1.xcarchive`，1.8.1 / build 10，
   `Apple Distribution: Zhihan Zhu (R9UJHHAZQ4)` 签名，主 App 与分享扩展均嵌入 App Store profile；
-  已导出 `build/export-1.8.1/LingXiStyle.ipa`（3.4 MB），包内无 `.storekit` 测试商品。
+  已导出 `build/export-1.8.1/LingXiStyle.ipa`（3.0 MB，`UIDeviceFamily = [1]`），包内无 `.storekit` 测试商品。
 - 1.7.1 的分享扩展、快捷指令、Keychain 额度、StoreKit 2、48MP HEIC 回归全部保留并通过。
 - 未重跑 CI；本轮结果来自本机 Xcode 27.2 / iOS 27.2。
 
 ### 6. 剩余限制
 
-- 没有 iPhone 真机：真机安装、真实相册写入、实况照片音频同步与系统“照片”App 播放未验证。
-- Duo 内屏无法在 Xcode 27.2 展开；双栏仅由 iPad 13 代验，折叠 / 展开中间态未实测。
+- 没有 iPhone 真机：真机安装、真实相册写入、实况照片音频同步、系统“照片”App 播放与纹理逐帧呈现均未验证。
+- Duo 内屏已用 DeviceHub 姿态切换进入并验证双栏、设置与 Pro；内屏完整转换与折叠 / 展开中间态未实测。
 - 90+ 帧素材是 53 帧循环合成的 106 帧文件，辅助风格轨由原始素材复制；不是原生 90+ 帧拍摄。
 - 本机只有 iOS 27.2 运行时，未验证 iOS 18 / 26。
 - 未连接真实 App Store，未做真实交易 / 退款；TestFlight 上传未执行（archive 与 IPA 已生成）。
@@ -108,7 +108,7 @@
 ### 7. 是否具备提审条件
 
 - 代码、构建、自动化与模拟器主流程已达到可提审的工程基线；三项 P0 均有可复现证据。
-- 但仍缺少真机实况照片验证、Duo 内屏折叠验证与 TestFlight 上传；在这些完成前，
+- 但仍缺少真机实况照片验证、Duo 内屏完整转换与折叠验证、TestFlight 上传；在这些完成前，
   不应把 1.8.1 标记为“可提交 App Review”。
 - 建议顺序：真机跑两种实况模式与音频同步 → 有折叠能力的 Xcode / 设备验证内屏双栏 →
   上传已生成的 IPA 到 TestFlight 内测 → 再提交审核。

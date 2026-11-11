@@ -6,8 +6,8 @@ struct QuotaExhaustedView: View {
     let limit: Int
     var onUpgrade: () -> Void
     var onDismiss: () -> Void
-
     var controlInset: CGFloat = 0
+    @Environment(\.displayCornerInset) private var displayCornerInset
 
     var body: some View {
         ZStack {
@@ -27,6 +27,7 @@ struct QuotaExhaustedView: View {
                         .accessibilityLabel("关闭")
                     }
                     .padding(.trailing, controlInset)
+                    .padding(.top, displayCornerInset > 0 ? Spacing.s : 0)
 
                     ZStack {
                         Circle()

@@ -129,17 +129,12 @@ targets:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        UISupportedInterfaceOrientations~ipad:
-          - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationPortraitUpsideDown
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
         NSPhotoLibraryUsageDescription: 用于读取你选择的 HEIC 原片，并在本机追加纹理与颗粒。照片不会离开设备。
         NSPhotoLibraryAddUsageDescription: 用于把补好纹理与颗粒的照片存为相册中的新照片，原照片不会被修改。
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.Texel
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SUPPORTS_MACCATALYST: NO
         CODE_SIGN_ENTITLEMENTS: App/Resources/LingXiStyle.entitlements
@@ -184,7 +179,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.Texel.Share
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
         APPLICATION_EXTENSION_API_ONLY: YES
         LD_RUNPATH_SEARCH_PATHS: ["$(inherited)", "@executable_path/../../Frameworks"]
         SKIP_INSTALL: YES

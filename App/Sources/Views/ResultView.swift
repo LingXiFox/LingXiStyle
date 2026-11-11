@@ -506,6 +506,7 @@ struct SavedResultsViewer: View {
     let items: [PhotoItem]
     @State private var index: Int
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.displayCornerInset) private var displayCornerInset
 
     init(items: [PhotoItem], startIndex: Int) {
         self.items = items
@@ -565,7 +566,7 @@ struct SavedResultsViewer: View {
                     }
                 }
                 .padding(.horizontal, Spacing.m)
-                .padding(.top, Spacing.xs)
+                .padding(.top, Spacing.xs + displayCornerInset)
                 Spacer()
                 if items.indices.contains(index), let url = items[index].outputURL {
                     ShareLink(item: url) {

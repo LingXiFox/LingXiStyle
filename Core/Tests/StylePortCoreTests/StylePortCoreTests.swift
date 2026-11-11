@@ -78,6 +78,45 @@ final class StylePortCoreTests: XCTestCase {
         }
     }
 
+    /// The engine's full Live Photo mode relies on this reader: the appended timed-metadata
+    /// track must be discoverable again, carry one sample per frame, and keep the target's
+    /// timing. This is a container check, not proof that Photos renders the texture on playback.
+    func testAddsTextureTrackAndReadsItBack() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // StylePortCoreTests
+            .deletingLastPathComponent() // Tests
+            .deletingLastPathComponent() // Core
+            .deletingLastPathComponent() // repo
+        let input = root.appendingPathComponent("Tests/Fixtures/LivePhoto/IMG_5963.MOV")
+        let original = try Data(contentsOf: input)
+        let frames = try LivePhotoVideo.frameCount(of: original)
+        let before = try LivePhotoVideo.parts(of: original)
+        XCTAssertTrue(before.isSuperset(of: [.mattes, .styleInfo]))
+        XCTAssertFalse(before.contains(.textureInfo))
+
+        let (styled, added) = try LivePhotoVideo.add([.textureInfo], to: original, linearThumbnail: nil)
+        XCTAssertEqual(added, [.textureInfo])
+        XCTAssertEqual(try LivePhotoVideo.frameCount(of: styled), frames)
+        XCTAssertEqual(try LivePhotoVideo.parts(of: styled), before.union(.textureInfo))
+
+        let movie = try Movie(styled.stylePortBytes)
+        let track = try XCTUnwrap(movie.track(tagged: LivePhotoVideo.textureInfoTag))
+        XCTAssertEqual(try movie.handler(track), "meta")
+        XCTAssertEqual(try movie.samples(track).count, frames)
+        XCTAssertEqual(try movie.sampleDeltas(track), try movie.sampleDeltas(movie.mainVideo()))
+        XCTAssertTrue(try movie.samples(track).allSatisfy { !$0.isEmpty })
+
+        let meta = try XCTUnwrap(movie.moovChild("meta"))
+        let text = String(decoding: movie.data[meta.offset..<(meta.offset + meta.size)], as: UTF8.self)
+        XCTAssertTrue(text.contains("com.apple.quicktime.texturestyle."))
+
+        let output = FileManager.default.temporaryDirectory
+            .appendingPathComponent("texture-track-\(UUID().uuidString).mov")
+        defer { try? FileManager.default.removeItem(at: output) }
+        try styled.write(to: output)
+        XCTAssertEqual(try LivePhotoVideo.parts(of: try Data(contentsOf: output)), before.union(.textureInfo))
+    }
+
     #if canImport(AVFoundation) && canImport(VideoToolbox)
     /// Adds every style part to the Live Photo video STYLEPORT_LIVE_VIDEO and writes it to
     /// STYLEPORT_OUT, for checking with movdump.py and on a phone. Skipped unless both are set.
