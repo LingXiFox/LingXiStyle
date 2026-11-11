@@ -9,6 +9,11 @@ public final class ConversionService: @unchecked Sendable {
 
     public struct Request: Sendable {
         public let fileURL: URL
+        /// The paired movie of a Live Photo, already exported next to the still. `nil` for a
+        /// regular HEIC: the engine then runs the plain still pipeline.
+        public let pairedVideoURL: URL?
+        /// Which Live Photo pipeline to run. Ignored when `pairedVideoURL` is `nil`.
+        public let livePhotoMode: LivePhotoProcessingMode?
         public let traits: AssetTraits
         public let preferredName: String
         public let saveToLibrary: Bool
@@ -19,17 +24,27 @@ public final class ConversionService: @unchecked Sendable {
         public var outputDirectory: URL?
 
         public init(fileURL: URL,
+                    pairedVideoURL: URL? = nil,
+                    livePhotoMode: LivePhotoProcessingMode? = nil,
                     traits: AssetTraits,
                     preferredName: String,
                     saveToLibrary: Bool,
                     returnsFile: Bool = false,
                     outputDirectory: URL? = nil) {
             self.fileURL = fileURL
+            self.pairedVideoURL = pairedVideoURL
+            self.livePhotoMode = livePhotoMode
             self.traits = traits
             self.preferredName = preferredName
             self.saveToLibrary = saveToLibrary
             self.returnsFile = returnsFile
             self.outputDirectory = outputDirectory
+        }
+
+        /// The movie file name that belongs next to `preferredName`.
+        public var preferredVideoName: String {
+            let stem = (preferredName as NSString).deletingPathExtension
+            return (stem.isEmpty ? "LivePhoto" : stem) + "." + ConversionEngine.outputVideoExtension
         }
     }
 
@@ -37,11 +52,16 @@ public final class ConversionService: @unchecked Sendable {
         public let savedAssetIdentifier: String?
         public let saveWarning: String?
         public let outputURL: URL?
+        /// Set when a Live Photo movie travelled with the still.
+        public let outputVideoURL: URL?
         public let outputByteCount: Int
         public let integrity: IntegrityReport
         public let inspectionBefore: HEICInspection
         public let inspectionAfter: HEICInspection
         public let mode: String
+        /// `.stillOnly` / `.full` for a Live Photo, `nil` for a regular still.
+        public let livePhotoMode: LivePhotoProcessingMode?
+        public let videoFrameCount: Int?
     }
 
     private let engine: ConversionEngine
@@ -83,6 +103,8 @@ public final class ConversionService: @unchecked Sendable {
     public func convert(_ request: Request,
                         onStage: @escaping @Sendable (ConversionStage) -> Void) async throws -> Result {
         let isPro = await entitlementProvider.isPro()
+        // One Live Photo is one photo: the reservation happens once per asset, whatever the
+        // mode and however many frames the movie has.
         let reservation: QuotaReservation?
         do {
             reservation = try quotaManager.reserve(isPro: isPro)
@@ -116,10 +138,19 @@ public final class ConversionService: @unchecked Sendable {
 
         let engine = self.engine
         let engineTask = Task.detached(priority: .userInitiated) {
-            try engine.convert(fileURL: request.fileURL,
-                               traits: request.traits,
-                               outputDirectory: workDirectory,
-                               onStage: onStage)
+            if let videoURL = request.pairedVideoURL {
+                return try await engine.convertLivePhoto(
+                    LivePhotoRequest(stillURL: request.fileURL,
+                                     videoURL: videoURL,
+                                     mode: request.livePhotoMode ?? .defaultMode,
+                                     traits: request.traits,
+                                     outputDirectory: workDirectory),
+                    onStage: onStage)
+            }
+            return try engine.convert(fileURL: request.fileURL,
+                                      traits: request.traits,
+                                      outputDirectory: workDirectory,
+                                      onStage: onStage)
         }
         let output = try await withTaskCancellationHandler {
             try await engineTask.value
@@ -132,6 +163,7 @@ public final class ConversionService: @unchecked Sendable {
         try Task.checkCancellation()
 
         var handedBack: URL?
+        var handedBackVideo: URL?
         if request.returnsFile || !request.saveToLibrary {
             try Task.checkCancellation()
             let destinationDirectory: URL
@@ -147,14 +179,13 @@ public final class ConversionService: @unchecked Sendable {
             }
             onStage(.saving)
             let destination = destinationDirectory.appendingPathComponent(request.preferredName)
-            do {
-                if fileManager.fileExists(atPath: destination.path) {
-                    try fileManager.removeItem(at: destination)
-                }
-                try fileManager.copyItem(at: output.outputURL, to: destination)
-                handedBack = destination
-            } catch {
-                throw error
+            try replaceCopy(from: output.outputURL, to: destination)
+            handedBack = destination
+            if let movie = output.pairedVideoURL {
+                let videoDestination = destinationDirectory
+                    .appendingPathComponent(request.preferredVideoName)
+                try replaceCopy(from: movie, to: videoDestination)
+                handedBackVideo = videoDestination
             }
         }
 
@@ -163,8 +194,15 @@ public final class ConversionService: @unchecked Sendable {
         if request.saveToLibrary {
             try Task.checkCancellation()
             onStage(.saving)
-            let saved = try await library.saveNewPhoto(from: output.outputURL,
+            let saved: SavedPhoto
+            if let movie = output.pairedVideoURL {
+                saved = try await library.saveNewLivePhoto(still: output.outputURL,
+                                                           video: movie,
+                                                           preferredName: request.preferredName)
+            } else {
+                saved = try await library.saveNewPhoto(from: output.outputURL,
                                                        preferredName: request.preferredName)
+            }
             savedIdentifier = saved.identifier
             saveWarning = saved.warning
         }
@@ -182,10 +220,20 @@ public final class ConversionService: @unchecked Sendable {
         return Result(savedAssetIdentifier: savedIdentifier,
                       saveWarning: saveWarning,
                       outputURL: handedBack,
+                      outputVideoURL: handedBackVideo,
                       outputByteCount: output.outputByteCount,
                       integrity: output.integrity,
                       inspectionBefore: output.inspectionBefore,
                       inspectionAfter: output.inspectionAfter,
-                      mode: output.mode)
+                      mode: output.mode,
+                      livePhotoMode: output.livePhotoMode,
+                      videoFrameCount: output.videoFrameCount)
+    }
+
+    private func replaceCopy(from source: URL, to destination: URL) throws {
+        if fileManager.fileExists(atPath: destination.path) {
+            try fileManager.removeItem(at: destination)
+        }
+        try fileManager.copyItem(at: source, to: destination)
     }
 }

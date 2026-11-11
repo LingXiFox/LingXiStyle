@@ -8,6 +8,8 @@ struct ProPurchaseView: View {
     var onEntitlementChanged: () -> Void
     var onClose: () -> Void
 
+    var controlInset: CGFloat = 0
+
     private var purchaseTitle: String {
         if purchases.isPro { return String(localized: "pro.owner.title", defaultValue: "\(Brand.proName) 已解锁") }
         if let product = purchases.product {
@@ -67,6 +69,7 @@ struct ProPurchaseView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
         }
+        .duoSheetWidth()
         .task {
             await purchases.start()
             if purchases.product == nil {
@@ -98,6 +101,7 @@ struct ProPurchaseView: View {
             .accessibilityLabel(String(localized: "pro.close", defaultValue: "关闭 Pro 页面"))
             .accessibilityIdentifier("pro.close")
         }
+        .padding(.trailing, controlInset)
     }
 
     private var benefits: some View {

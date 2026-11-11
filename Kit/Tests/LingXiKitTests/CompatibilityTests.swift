@@ -23,10 +23,18 @@ final class CompatibilityTests: XCTestCase {
         XCTAssertTrue(verdict.issues.isEmpty)
     }
 
-    func testLivePhotoIsUnsupported() {
-        let verdict = CompatibilityEvaluator.evaluate(inspection(), traits: AssetTraits(isLivePhoto: true))
+    func testLivePhotoWithMovieIsReady() {
+        let verdict = CompatibilityEvaluator.evaluate(inspection(),
+                                                      traits: AssetTraits(isLivePhoto: true, livePhotoVideoAvailable: true))
+        XCTAssertEqual(verdict.status, .ready)
+        XCTAssertTrue(verdict.issues.isEmpty)
+    }
+
+    func testLivePhotoWithoutMovieReportsTheMissingVideo() {
+        let verdict = CompatibilityEvaluator.evaluate(inspection(),
+                                                      traits: AssetTraits(isLivePhoto: true, livePhotoVideoAvailable: false))
         XCTAssertEqual(verdict.status, .unsupported)
-        XCTAssertEqual(verdict.issues, [.livePhoto])
+        XCTAssertEqual(verdict.issues, [.missingLivePhotoVideo])
     }
 
     func testAlreadyTexturedIsNotReprocessed() {

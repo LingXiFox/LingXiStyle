@@ -1,4 +1,4 @@
-# App Store 发布配置（纹粒 / Texel 1.7.1）
+# App Store 发布配置（纹粒 / Texel 1.8.1）
 
 这份文档只描述**若要发布到 App Store**时需要完成的 App Store Connect 与签名配置。
 仓库本身仍然只提供源码，不附带 IPA、TestFlight 包或真实商品。
@@ -114,7 +114,7 @@ Offer Code，代码中不得出现固定兑换码、开发者账号白名单或�
 
 ## 5. 发布前检查清单
 
-- [ ] 版本号 `1.7.1`、Build `9`（或更高）已写入 `project.yml`。
+- [ ] 版本号 `1.8.1`、Build `10`（或更高）已写入 `project.yml`。
 - [ ] `xcodegen generate` 后 Debug scheme 仍带 `Configuration.storekit`。
 - [ ] `LingXiKitTests`、`LingXiPurchaseTests`、`LingXiEngineTests`、`StylePortCoreTests`、`LingXiIntegrationTests`、`LingXiUITests` 全绿。
 - [ ] Release 构建不包含 StoreKit 测试配置。
@@ -130,8 +130,8 @@ Offer Code，代码中不得出现固定兑换码、开发者账号白名单或�
 - [ ] 跨入口额度竞态：另一入口抢走最后额度时，未处理项显示为延后，不记失败。
 - [ ] Keychain 无共享组 entitlement 时 fail-closed，不静默拆成两套账本。
 - [ ] 分享扩展在真机完成读取、转换、保存；另测取消与 15 秒超时。
-- [ ] 集成测试宿主已授权相册，29 条真实 HEIC / 分享 / 快捷指令测试通过。
-- [ ] XCUITest 启动冒烟通过（首页、设置、Pro 入口）。
+- [ ] 集成测试宿主已授权相册，34 条真实 HEIC / 实况照片 / 分享 / 快捷指令测试通过。
+- [ ] XCUITest 教程分步、首页、设置与 Pro 入口冒烟通过；iPad 宽屏双栏测试通过。
 - [x] GitHub Actions CI 已成功运行：[run 42435430433](https://github.com/LingXiFox/LingXiStyle/actions/runs/42435430433)
       （1.7.1 / commit `365abf5`；Policy、macOS 单测、iOS 18.5、iOS 26.x 全绿；两条集成均 29/29、0 跳过）。
       1.7.0 的 [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297) 亦全绿。
@@ -142,7 +142,8 @@ Offer Code，代码中不得出现固定兑换码、开发者账号白名单或�
 - [ ] 中国大陆 App 备案 / ICP 信息已按 `docs/app-store/china-mainland.md` 完成；未取得真实号码前不提交中国大陆区。
 - [x] App target 已提供 `PrivacyInfo.xcprivacy`（`UserDefaults` / `CA92.1`）；Share Extension 已提供独立清单（`FileTimestamp` / `C617.1`）。
 - [ ] 隐私说明、支持 URL、审核备注已填写。
-- [ ] Archive 使用 Release、正确 Team、上传 App Store Connect。
+- [x] Release archive 已生成：1.8.1 / build 10，`Apple Distribution` 签名，IPA 无本地 StoreKit 配置。
+- [ ] 已上传 App Store Connect / TestFlight（本轮只生成 archive 与 IPA，未上传）。
 
 ## 6. 审核备注建议
 
@@ -163,6 +164,8 @@ on the Pro page.
   1.7.0 已在 iOS 27.3 模拟器完成原片 → 读取 → 转换 → 保存 → 额度同步；真机分享扩展仍未验证。
 - 1.7.1 新增真实 48MP HEIC 端到端集成测试与 XCUITest 启动冒烟；本机六套测试合计
   98 项执行 / 96 通过 / 2 跳过。Duo 仅验证首页、设置与 Pro 页。
+- 1.8.1 本机七套测试 119 项执行 / 0 失败 / 3 跳过；实况双模式、106 帧额度、9 步教程、
+  Duo 外屏与 iPad 双栏已验证。无真机、无 iOS 18 / 26 运行时；Duo 内屏无法在 Xcode 27.2 展开。
 - 100% Offer Code 的生产兑换依赖 App Store Connect 配置与商品可发放状态；
   本地配置不能替代生产资格检查。
 - 若未来改用 App Group + SQLite 作为额度存储，必须同时为 App 与扩展申请 App Group，

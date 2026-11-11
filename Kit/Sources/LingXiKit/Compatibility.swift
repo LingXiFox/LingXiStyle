@@ -3,21 +3,32 @@ import Foundation
 /// PhotoKit-level facts that the file itself cannot reveal.
 public struct AssetTraits: Sendable, Equatable {
     public var isLivePhoto: Bool
+    /// PhotoKit handed us the paired movie next to the still. A Live Photo whose movie is
+    /// missing or unreadable cannot travel through either pipeline.
+    public var livePhotoVideoAvailable: Bool
     public var isRAWPlusHEIC: Bool
     public var isEdited: Bool
     public var originalIsHEIC: Bool
 
-    public init(isLivePhoto: Bool = false, isRAWPlusHEIC: Bool = false, isEdited: Bool = false, originalIsHEIC: Bool = true) {
+    public init(isLivePhoto: Bool = false,
+                livePhotoVideoAvailable: Bool = true,
+                isRAWPlusHEIC: Bool = false,
+                isEdited: Bool = false,
+                originalIsHEIC: Bool = true) {
         self.isLivePhoto = isLivePhoto
+        self.livePhotoVideoAvailable = livePhotoVideoAvailable
         self.isRAWPlusHEIC = isRAWPlusHEIC
         self.isEdited = isEdited
         self.originalIsHEIC = originalIsHEIC
     }
+
+    /// The still and its movie are both present, so the asset can pick either Live Photo mode.
+    public var canProcessLivePhoto: Bool { isLivePhoto && livePhotoVideoAvailable }
 }
 
 public enum CompatibilityIssue: String, Sendable, Equatable, CaseIterable {
     case notHEIC
-    case livePhoto
+    case missingLivePhotoVideo
     case rawPlusHEIC
     case missingPrimaryGrid
     case missingStyleMetadata
@@ -28,7 +39,7 @@ public enum CompatibilityIssue: String, Sendable, Equatable, CaseIterable {
     public var title: String {
         switch self {
         case .notHEIC: return String(localized: "不是 HEIC 原片")
-        case .livePhoto: return String(localized: "实况照片暂不支持")
+        case .missingLivePhotoVideo: return String(localized: "缺少动态视频")
         case .rawPlusHEIC: return String(localized: "ProRAW + HEIC 组合暂不支持")
         case .missingPrimaryGrid: return String(localized: "缺少主图分块数据")
         case .missingStyleMetadata: return String(localized: "没有 iPhone 16/17 的纹理与颗粒数据")
@@ -41,7 +52,7 @@ public enum CompatibilityIssue: String, Sendable, Equatable, CaseIterable {
     public var guidance: String {
         switch self {
         case .notHEIC: return String(localized: "请选择 iPhone 相机直出的 HEIC 照片。")
-        case .livePhoto: return String(localized: "在相册里把它转为静态照片后再试，原文件不会改动。")
+        case .missingLivePhotoVideo: return String(localized: "这张实况照片只有主帧文件，没有配套的动态视频。请回到系统相册重新选择一次。")
         case .rawPlusHEIC: return String(localized: "请选择标准 HEIC 照片；ProRAW 组合留给后续版本。")
         case .missingPrimaryGrid: return String(localized: "这张照片不是分块编码的 HEIC，无法安全添加纹理与颗粒数据。")
         case .missingStyleMetadata: return String(localized: "它可能来自较旧的机型或第三方应用，没有可保留的纹理与颗粒信息。")
@@ -105,10 +116,15 @@ public enum CompatibilityEvaluator {
         var issues: [CompatibilityIssue] = []
         if !traits.originalIsHEIC || !inspection.container.isHEIF {
             issues.append(.notHEIC)
-            if traits.isLivePhoto { issues.append(.livePhoto) }
             return CompatibilityVerdict(status: .unsupported, issues: issues, inspection: inspection)
         }
-        if traits.isLivePhoto { issues.append(.livePhoto) }
+        // A Live Photo is a normal HEIC still plus a paired movie. The still goes through the same
+        // lossless texture injection; the movie is either copied as-is or gets the matching style
+        // tracks. PhotoKit only reveals that pairing, so it never blocks the still here.
+        if traits.isLivePhoto, !traits.livePhotoVideoAvailable {
+            issues.append(.missingLivePhotoVideo)
+            return CompatibilityVerdict(status: .unsupported, issues: issues, inspection: inspection)
+        }
         if traits.isRAWPlusHEIC { issues.append(.rawPlusHEIC) }
         // An edited asset is allowed through: PhotoKit still hands us a resource file and the
         // app always writes a new asset. The UI shows a separate warning for `traits.isEdited`.

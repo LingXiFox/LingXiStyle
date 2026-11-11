@@ -10,7 +10,9 @@ final class HomeSmokeTests: XCTestCase {
 
     func testHomeSettingsAndProEntryPoints() throws {
         let app = XCUIApplication()
-        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        // Keep the first-run tutorial out of the way; TutorialUITests covers it.
+        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US",
+                               "-LingXiStyle.hasSeenTutorial", "YES"]
         app.launch()
 
         let home = app.descendants(matching: .any)["home.root"]

@@ -9,6 +9,7 @@ public struct ConversionEngine: Sendable {
 
     public static let outputSuffix = "_TextureGrain"
     public static let outputExtension = "heic"
+    public static let outputVideoExtension = "mov"
 
     /// Reads the file and explains what would happen to it, without converting anything.
     public func inspect(fileURL: URL, traits: AssetTraits = AssetTraits()) throws -> InspectionOutcome {
@@ -26,7 +27,66 @@ public struct ConversionEngine: Sendable {
                         onStage: (@Sendable (ConversionStage) -> Void)? = nil) throws -> ConversionOutput {
         onStage?(.readingOriginal)
         let data = try read(fileURL)
+        let still = try styledStill(from: data, traits: traits, onStage: onStage)
 
+        onStage?(.verifying)
+        let verified = try verifyStill(original: data, styled: still.data)
+
+        let directory = outputDirectory ?? fileURL.deletingLastPathComponent()
+        let outputURL = directory.appendingPathComponent(Self.outputName(for: fileURL))
+        try write(still.data, to: outputURL)
+
+        return ConversionOutput(outputURL: outputURL,
+                                outputByteCount: still.data.count,
+                                inspectionBefore: still.inspectionBefore,
+                                inspectionAfter: verified.inspection,
+                                integrity: verified.integrity,
+                                mode: still.mode,
+                                texture: still.texture,
+                                warnings: still.warnings,
+                                pairedVideoURL: nil,
+                                livePhotoMode: nil,
+                                videoFrameCount: nil,
+                                videoByteCount: nil)
+    }
+
+    /// Only the structural check, without keeping the whole file in memory any longer than needed.
+    public func quickCheck(fileURL: URL, traits: AssetTraits = AssetTraits()) -> CompatibilityVerdict? {
+        guard let data = try? read(fileURL), let inspection = try? parsed(data) else { return nil }
+        return CompatibilityEvaluator.evaluate(inspection, traits: traits)
+    }
+
+    public func outputName(for input: URL) -> String {
+        Self.outputName(for: input)
+    }
+
+    static func outputName(for input: URL) -> String {
+        let base = input.deletingPathExtension().lastPathComponent
+        let stem = base.hasSuffix(outputSuffix) ? base : base + outputSuffix
+        return stem + "." + outputExtension
+    }
+
+    static func outputVideoName(for input: URL) -> String {
+        let base = input.deletingPathExtension().lastPathComponent
+        let stem = base.hasSuffix(outputSuffix) ? base : base + outputSuffix
+        return stem + "." + outputVideoExtension
+    }
+
+    // MARK: Shared steps
+
+    struct StyledStill: Sendable {
+        let data: Data
+        let inspectionBefore: HEICInspection
+        let mode: String
+        let texture: String
+        let warnings: [String]
+    }
+
+    /// Runs the lossless texture injection on a still. Emits `.inspecting` and `.converting`;
+    /// verification and writing stay with the caller so a Live Photo can add its movie first.
+    func styledStill(from data: Data,
+                     traits: AssetTraits,
+                     onStage: (@Sendable (ConversionStage) -> Void)?) throws -> StyledStill {
         onStage?(.inspecting)
         let before = try parsed(data)
         let verdict = CompatibilityEvaluator.evaluate(before, traits: traits)
@@ -53,46 +113,22 @@ public struct ConversionEngine: Sendable {
             throw ConversionFailure.engineMessage(String(localized: "engine.error.unexpectedMode", defaultValue: "核心没有进入增量注入路径（\(result.report.mode.rawValue)）"))
         }
 
-        onStage?(.verifying)
-        let after = try parsed(result.data)
-        let integrity = IntegrityVerifier.verify(original: data, result: result.data)
+        return StyledStill(data: result.data,
+                           inspectionBefore: before,
+                           mode: result.report.mode.rawValue,
+                           texture: result.report.texture,
+                           warnings: result.report.warnings)
+    }
+
+    /// Re-parses the output and proves the original pixels and metadata are untouched.
+    func verifyStill(original: Data, styled: Data) throws -> (inspection: HEICInspection, integrity: IntegrityReport) {
+        let after = try parsed(styled)
+        let integrity = IntegrityVerifier.verify(original: original, result: styled)
         guard integrity.passed else { throw ConversionFailure.verificationFailed(integrity) }
-
-        let directory = outputDirectory ?? fileURL.deletingLastPathComponent()
-        let outputURL = directory.appendingPathComponent(Self.outputName(for: fileURL))
-        do {
-            try result.data.write(to: outputURL, options: .atomic)
-        } catch {
-            throw ConversionFailure.writeFailed(error.localizedDescription)
-        }
-
-        return ConversionOutput(outputURL: outputURL,
-                                outputByteCount: result.data.count,
-                                inspectionBefore: before,
-                                inspectionAfter: after,
-                                integrity: integrity,
-                                mode: result.report.mode.rawValue,
-                                texture: result.report.texture,
-                                warnings: result.report.warnings)
+        return (after, integrity)
     }
 
-    /// Only the structural check, without keeping the whole file in memory any longer than needed.
-    public func quickCheck(fileURL: URL, traits: AssetTraits = AssetTraits()) -> CompatibilityVerdict? {
-        guard let data = try? read(fileURL), let inspection = try? parsed(data) else { return nil }
-        return CompatibilityEvaluator.evaluate(inspection, traits: traits)
-    }
-
-    public func outputName(for input: URL) -> String {
-        Self.outputName(for: input)
-    }
-
-    static func outputName(for input: URL) -> String {
-        let base = input.deletingPathExtension().lastPathComponent
-        let stem = base.hasSuffix(outputSuffix) ? base : base + outputSuffix
-        return stem + "." + outputExtension
-    }
-
-    private func read(_ url: URL) throws -> Data {
+    func read(_ url: URL) throws -> Data {
         do {
             return try Data(contentsOf: url, options: .mappedIfSafe)
         } catch {
@@ -100,7 +136,15 @@ public struct ConversionEngine: Sendable {
         }
     }
 
-    private func parsed(_ data: Data) throws -> HEICInspection {
+    func write(_ data: Data, to url: URL) throws {
+        do {
+            try data.write(to: url, options: .atomic)
+        } catch {
+            throw ConversionFailure.writeFailed(error.localizedDescription)
+        }
+    }
+
+    func parsed(_ data: Data) throws -> HEICInspection {
         do {
             return try HEICInspector.inspect(data, hashing: true)
         } catch {
@@ -124,6 +168,11 @@ public struct ConversionOutput: Sendable {
     public let mode: String
     public let texture: String
     public let warnings: [String]
+    /// Present only for Live Photos: the paired movie written next to the still.
+    public let pairedVideoURL: URL?
+    public let livePhotoMode: LivePhotoProcessingMode?
+    public let videoFrameCount: Int?
+    public let videoByteCount: Int?
 }
 
 public enum ConversionFailure: Error, Sendable, LocalizedError {
@@ -134,6 +183,7 @@ public enum ConversionFailure: Error, Sendable, LocalizedError {
     case engineMessage(String)
     case verificationFailed(IntegrityReport)
     case writeFailed(String)
+    case livePhotoVideo(String)
     case quota(QuotaError)
 
     public var errorDescription: String? { message }
@@ -152,6 +202,7 @@ public enum ConversionFailure: Error, Sendable, LocalizedError {
         case .engineMessage(let text): return text
         case .verificationFailed(let report): return String(localized: "engine.error.verification", defaultValue: "输出没通过无损校验：\(report.summary)")
         case .writeFailed(let detail): return String(localized: "engine.error.write", defaultValue: "写入临时文件失败：\(detail)")
+        case .livePhotoVideo(let detail): return String(localized: "engine.error.livePhotoVideo", defaultValue: "无法完整处理这段动态视频（\(detail)）。可以改用「只处理主帧」，主照片依然会得到纹理与颗粒。")
         case .quota(let error): return error.errorDescription ?? String(localized: "今日免费额度不可用。")
         }
     }
@@ -167,6 +218,7 @@ public enum ConversionFailure: Error, Sendable, LocalizedError {
         case .engineMessage(let text): return "E_ENGINE:\(text)"
         case .verificationFailed(let report): return "E_VERIFY:" + report.failures.map(\.id).joined(separator: ",")
         case .writeFailed: return "E_WRITE"
+        case .livePhotoVideo(let detail): return "E_LIVEPHOTO_VIDEO:" + detail
         case .quota(let error): return error.diagnosticCode
         }
     }

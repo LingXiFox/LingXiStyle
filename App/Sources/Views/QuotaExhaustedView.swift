@@ -7,6 +7,8 @@ struct QuotaExhaustedView: View {
     var onUpgrade: () -> Void
     var onDismiss: () -> Void
 
+    var controlInset: CGFloat = 0
+
     var body: some View {
         ZStack {
             Palette.background.ignoresSafeArea()
@@ -24,6 +26,7 @@ struct QuotaExhaustedView: View {
                         }
                         .accessibilityLabel("关闭")
                     }
+                    .padding(.trailing, controlInset)
 
                     ZStack {
                         Circle()
@@ -65,6 +68,7 @@ struct QuotaExhaustedView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
         }
+        .duoSheetWidth()
         .accessibilityElement(children: .contain)
         .accessibilityLabel("今日免费额度已用完")
     }

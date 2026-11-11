@@ -6,6 +6,7 @@ import LingXiKit
 struct ConvertingView: View {
     @ObservedObject var model: AppModel
     @Environment(\.contentMargin) private var margin
+    @Environment(\.duoControlInset) private var controlInset
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     private var heroHeight: CGFloat { verticalSizeClass == .compact ? 180 : 300 }
@@ -39,6 +40,7 @@ struct ConvertingView: View {
                     .frame(height: heroHeight)
 
                 StageProgressView(stage: current?.stage,
+                                  livePhotoMode: current?.hasLivePhotoVideo == true ? model.effectiveLivePhotoMode : nil,
                                   failed: current?.failedDuringStage ?? false)
 
                 Text("取消后不会再开始新照片；已经保存的新照片会保留。")
@@ -69,6 +71,7 @@ struct ConvertingView: View {
                     .monospacedDigit()
                     .accessibilityLabel(String(localized: "converting.completedAccessibility", defaultValue: "已完成 \(completedCount) 张，共 \(model.items.count) 张"))
             }
+            .padding(.trailing, controlInset)
 
             ProgressView(value: Double(completedCount), total: Double(total))
                 .progressViewStyle(.linear)

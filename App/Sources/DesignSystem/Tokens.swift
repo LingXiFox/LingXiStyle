@@ -84,6 +84,15 @@ enum Layout {
     static let thumbnailSide: CGFloat = 68
     static let primaryButtonHeight: CGFloat = 52
     static let secondaryButtonHeight: CGFloat = 48
+    static let duoRailWidth: CGFloat = 300
+    static let duoRailMinWidth: CGFloat = 232
+    /// Duo's inner display is 669pt wide; the threshold must sit below it.
+    /// Two-column also requires regular size classes, so narrow split panes and
+    /// floating windows stay single-column until there is real room.
+    static let duoBreakpoint: CGFloat = 640
+    /// Native iPad detail panes get wide quickly; keep the reading column from
+    /// stretching a single photo or a two-line paragraph across the whole screen.
+    static let iPadContentMaxWidth: CGFloat = 720
 }
 
 extension Color {

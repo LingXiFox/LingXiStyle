@@ -13,6 +13,18 @@ struct ResultView: View {
     private var warnedItems: [PhotoItem] { savedItems.filter { $0.saveWarning != nil } }
     private var integrity: IntegrityReport? { savedItems.compactMap(\.integrity).first }
 
+    /// The rail can focus any saved item, so the preview follows the real selection instead of
+    /// always showing the first one.
+    private var previewedIndex: Int {
+        guard let selectedID = model.selectedID else { return 0 }
+        return savedItems.firstIndex { $0.id == selectedID } ?? 0
+    }
+
+    private var previewedItem: PhotoItem? {
+        guard !savedItems.isEmpty else { return nil }
+        return savedItems[min(previewedIndex, savedItems.count - 1)]
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.m) {
@@ -20,8 +32,12 @@ struct ResultView: View {
 
                 statsRow
 
-                if let first = savedItems.first {
-                    previewCard(first)
+                if let preview = previewedItem {
+                    previewCard(preview, index: previewedIndex)
+                }
+
+                if !savedItems.isEmpty {
+                    nextSteps
                 }
 
                 if let integrity {
@@ -119,12 +135,12 @@ struct ResultView: View {
 
     // MARK: Preview
 
-    private func previewCard(_ item: PhotoItem) -> some View {
+    private func previewCard(_ item: PhotoItem, index: Int) -> some View {
         VStack(spacing: Spacing.xs) {
             ZStack {
                 Color.black.opacity(0.92)
                 Button {
-                    viewer = ViewerPayload(index: 0)
+                    viewer = ViewerPayload(index: index)
                 } label: {
                     Image(uiImage: item.image)
                         .resizable()
@@ -163,18 +179,89 @@ struct ResultView: View {
                 Spacer(minLength: 0)
                 if savedItems.count > 1 {
                     HStack(spacing: 5) {
-                        ForEach(0..<savedItems.count, id: \.self) { index in
+                        ForEach(0..<savedItems.count, id: \.self) { i in
                             Capsule()
-                                .fill(index == 0 ? Palette.textPrimary : Palette.textTertiary.opacity(0.4))
-                                .frame(width: index == 0 ? 16 : 6, height: 6)
+                                .fill(i == index ? Palette.textPrimary : Palette.textTertiary.opacity(0.4))
+                                .frame(width: i == index ? 16 : 6, height: 6)
                         }
                     }
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(String(localized: "result.pages", defaultValue: "第 1 张，共 \(savedItems.count) 张"))
+                    .accessibilityLabel(String(localized: "result.pages", defaultValue: "第 \(index + 1) 张，共 \(savedItems.count) 张"))
                 }
             }
             .padding(.horizontal, Spacing.xxs)
         }
+    }
+
+    // MARK: Next steps
+
+    private var savedLivePhotoModes: [LivePhotoProcessingMode] {
+        var modes: [LivePhotoProcessingMode] = []
+        for item in savedItems where item.savedAsLivePhoto {
+            if let mode = item.livePhotoMode, !modes.contains(mode) { modes.append(mode) }
+        }
+        return modes
+    }
+
+    /// Where to look next. One card, three lines at most: the system Photos app, the style editor,
+    /// and — for Live Photos — how the pair was saved. No extra permission or deep link is used.
+    private var nextSteps: some View {
+        VStack(spacing: 0) {
+            groupHeader(String(localized: "result.next.title", defaultValue: "接下来"),
+                        symbol: "arrow.right.circle",
+                        tint: Palette.textSecondary)
+
+            stepRow(symbol: "photos",
+                    text: String(localized: "result.next.find", defaultValue: "打开「照片」App，在「最近项目」里找到新照片，文件名带 _Texel 后缀。"))
+
+            stepDivider
+
+            stepRow(symbol: "slider.horizontal.3",
+                    text: String(localized: "result.next.style", defaultValue: "点右上角「编辑」→「摄影风格」，拖动强度滑块就能确认纹理与颗粒。"))
+
+            if !savedLivePhotoModes.isEmpty {
+                stepDivider
+                let names = savedLivePhotoModes.map(\.title).joined(separator: String(localized: "、"))
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    stepRow(symbol: "livephoto",
+                            text: String(localized: "result.next.livePhoto", defaultValue: "已另存为实况照片（\(names)）。长按照片可以播放动态与声音。"))
+                    Text(LivePhotoProcessingMode.quotaNote)
+                        .font(Typography.micro)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.leading, Spacing.m + 22 + Spacing.s)
+                        .padding(.trailing, Spacing.m)
+                        .padding(.bottom, 10)
+                }
+            }
+        }
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Radius.group, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.group, style: .continuous))
+    }
+
+    private func stepRow(symbol: String, text: String) -> some View {
+        HStack(alignment: .top, spacing: Spacing.s) {
+            Image(systemName: symbol)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Palette.textSecondary)
+                .frame(width: 22, height: 20)
+                .accessibilityHidden(true)
+            Text(text)
+                .font(Typography.caption)
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Spacing.m)
+        .padding(.vertical, 10)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var stepDivider: some View {
+        Rectangle()
+            .fill(Palette.hairline)
+            .frame(height: 0.5)
+            .padding(.leading, Spacing.m + 22 + Spacing.s)
     }
 
     // MARK: Integrity

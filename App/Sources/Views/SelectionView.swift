@@ -7,6 +7,7 @@ import LingXiKit
 struct SelectionView: View {
     @ObservedObject var model: AppModel
     @Environment(\.contentMargin) private var margin
+    @Environment(\.duoControlInset) private var controlInset
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var showPicker = false
 
@@ -16,6 +17,7 @@ struct SelectionView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 header
+                    .padding(.trailing, controlInset)
 
                 PhotoHeroCard(image: selected?.image,
                               badge: badgeKind,
@@ -27,6 +29,11 @@ struct SelectionView: View {
 
                 if let message = prepareFailureMessage {
                     InlineErrorNotice(message: message)
+                }
+
+                if model.convertibleLivePhotoCount > 0 {
+                    livePhotoGroup
+                        .padding(.top, Spacing.xxs)
                 }
 
                 summary
@@ -106,6 +113,7 @@ struct SelectionView: View {
     private var infoTrailing: String? {
         guard let inspection = selected?.inspection else { return nil }
         var parts: [String] = []
+        if selected?.isLivePhoto == true { parts.append(String(localized: "实况照片")) }
         if inspection.hasHDRGainMap { parts.append("HDR") }
         if inspection.hasStyleMetadata { parts.append(String(localized: "含风格信息")) }
         return parts.isEmpty ? String(localized: "标准 HEIC") : parts.joined(separator: " · ")
@@ -131,6 +139,31 @@ struct SelectionView: View {
         }
         let unique = Array(NSOrderedSet(array: reasons)) as? [String] ?? reasons
         return unique.isEmpty ? nil : unique.prefix(2).joined(separator: "、")
+    }
+
+    private var livePhotoGroup: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack(spacing: Spacing.xs) {
+                Label(String(localized: "settings.livePhoto.section", defaultValue: "实况照片处理方式"),
+                      systemImage: "livephoto")
+                    .font(Typography.bodyEmphasized)
+                    .foregroundStyle(Palette.textPrimary)
+                Spacer(minLength: 0)
+                if model.livePhotoModeOverride != nil {
+                    Text(String(localized: "本批临时设置"))
+                        .font(Typography.micro)
+                        .foregroundStyle(Palette.textSecondary)
+                }
+            }
+
+            LivePhotoModeSelector(
+                selection: model.effectiveLivePhotoMode,
+                onSelect: { model.setLivePhotoModeOverride($0) },
+                scopeNote: model.hasMixedLivePhotoBatch
+                    ? String(localized: "只影响这批里的 \(model.convertibleLivePhotoCount) 张实况照片；其余照片不受影响。默认值可以在设置里修改。")
+                    : String(localized: "只影响本次处理；默认值可以在设置里修改。")
+            )
+        }
     }
 
     private var summary: some View {

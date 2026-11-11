@@ -5,13 +5,15 @@ import LingXiKit
 /// current step is fed by the engine's stage callbacks. 1.5 uses a 44pt inset group.
 struct StageProgressView: View {
     let stage: ConversionStage?
+    /// Full Live Photo runs one extra frame pass; the list must match the engine, not a fixed list.
+    var livePhotoMode: LivePhotoProcessingMode?
     var failed: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.reduceMotionOverride) private var reduceMotionOverride
     private var reduceMotion: Bool { systemReduceMotion || reduceMotionOverride }
 
-    private var pipeline: [ConversionStage] { ConversionStage.pipeline }
+    private var pipeline: [ConversionStage] { ConversionStage.pipeline(livePhotoMode: livePhotoMode) }
     private var currentIndex: Int? {
         guard let stage else { return nil }
         if stage == .finished { return pipeline.count }

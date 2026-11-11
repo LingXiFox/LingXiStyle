@@ -7,11 +7,12 @@ struct SettingsView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var purchases: PurchaseManager
     var onClose: () -> Void
+    var controlInset: CGFloat = 0
 
     @State private var language = AppLanguage.current
     @State private var showLanguageChanged = false
     @State private var showPro = false
-
+    @State private var showTutorial = false
     var body: some View {
         NavigationStack {
             ZStack {
@@ -28,6 +29,45 @@ struct SettingsView: View {
                         .buttonStyle(.plain)
                         .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
                         .accessibilityIdentifier("settings.proRow")
+                    }
+
+                    Section {
+                        LivePhotoModeSelector(
+                            selection: model.livePhotoModePreference,
+                            onSelect: { model.setLivePhotoModePreference($0) }
+                        )
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .listRowBackground(Color.clear)
+                        .accessibilityIdentifier("settings.livePhotoMode")
+                    } header: {
+                        Text(String(localized: "settings.livePhoto.section", defaultValue: "实况照片处理方式"))
+                    } footer: {
+                        Text(String(localized: "settings.livePhoto.footer", defaultValue: "这里保存的是默认值。选择照片时仍然可以临时切换，临时选择不会改动这里。"))
+                    }
+
+                    Section {
+                        Button {
+                            showTutorial = true
+                        } label: {
+                            HStack(spacing: Spacing.s) {
+                                Image(systemName: "book")
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundStyle(Palette.textSecondary)
+                                    .frame(width: 22)
+                                Text(String(localized: "教程", defaultValue: "使用教程"))
+                                    .font(Typography.body)
+                                    .foregroundStyle(Palette.textPrimary)
+                                Spacer(minLength: 0)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(Palette.textTertiary)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("settings.tutorial")
+                    } header: {
+                        Text(String(localized: "帮助", defaultValue: "帮助"))
                     }
 
                     Section {
@@ -75,6 +115,7 @@ struct SettingsView: View {
                 .scrollContentBackground(.hidden)
                 .background(Color.clear)
             }
+            .duoSheetWidth()
             .navigationTitle(String(localized: "settings.title", defaultValue: "设置"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -95,9 +136,13 @@ struct SettingsView: View {
                 onEntitlementChanged: {
                     Task { await model.refreshQuota() }
                 },
-                onClose: { showPro = false }
+                onClose: { showPro = false },
+                controlInset: controlInset
             )
             .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showTutorial) {
+            TutorialView(model: model, isFirstRun: false) { showTutorial = false }
         }
         .alert(String(localized: "settings.language.changedTitle", defaultValue: "语言已切换"),
                isPresented: $showLanguageChanged) {

@@ -22,6 +22,13 @@ struct PhotoItem: Identifiable {
     let displayName: String
     var image: UIImage
     var fileURL: URL?
+    /// The paired movie exported next to `fileURL` for a Live Photo. Both mode pipelines need
+    /// the original bytes; `nil` means the asset is a regular still.
+    var videoURL: URL?
+    /// Frame count reported by the movie's own sample table, filled in after a full run.
+    var videoFrameCount: Int?
+    /// The Live Photo mode this item was actually processed with. `nil` for a still.
+    var livePhotoMode: LivePhotoProcessingMode?
     var traits: AssetTraits
     var inspection: HEICInspection?
     var verdict: CompatibilityVerdict?
@@ -52,11 +59,21 @@ struct PhotoItem: Identifiable {
     }
 
     var isConvertible: Bool { verdict?.isReady == true && fileURL != nil }
+    /// A Live Photo that really has its movie on disk. Identity, not permission: the mode picker
+    /// and the badges only show for these items.
+    var isLivePhoto: Bool { traits.isLivePhoto }
+    var hasLivePhotoVideo: Bool { traits.isLivePhoto && videoURL != nil }
     var isSaved: Bool {
         if case .saved = outcome { return true }
         return false
     }
     var badgeStatus: CompatibilityVerdict.Status? { verdict?.status }
+
+    /// Saved, and the movie kept its own outcome (byte copy or styled tracks).
+    var savedAsLivePhoto: Bool {
+        guard case .saved? = outcome else { return false }
+        return livePhotoMode != nil
+    }
 
     var accessibilityDescription: String {
         switch phase {

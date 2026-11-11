@@ -35,6 +35,13 @@ final class AppModel: ObservableObject {
     @Published var isPro = false
     @Published var activeModal: Modal?
     @Published var batchQuotaPrompt: BatchQuotaPrompt?
+    /// The saved default for Live Photos, editable from Settings. New selections start from it.
+    @Published private(set) var livePhotoModePreference: LivePhotoProcessingMode = .defaultMode
+    /// A temporary choice made on the selection screen. It only applies to the current batch and
+    /// never touches the saved default, which is what "temporary switch" means here.
+    @Published private(set) var livePhotoModeOverride: LivePhotoProcessingMode?
+    /// First-run tutorial. Presented once automatically, then available from Home and Settings.
+    @Published var isTutorialPresented = false
 
     enum Modal: String, Identifiable {
         case pro
@@ -67,7 +74,16 @@ final class AppModel: ObservableObject {
     private var startToken = UUID()
 
     static let maxSelection = 9
+    static let livePhotoModeKey = "LingXiStyle.livePhotoMode"
     private static let firstQuotaReminderKey = "LingXiStyle.hasShownFirstQuotaReminder"
+    private static let hasSeenTutorialKey = "LingXiStyle.hasSeenTutorial"
+
+    var hasSeenTutorial: Bool { UserDefaults.standard.bool(forKey: Self.hasSeenTutorialKey) }
+
+    init() {
+        let stored = UserDefaults.standard.string(forKey: Self.livePhotoModeKey)
+        livePhotoModePreference = stored.flatMap(LivePhotoProcessingMode.init(rawValue:)) ?? .defaultMode
+    }
 
     // MARK: Derived state
 
@@ -94,6 +110,45 @@ final class AppModel: ObservableObject {
     var savedItems: [PhotoItem] { items.filter(\.isSaved) }
 
     var deferredCount: Int { deferredItemIDs.count }
+
+    /// The mode a run would use right now: the temporary choice when one was made, the saved
+    /// default otherwise.
+    var effectiveLivePhotoMode: LivePhotoProcessingMode { livePhotoModeOverride ?? livePhotoModePreference }
+
+    /// Live Photos that actually have their movie exported and can be converted.
+    var convertibleLivePhotoCount: Int {
+        items.filter { $0.isConvertible && $0.hasLivePhotoVideo }.count
+    }
+
+    /// True when the batch mixes stills and Live Photos, so the mode row explains who it affects.
+    var hasMixedLivePhotoBatch: Bool {
+        let live = convertibleLivePhotoCount
+        return live > 0 && live < convertibleCount
+    }
+
+    func setLivePhotoModePreference(_ mode: LivePhotoProcessingMode) {
+        livePhotoModePreference = mode
+        UserDefaults.standard.set(mode.rawValue, forKey: Self.livePhotoModeKey)
+    }
+
+    func setLivePhotoModeOverride(_ mode: LivePhotoProcessingMode?) {
+        livePhotoModeOverride = mode
+    }
+
+    /// Shows the full tutorial on the very first launch only; the flag is written on dismissal.
+    func presentTutorialIfFirstLaunch() {
+        guard !UserDefaults.standard.bool(forKey: Self.hasSeenTutorialKey) else { return }
+        isTutorialPresented = true
+    }
+
+    func presentTutorial() {
+        isTutorialPresented = true
+    }
+
+    func dismissTutorial() {
+        isTutorialPresented = false
+        UserDefaults.standard.set(true, forKey: Self.hasSeenTutorialKey)
+    }
 
     // MARK: Lifecycle
 
@@ -198,6 +253,7 @@ final class AppModel: ObservableObject {
         isStartingConversion = false
         startToken = UUID()
         items = []
+        livePhotoModeOverride = nil
         selectedID = nil
         deferredItemIDs = []
         summary = nil
@@ -416,7 +472,7 @@ final class AppModel: ObservableObject {
         }
 
         do {
-            let url = try await library.exportOriginal(for: asset, to: workspace.directory) { [weak self] progress in
+            let exported = try await library.exportOriginal(for: asset, to: workspace.directory) { [weak self] progress in
                 Task { @MainActor [weak self] in
                     guard let self, self.preparationGeneration == generation else { return }
                     let clamped = min(max(progress, 0), 1)
@@ -426,11 +482,22 @@ final class AppModel: ObservableObject {
                 }
             }
             guard generation == preparationGeneration else { return }
+            // A Live Photo without its movie is reported as an explicit issue by the evaluator
+            // instead of silently degrading to a still-only conversion.
+            var traits = item.traits
+            if traits.isLivePhoto {
+                traits.livePhotoVideoAvailable = exported.videoURL != nil
+            }
             updatePreparedItem(id, generation: generation) {
-                $0.fileURL = url
+                $0.fileURL = exported.imageURL
+                $0.videoURL = exported.videoURL
+                $0.traits = traits
                 $0.downloadProgress = 1
             }
-            try await inspectPreparedItem(id: id, fileURL: url, traits: item.traits, generation: generation)
+            try await inspectPreparedItem(id: id,
+                                          fileURL: exported.imageURL,
+                                          traits: traits,
+                                          generation: generation)
         } catch is CancellationError {
             guard generation == preparationGeneration else { return }
             updatePreparedItem(id, generation: generation) {
@@ -706,9 +773,16 @@ final class AppModel: ObservableObject {
                 let preferredName = Self.preferredName(for: item)
                 let outputDirectory = workspace.directory
                     .appendingPathComponent("Output-\(id.uuidString)", isDirectory: true)
+                // Resolved once per item so a mid-run settings change cannot split a batch, and a
+                // retry of the same item keeps the mode it was started with.
+                let livePhotoMode: LivePhotoProcessingMode? = item.videoURL == nil
+                    ? nil
+                    : (item.livePhotoMode ?? effectiveLivePhotoMode)
                 do {
                     let result = try await ConversionService.shared.convert(
                         .init(fileURL: fileURL,
+                              pairedVideoURL: item.videoURL,
+                              livePhotoMode: livePhotoMode,
                               traits: item.traits,
                               preferredName: preferredName,
                               saveToLibrary: true,
@@ -725,6 +799,8 @@ final class AppModel: ObservableObject {
                         $0.stage = .finished
                         $0.integrity = result.integrity
                         $0.outputURL = result.outputURL
+                        $0.livePhotoMode = result.livePhotoMode
+                        $0.videoFrameCount = result.videoFrameCount
                         $0.saveWarning = result.saveWarning
                         $0.outcome = .saved(assetIdentifier: result.savedAssetIdentifier,
                                             byteCount: result.outputByteCount)

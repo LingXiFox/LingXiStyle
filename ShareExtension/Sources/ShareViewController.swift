@@ -608,6 +608,7 @@ final class ShareModel: ObservableObject {
         case .readingOriginal: return String(localized: "正在读取原始 HEIC，照片内容不会被改动。")
         case .inspecting: return String(localized: "正在确认主图、HDR、EXIF 与风格元数据。")
         case .converting: return String(localized: "只追加纹理与颗粒层，主图编码保持原样。")
+        case .processingFrames: return String(localized: "正在为动态画面的每一帧补上同样的纹理与颗粒。")
         case .verifying: return String(localized: "正在逐项比对转换前后的完整性。")
         case .saving: return String(localized: "正在把新照片写入系统相册。")
         case .finished: return String(localized: "新照片已经保存，原照片保留。")

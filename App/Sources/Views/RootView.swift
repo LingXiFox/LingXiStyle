@@ -6,9 +6,12 @@ import LingXiKit
 struct RootView: View {
     @StateObject private var model = AppModel()
     @State private var diagnostics: DiagnosticsPayload?
+    @State private var duoControlInset: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.reduceMotionOverride) private var reduceMotionOverride
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.scenePhase) private var scenePhase
     private var reduceMotion: Bool { systemReduceMotion || reduceMotionOverride }
 
@@ -21,17 +24,54 @@ struct RootView: View {
 
     var body: some View {
         GeometryReader { proxy in
+            let expansion = horizontalExpansion(for: proxy)
             ZStack {
                 Palette.background.ignoresSafeArea()
                 AmbientBackdrop(intensity: ambient)
-                content
-                    .environment(\.contentMargin, Spacing.margin(for: proxy.size.width))
+                Group {
+                    if isTwoColumn(proxy.size) {
+                        HStack(spacing: 0) {
+                            WorkspaceRail(model: model)
+                                .frame(width: railWidth(for: proxy.size))
+
+                            Rectangle()
+                                .fill(Palette.hairline)
+                                .frame(width: 0.5)
+
+                            content
+                                .environment(\.contentMargin, Spacing.margin(for: min(proxy.size.width - railWidth(for: proxy.size), Layout.iPadContentMaxWidth)))
+                                .frame(maxWidth: Layout.iPadContentMaxWidth)
+                                .frame(maxWidth: .infinity)
+                        }
+                    } else {
+                        content
+                            .environment(\.contentMargin, Spacing.margin(for: min(proxy.size.width, Layout.iPadContentMaxWidth)))
+                            .frame(maxWidth: Layout.iPadContentMaxWidth)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
                     .animation(reduceMotion ? nil : Motion.entrance, value: model.screen)
+            }
+            .frame(width: expansion.width, alignment: .topLeading)
+            .offset(x: -expansion.leading)
+            .onAppear { duoControlInset = expansion.controlInset }
+            .onChange(of: expansion.controlInset) { _, newValue in
+                duoControlInset = newValue
             }
         }
         .tint(Palette.accent)
+        .environment(\.duoControlInset, duoControlInset)
         .overlay(alignment: .top) { noticeBanner }
-        .task { await model.onAppear() }
+        .task {
+            await model.onAppear()
+            model.presentTutorialIfFirstLaunch()
+        }
+        .sheet(isPresented: $model.isTutorialPresented, onDismiss: { model.dismissTutorial() }) {
+            TutorialView(model: model,
+                         isFirstRun: !model.hasSeenTutorial,
+                         onClose: { model.dismissTutorial() })
+                .presentationDragIndicator(.visible)
+        }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             model.refreshPermissions()
@@ -57,7 +97,8 @@ struct RootView: View {
                     onEntitlementChanged: {
                         Task { await model.refreshQuota() }
                     },
-                    onClose: { model.dismissModal() }
+                    onClose: { model.dismissModal() },
+                    controlInset: duoControlInset
                 )
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
@@ -65,7 +106,8 @@ struct RootView: View {
                 QuotaExhaustedView(
                     limit: QuotaConfiguration.freeDailyLimit,
                     onUpgrade: { model.activeModal = .pro },
-                    onDismiss: { model.dismissModal() }
+                    onDismiss: { model.dismissModal() },
+                    controlInset: duoControlInset
                 )
                 .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.height(404)])
                 .presentationDragIndicator(.visible)
@@ -73,7 +115,8 @@ struct RootView: View {
                 SettingsView(
                     model: model,
                     purchases: model.purchases,
-                    onClose: { model.dismissModal() }
+                    onClose: { model.dismissModal() },
+                    controlInset: duoControlInset
                 )
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
@@ -104,6 +147,44 @@ struct RootView: View {
         } message: { prompt in
             Text(String(localized: "batch.message", defaultValue: "已选 \(prompt.requested) 张可处理照片，今日还剩 \(prompt.available) 张免费额度。超出部分不会处理，也不会消耗额度。"))
         }
+    }
+
+    /// Two columns only where there is real room: Duo unfolded, or any regular-width
+    /// iPad-like surface. Duo's inner display reports regular width at 669pt, so size
+    /// classes decide instead of a device idiom; compact-height phone landscape stays single.
+    private func isTwoColumn(_ size: CGSize) -> Bool {
+        horizontalSizeClass == .regular
+            && verticalSizeClass == .regular
+            && size.width >= Layout.duoBreakpoint
+    }
+
+    /// Keep the persisted queue readable without squeezing the detail pane in a
+    /// floating or split-view window.
+    private func railWidth(for size: CGSize) -> CGFloat {
+        min(Layout.duoRailWidth, max(Layout.duoRailMinWidth, size.width * 0.38))
+    }
+
+    private struct HorizontalExpansion {
+        let width: CGFloat
+        let leading: CGFloat
+        let controlInset: CGFloat
+    }
+
+    /// Duo's folded cover screen reports an 84pt trailing safe-area inset for the camera
+    /// island column, but the area below the island is usable. Expand only for that
+    /// asymmetric case; symmetric phone landscape insets and regular-width iPads keep
+    /// their normal safe area.
+    private func horizontalExpansion(for proxy: GeometryProxy) -> HorizontalExpansion {
+        let insets = proxy.safeAreaInsets
+        let spread = abs(insets.leading - insets.trailing)
+        guard spread >= 40, proxy.size.width < Layout.duoBreakpoint else {
+            return HorizontalExpansion(width: proxy.size.width, leading: 0, controlInset: 0)
+        }
+        return HorizontalExpansion(
+            width: proxy.size.width + insets.leading + insets.trailing,
+            leading: insets.leading,
+            controlInset: max(insets.leading, insets.trailing)
+        )
     }
 
     @ViewBuilder
@@ -187,5 +268,43 @@ extension EnvironmentValues {
     var contentMargin: CGFloat {
         get { self[ContentMarginKey.self] }
         set { self[ContentMarginKey.self] = newValue }
+    }
+}
+
+// MARK: - Duo cover-screen control inset
+
+/// Horizontal space reserved by the Duo cover screen's camera island. Custom top bars
+/// add this trailing padding so controls stay clear while the page uses the full width.
+struct DuoControlInsetKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
+extension EnvironmentValues {
+    var duoControlInset: CGFloat {
+        get { self[DuoControlInsetKey.self] }
+        set { self[DuoControlInsetKey.self] = newValue }
+    }
+}
+
+// MARK: - Duo sheet width
+
+/// Expands sheet content into the Duo cover screen's camera-island column without
+/// shifting it left. The navigation bar stays inside the system safe area; the page
+/// below it uses the full sheet width.
+struct DuoSheetWidth: ViewModifier {
+    func body(content: Content) -> some View {
+        GeometryReader { proxy in
+            let insets = proxy.safeAreaInsets
+            content
+                .frame(width: proxy.size.width + insets.leading + insets.trailing,
+                       alignment: .topLeading)
+                .offset(x: -insets.leading)
+        }
+    }
+}
+
+extension View {
+    func duoSheetWidth() -> some View {
+        modifier(DuoSheetWidth())
     }
 }

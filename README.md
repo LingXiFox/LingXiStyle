@@ -2,7 +2,7 @@
 
 公开品牌：简体中文「纹粒」，繁体中文 / 英文 / 日文「Texel」；App Bundle ID 为 `com.lingxifox.Texel`，分享扩展为 `com.lingxifox.Texel.Share`；仓库、Keychain 服务名与 StoreKit Product ID 仍沿用 LingXiStyle。
 
-给 iPhone 16 / 17 系列 HEIC 原片追加纹理与颗粒（Texture / Grain），另存为一张新的 HEIC。
+给 iPhone 16 / 17 系列 HEIC 原片和实况照片追加纹理与颗粒（Texture / Grain），另存为一张新的 HEIC；实况照片另存为新的实况照片。
 原图不会被覆盖、不会被转码，照片不离开设备。
 
 ![LingXiStyle app icon](App/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png)
@@ -14,16 +14,17 @@
 
 ## 状态
 
+- **1.8.1（build 10）**：实况照片双模式（仅处理主帧 / 完整处理，两种模式一张都只计 1 张额度）、9 步首启教程与首页 / 设置常驻入口、iPhone Duo 外屏完整流程与宽屏双栏、iPad 原生 universal 适配（左队列 / 右详情、浮动窗口宽度响应式兜底）。
 - **1.7.1（build 9）**：发布验证补强。新增真实 HEIC 端到端集成测试（真实 `ConversionService`、PhotoKit 保存回读、额度扣减与持久化）、分享扩展 12 条异常 / 取消 / 超时 / 重试状态机测试、快捷指令 9 条批量与额度测试，以及 1 条 XCUITest 启动 / 首页 / 设置 / Pro 入口冒烟；CI 增加集成测试与启动冒烟步骤，并预授权模拟器相册权限。1.7.0 的 CI 编译修复、分享扩展阻塞修复、共享 Keychain 组与免费 Offer Code 测试保持不变。
 - **1.7.0（build 8）**：发布候选收口。修复 CI 在 Xcode 16.4 / iOS 18.5 SDK 上的编译失败（`StoreKitError` 新 case 的显式匹配，以及 `PeopleDetection` / `RasterImport` 与 Core 测试 fixture 的复杂表达式都改为旧编译器可处理的形式）；CI 拆成 iOS 18.5 与 iOS 26.0 两条构建 + 测试矩阵；修掉分享扩展读取完成后不进入处理流程的阻塞缺陷，并补 3 秒数据回退与 15 秒超时；模拟器签名构建实际走共享 Keychain Access Group；新增 100% 免费 Offer Code 的 StoreKit 自动化测试。
 - 免费用户每天可成功转换 5 张 HEIC；失败、跳过、不兼容不扣额度。额度按本地自然日重置，App、分享扩展与快捷指令共用同一账本。
 - Pro 是 StoreKit 2 非消耗型内购，Product ID `com.lingxifox.LingXiStyle.pro`（显示名「纹粒 Pro」/「Texel Pro」）；一次性购买、永久无限，可恢复购买，退款 / 撤销后回到免费额度。
 - 本地化使用 String Catalog，支持简体中文、繁体中文、英文、日文；内部 Bundle ID、Keychain 服务名与 StoreKit Product ID 保持不变，升级不丢购买。
-- 自动化测试：本机 `LingXiKitTests` 28/28、`LingXiPurchaseTests` 24/24（14 个 StoreKit + 10 个 Keychain）、`LingXiEngineTests` 2/2、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）、`LingXiIntegrationTests` 29/29（8 真实转换 / PhotoKit、12 分享扩展、9 快捷指令）、`LingXiUITests` 1/1 启动冒烟。合计执行 98 项，96 项通过，2 项跳过。1.7.1 的 [run 42435430433](https://github.com/LingXiFox/LingXiStyle/actions/runs/42435430433) 全绿（commit `365abf5`：Policy、macOS 单测、iOS 18.5、iOS 26.x 四个 job 全部 success；两条运行时集成均为 29 项执行 / 0 跳过 / 0 失败）；1.7.0 的 [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297) 也曾全绿。
+- 自动化测试：本机 1.8.1 全量 119 项执行、0 失败、3 跳过：`LingXiKitTests` 35/35、`LingXiPurchaseTests` 24/24（14 个 StoreKit + 10 个 Keychain）、`LingXiEngineTests` 5/5、`StylePortCoreTests` 14（2 个依赖外部 fixture，默认跳过）、`LingXiIntegrationTests` 34/34（8 真实转换 / PhotoKit、5 实况照片、12 分享扩展、9 快捷指令）、`LingXiUITests` iPhone 17 6 项（1 项 iPad-only 跳过）与 iPad 13 1/1。1.7.1 的 [run 42435430433](https://github.com/LingXiFox/LingXiStyle/actions/runs/42435430433) 全绿（commit `365abf5`：Policy、macOS 单测、iOS 18.5、iOS 26.x 四个 job 全部 success；两条运行时集成均为 29 项执行 / 0 跳过 / 0 失败）；1.7.0 的 [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297) 也曾全绿。
 - `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift 源码 warning；签名 Debug 构建与模拟器签名构建通过。
 - 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.2 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过；1.3 沿用同一引擎并在模拟器保存成功。
 - 1.7 在同一台 iPhone 17（iOS 27.3）完成分享扩展端到端：从「照片」分享 5,924,047 字节原片，读入、转换、另存成功，额度从 4 / 5 变为 3 / 5；分享已处理过的照片会提示「无需重复处理」且不扣额度。当时的签名模拟器构建使用同一旧 Keychain Access Group（`$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared`）；当前 Bundle ID 与共享组已切换为 Texel，需重新验证签名。
-- 兼容性验证边界：本机只有 iOS 27.3 运行时，已完成安装、启动、首页、设置、Pro、相册导入与真实 HEIC 转换；1.7.1 起 CI 在 iOS 18.5 与 iOS 26.0 上新增集成测试和启动冒烟，但完整 UI 主流程与真机仍未验证；iOS 18.0 只有编译目标，没有运行时证据。详见 [TEST_REPORT.md](TEST_REPORT.md)。
+- 兼容性验证边界：本机运行时为 iOS 27.2（Xcode 27.2），已完成 iPhone 17、iPhone Duo 外屏与 iPad 13 的安装、启动、教程、选片、转换与保存回读；没有 iOS 18 / 26 运行时，也没有真机。Duo 内屏在当前 Xcode 无法展开，双栏用 iPad 13 的 regular/regular 验证。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 
 ## 它做什么
 
@@ -37,6 +38,8 @@
 - 结果页可在 App 内查看已保存照片，并分享转换后的真实 HEIC；不依赖未公开的系统跳转。
 - 免费额度 5 张 / 本地自然日，所有入口共享；转换成功并保存后才扣 1 张。
 - 一次性购买「纹粒 Pro」/「Texel Pro」后无限张数；价格来自 `Product.displayPrice`，按当前 App Store 地区显示。
+- 实况照片支持两种模式：仅处理主帧（动态视频逐字节保留）与完整处理（追加缺失的纹理风格轨，由系统逐帧渲染，保留声音、关键帧与配对）；两种模式都只扣 1 张额度。
+- 首次启动展示 9 步分步教程，可跳过；首页与设置都保留「使用教程」入口，可随时重看。
 - 额度耗尽时提供「了解纹粒 Pro」与「明天再来」；批量超出时只处理剩余额度，不静默弹付费墙。
 - 首次额度用尽时展示一次 Pro 介绍；之后只显示安静的额度页，不重复弹付费墙。
 - 首页右上角设置可切换应用语言、查看 Pro 状态与恢复购买；语言切换写入系统 AppleLanguages，重启 App 后生效。
@@ -44,7 +47,8 @@
 ## 它不做什么
 
 - 不覆盖原图，不修改原 Asset，不写回原文件。
-- 不做 Live Photo 视频、ProRAW、JPEG → HEIC 转码、云端上传。
+- 不重新编码实况照片视频；完整处理只追加缺失的纹理风格轨，主视频样本、声音、关键帧与配对关系保持不变。
+- 不做 ProRAW、JPEG → HEIC 转码、云端上传。
 - 不伪造百分比、不生成虚假的前后对比、不用动画掩盖失败。
 - 不伪造价格、不硬编码美元 / 人民币 / 日元 / 欧元，不把本地 `.storekit` 价格当成线上价格。
 - 不使用私有框架；不依赖 App Group。免费额度默认使用共享 Keychain 槽位账本。
@@ -57,7 +61,7 @@
 | 开发环境 | macOS + Xcode 16 或更高（作者使用 Xcode 27.3） |
 | 部署目标 | iOS 18.0+ |
 | 内购 | StoreKit 2；本地 `Configuration.storekit`，真实商品需 App Store Connect |
-| 目标设备 | iPhone 16 / 17 系列 HEIC；其他 HEIC 需自行验证 |
+| 目标设备 | iPhone 16 / 17、iPhone Duo、iPad（universal）；其他 HEIC 需自行验证 |
 | 工程生成 | [XcodeGen](https://github.com/yonaskolb/XcodeGen) 2.46 |
 | 签名 | 你自己的 Apple Development Team；仓库不含 Team ID |
 | 第三方依赖 | 仅 Apple 系统框架；无第三方 UI 框架 |
@@ -169,6 +173,8 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 7. `PHAssetCreationRequest.addResource(with: .photo, fileURL:)` 另存新 Asset，`originalFilename` 形如 `IMG_1234_TextureGrain.HEIC`。
 8. 回读新 Asset 的资源类型，确认仍是 HEIC 才报告成功，然后提交额度；任何失败路径释放预留。
 
+实况照片走 `LivePhotoConversion`：仅主帧模式只给静帧注入纹理，MOV 用 `FileManager.copyItem` 原样复制；完整处理在保留原始样本、音频、关键帧与 `moov` 元数据的前提下，向 MOV 尾部追加缺失的 `texturestyle-info` 风格轨，由 iOS 逐帧渲染，不重新编码主视频。两种模式都只预留 / 提交 1 个额度，任务内重试不重复扣。
+
 ### 无损的定义
 
 - 主图编码 payload：逐 item、逐 tile、排序后分块 SHA-256 完全一致。
@@ -181,7 +187,7 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 | --- | --- |
 | iPhone 16 / 17 HEIC 原片（含 grid + 多 tile） | 可添加 |
 | 已带纹理与颗粒 | 无需处理 |
-| Live Photo | 暂不支持，跳过并提示；不会处理视频部分 |
+| Live Photo（HEIC + MOV） | 支持；仅主帧 / 完整处理两种模式。缺少配对视频时拒绝并说明原因 |
 | RAW / RAW+HEIC | 暂不支持 |
 | JPEG / PNG / TIFF / DNG | 拒绝，并给出本地化原因 |
 | 已在系统相册编辑过的 Asset | 提示会基于当前原件另存新照片，不覆盖 |
@@ -193,8 +199,10 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 2. **已选照片**：392pt 大图不裁切、68pt 缩略图条、材质兼容标签、48MP 信息条、可添加 / 跳过汇总、额度 footnote 与主 CTA。
 3. **处理中**：4pt 确定性进度条、300pt 清晰预览、真实阶段列表与 X/Y、可取消队列；不使用扫光、呼吸光或渐变边框。
 4. **结果页**：已保存照片预览、成功 / 跳过 / 失败统计、应用内查看与分享、单条诊断入口、继续处理与失败重试；原始错误码只放诊断。
+5. **教程**：首启自动展示 9 步分步 onboarding，每步一个大图示与一两句短文案，中间可直接配置实况照片默认模式；底部有页码、上一步 / 下一步、跳过（首启）与完成。
+6. **Duo / iPad**：Duo 外屏单栏完整流程；内屏和 iPad regular 宽度显示左照片队列 / 右当前照片详情的双栏，选择、处理、结果阶段联动，折叠或调整窗口宽度不会重复处理或重复扣额。
 
-设置页使用原生 Form：Pro 状态与恢复购买、跟随系统 / 简体中文 / 繁体中文 / English / 日本語、隐私说明与第三方许可。Pro 页、额度耗尽页与权限页均为独立 sheet / 页面，支持深色、浅色与 Dynamic Type。
+设置页使用原生 Form：Pro 状态与恢复购买、实况照片处理方式（仅主帧 / 完整处理，持久保存）、使用教程、跟随系统 / 简体中文 / 繁体中文 / English / 日本語、隐私说明与第三方许可。Pro 页、额度耗尽页与权限页均为独立 sheet / 页面，支持深色、浅色与 Dynamic Type。
 
 支持真深 / 浅色、Dynamic Type、横竖屏、窄屏、VoiceOver 与 Reduce Motion
 （关闭循环动效，只保留状态变化）。设计令牌见
@@ -218,8 +226,8 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 ### 免费额度
 
 - 每天 5 张，按设备本地自然日重置；`QuotaConfiguration.freeDailyLimit` 是唯一配置点，Pro 页与额度文案都从这里插值。
-- 只有**转换成功并完成保存 / 导出**才扣 1 张；兼容性检查失败、已带质感、Live Photo、RAW、
-  编码失败、无损校验失败、取消或保存失败都会释放预留，不扣额度。
+- 只有**转换成功并完成保存 / 导出**才扣 1 张；兼容性检查失败、已带质感、RAW、编码失败、无损校验失败、取消或保存失败都会释放预留，不扣额度。
+- 实况照片按资产计费：一张只计 1 张，仅处理主帧与完整处理相同；90+ 帧、任务内重试、导出多份资源都不重复扣；混合批按资产数计。
 - App、分享扩展、快捷指令都调用同一个 `ConversionService`；额度检查、预留、提交、释放都在
   这个共享服务里完成，入口无法绕过。
 - 批量选择超过剩余额度时，App 只处理剩余张数，其余保留为未处理并显示数量，同时提示升级 Pro 或明天继续；
@@ -302,6 +310,7 @@ App Store Connect 官方 Offer Code 发放。
 | `E_PHOTO_NO_HEIC` | 该 Asset 没有 HEIC 照片资源 |
 | `E_PHOTO_EXPORT` | 原件导出失败 |
 | `E_PHOTO_SAVE` | 相册写入失败 |
+| `E_LIVEPHOTO_VIDEO` | 实况照片动态视频无法完整处理；可改用「只处理主帧」 |
 | `E_PHOTO_ADD_DENIED` | 没有相册写入权限，需在系统设置中允许添加照片 |
 | `E_PHOTO_SAVED_MISSING` | 保存后找不到新 Asset |
 | `E_PHOTO_SAVED_NOT_HEIC` | 保存后回读不是 HEIC |
@@ -341,14 +350,14 @@ project.yml             XcodeGen 工程定义
 
 ## 已知限制
 
-- 1.7.1 本机已完成 Debug / Release generic iOS 构建与六套自动化测试（Kit 28 / Purchase 24 / Engine 2 / Core 14 执行、2 跳过 / Integration 29 / UI 1），合计 98 项执行、96 项通过、2 项跳过。集成测试真实读取 48MP HEIC、转换、PhotoKit 保存回读并扣减 Keychain 额度；分享扩展状态机覆盖取消、无文件、3 秒回退、15 秒超时、重试、损坏 / 已处理 / 额度耗尽；快捷指令覆盖单张、同名多张、仅检查、仅保存、额度耗尽与 Pro。
-- 真机安装、真实 App Store 交易、iOS 18.0 / 26.1 / 26.2 / 27.0–27.2 运行时、权限拒绝页、快捷指令 UI、Duo 的选片 / 转换 / 结果页仍未验证。模拟器签名构建能证明材料中的共享组配置，但不能替代真机 distribution 签名。详见 [TEST_REPORT.md](TEST_REPORT.md)。
+- 1.8.1 本机已完成 Debug / Release generic iOS 构建与 Release archive（1.8.1 / build 10，Apple Distribution 签名）；自动化 119 项执行、0 失败、3 跳过。实况照片覆盖仅主帧、完整处理、106 帧仍只扣 1 张、真实保存回读配对；教程与 Duo 外屏以模拟器交互验证，双栏以 iPad 13 验证。
+- 真机安装、真实 App Store 交易、iOS 18 / 26 运行时、权限拒绝页、快捷指令 UI 与 Duo 内屏展开仍未验证；Duo 外屏的选片、转换与结果页已在模拟器验证。模拟器签名构建不能替代真机 distribution 签名。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 - 免费 Personal Team 只能使用本地 StoreKit 配置测试；真实内购与上架需要付费 Apple Developer Program、App Store Connect 商品与 Sandbox / 生产环境。
 - `Configuration.storekit` 的 `$2.99` 只是本地测试价；线上价格由 App Store Connect 与 `Product.displayPrice` 决定。
 - 不同机型 / iOS 版本的 HEIC 可能使用不同的 `iref` 结构；已加 16-bit / 32-bit 回归测试，但仍需更多样本。
 - 分享扩展首次运行时可能拿不到相册写入授权（扩展内不一定能弹权限框）。此时会提示先回 App 授权；这是系统行为，需真机确认具体表现。
 - 分享面板可能把照片转成 JPEG，扩展会拒绝而不是偷偷转码。
-- Live Photo 暂不支持，会跳过并提示；视频部分不会被处理。
+- 实况照片缺少配对 MOV 时会拒绝并说明原因；完整处理保留原视频样本、声音、关键帧与配对，但系统「照片」对纹理风格轨的逐帧渲染效果仍需真机确认。
 - 免费 Personal Team 签名 7 天过期。
 
 ## 隐私

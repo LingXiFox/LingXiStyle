@@ -6,6 +6,7 @@ public enum ConversionStage: String, Sendable, CaseIterable, Equatable {
     case readingOriginal
     case inspecting
     case converting
+    case processingFrames
     case verifying
     case saving
     case finished
@@ -16,6 +17,7 @@ public enum ConversionStage: String, Sendable, CaseIterable, Equatable {
         case .readingOriginal: return String(localized: "读取原片")
         case .inspecting: return String(localized: "检查结构")
         case .converting: return String(localized: "添加纹理与颗粒")
+        case .processingFrames: return String(localized: "处理动态画面")
         case .verifying: return String(localized: "无损校验")
         case .saving: return String(localized: "写入相册")
         case .finished: return String(localized: "完成")
@@ -30,6 +32,7 @@ public enum ConversionStage: String, Sendable, CaseIterable, Equatable {
         case .readingOriginal: return String(localized: "正在读取原片")
         case .inspecting: return String(localized: "正在检查结构")
         case .converting: return String(localized: "正在添加纹理与颗粒")
+        case .processingFrames: return String(localized: "正在处理动态画面")
         case .verifying: return String(localized: "正在无损校验")
         case .saving: return String(localized: "正在写入相册")
         case .finished: return String(localized: "正在完成")
@@ -42,6 +45,7 @@ public enum ConversionStage: String, Sendable, CaseIterable, Equatable {
         case .readingOriginal: return "square.and.arrow.down"
         case .inspecting: return "viewfinder"
         case .converting: return "wand.and.stars"
+        case .processingFrames: return "film.stack"
         case .verifying: return "checkmark.shield"
         case .saving: return "photo.badge.plus"
         case .finished: return "checkmark.circle"
@@ -55,6 +59,7 @@ public enum ConversionStage: String, Sendable, CaseIterable, Equatable {
         case .readingOriginal: return 0.1
         case .inspecting: return 0.3
         case .converting: return 0.55
+        case .processingFrames: return 0.65
         case .verifying: return 0.75
         case .saving: return 0.9
         case .finished: return 1
@@ -64,13 +69,22 @@ public enum ConversionStage: String, Sendable, CaseIterable, Equatable {
 
     public var isBusy: Bool {
         switch self {
-        case .readingOriginal, .inspecting, .converting, .verifying, .saving: return true
+        case .readingOriginal, .inspecting, .converting, .processingFrames, .verifying, .saving: return true
         case .finished, .failed: return false
         }
     }
 
     /// Stages that have any work to show, in order.
     public static var pipeline: [ConversionStage] {
-        [.readingOriginal, .inspecting, .converting, .verifying, .saving]
+        pipeline(livePhotoMode: nil)
+    }
+
+    /// A Live Photo that gets full frame processing shows one extra step, because it really does
+    /// one extra pass over the paired movie.
+    public static func pipeline(livePhotoMode: LivePhotoProcessingMode?) -> [ConversionStage] {
+        if livePhotoMode == .full {
+            return [.readingOriginal, .inspecting, .converting, .processingFrames, .verifying, .saving]
+        }
+        return [.readingOriginal, .inspecting, .converting, .verifying, .saving]
     }
 }

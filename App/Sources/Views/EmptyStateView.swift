@@ -8,6 +8,7 @@ import LingXiKit
 struct EmptyStateView: View {
     @ObservedObject var model: AppModel
     @Environment(\.contentMargin) private var margin
+    @Environment(\.duoControlInset) private var controlInset
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.reduceMotionOverride) private var reduceMotionOverride
     private var reduceMotion: Bool { systemReduceMotion || reduceMotionOverride }
@@ -18,6 +19,7 @@ struct EmptyStateView: View {
             VStack(spacing: 0) {
                 topBar
                     .padding(.top, Spacing.xs)
+                    .padding(.trailing, controlInset)
 
                 BrandMark(size: 64)
                     .padding(.top, Spacing.l)
@@ -44,6 +46,17 @@ struct EmptyStateView: View {
                 actions
                     .padding(.top, Spacing.l)
 
+                Button {
+                    model.presentTutorial()
+                } label: {
+                    Label(String(localized: "教程", defaultValue: "使用教程"), systemImage: "book")
+                        .font(Typography.captionEmphasized)
+                        .foregroundStyle(Palette.accentText)
+                        .frame(minHeight: Layout.minimumTouchTarget)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, Spacing.xs)
+                .accessibilityIdentifier("home.tutorial")
                 Text("最多 \(AppModel.maxSelection) 张 · HEIC / HEIF")
                     .font(Typography.micro)
                     .foregroundStyle(Palette.textTertiary)
