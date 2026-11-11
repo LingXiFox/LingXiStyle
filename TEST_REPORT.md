@@ -50,10 +50,11 @@
 - 首页 `home.tutorial` 与设置 `settings.tutorial` 均可再次打开；设置打开时底部为“完成”。
 - 四语言：中文（简 / 繁）、英文、日文均补齐教程标题、正文、图示标签与按钮；
   `Localizable.xcstrings` 四语言完整性脚本 0 failures。
-- 适配：Dynamic Type、VoiceOver（分页只读当前页，`accessibilityHidden(index != stepIndex)`）、
+- 适配：Dynamic Type（实测 `accessibility-extra-large`：首页可滚动、教程正文与按钮不截断，
+  `/tmp/iphone-tutorial-axl.png`）、VoiceOver（分页只读当前页，`accessibilityHidden(index != stepIndex)`）、
   Reduce Motion、Duo 外屏 466 pt 与 Duo 内屏 669 pt 布局均实测；教程分步在 iPhone 17 与 Duo 外屏实测。
 - 截图证据：`/tmp/duo-tutorial-custom-crop.png`、`/tmp/duo-tutorial-live-crop.png`、
-  `/tmp/duo-tutorial-final-crop.png`。
+  `/tmp/duo-tutorial-final-crop.png`、`/tmp/iphone-tutorial-axl.png`。
 
 ### 4. Duo 内外屏与折叠
 
