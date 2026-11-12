@@ -15,14 +15,14 @@ iPhone、iPad 与 Mac 都提供原生界面，iPad 与 Mac 另支持从「文件
 
 ## 状态
 
-- **1.9.1（build 11）**：新增成果保险箱（默认保留 7 天，可预览 / 重存 / 导出 / 删除，重存不扣额度）、任务历史与中断恢复（强杀后可识别、失败可重试、每张只结算一次额度）、多档 Pro（日卡 / 周订阅 / 月订阅 / 永久）、新用户一次性 24 小时免费体验，以及 iPadOS 与 macOS 原生界面。macOS 为独立 target `TexelMac`，导出到用户选择的文件夹；App 不再局限于 iPhone。
+- **1.9.1（build 11）**：新增成果保险箱（默认保留 7 天，可预览 / 重存 / 导出 / 删除，重存不扣额度）、任务历史与中断恢复（强杀后可识别、失败可重试、每张只结算一次额度）、多档 Pro（日卡 / 周订阅 / 月订阅 / 永久）、新用户一次性 24 小时免费体验，以及 iPadOS 与 macOS 原生界面。macOS 为独立 target `TexelMac`，与 iOS / iPadOS 共用 Bundle ID 与商品 ID，导出到用户选择的文件夹；App 不再局限于 iPhone。
 - **1.8.1（build 10）**：实况照片双模式（仅处理主帧 / 完整处理，两种模式一张都只计 1 张额度）、9 步首启教程与首页 / 设置常驻入口、iPhone Duo 外屏完整流程与内屏双栏。1.9.1 保留这些能力与视觉。
 - **1.7.1（build 9）**：发布验证补强。新增真实 HEIC 端到端集成测试（真实 `ConversionService`、PhotoKit 保存回读、额度扣减与持久化）、分享扩展 12 条异常 / 取消 / 超时 / 重试状态机测试、快捷指令 9 条批量与额度测试，以及 1 条 XCUITest 启动 / 首页 / 设置 / Pro 入口冒烟；CI 增加集成测试与启动冒烟步骤，并预授权模拟器相册权限。1.7.0 的 CI 编译修复、分享扩展阻塞修复、共享 Keychain 组与免费 Offer Code 测试保持不变。
 - **1.7.0（build 8）**：发布候选收口。修复 CI 在 Xcode 16.4 / iOS 18.5 SDK 上的编译失败（`StoreKitError` 新 case 的显式匹配，以及 `PeopleDetection` / `RasterImport` 与 Core 测试 fixture 的复杂表达式都改为旧编译器可处理的形式）；CI 拆成 iOS 18.5 与 iOS 26.0 两条构建 + 测试矩阵；修掉分享扩展读取完成后不进入处理流程的阻塞缺陷，并补 3 秒数据回退与 15 秒超时；模拟器签名构建实际走共享 Keychain Access Group；新增 100% 免费 Offer Code 的 StoreKit 自动化测试。
 - 免费用户每天可成功转换 5 张 HEIC；失败、跳过、不兼容不扣额度。额度按本地自然日重置，App、分享扩展与快捷指令共用同一账本。
 - Pro 是 StoreKit 2 权益集合：永久 `com.lingxifox.LingXiStyle.pro`、日卡 `...pro.day`（一次性 24 小时）、周订阅 `...pro.weekly`、月订阅 `...pro.monthly`；四种权益相同，只是期限不同。老用户已购的永久版保持不变。新用户可一次性领取 24 小时免费体验，不订阅、不扣费。
 - 本地化使用 String Catalog，支持简体中文、繁体中文、英文、日文；内部 Bundle ID、Keychain 服务名与 StoreKit Product ID 保持不变，升级不丢购买。
-- 自动化测试：本机 1.9.1 全量 157 项、2 项跳过、0 失败：`LingXiKitTests` 68/68（含保险箱、任务日志、多档权益与试用）、`LingXiPurchaseTests` 24/24、`LingXiEngineTests` 5/5、`StylePortCoreTests` 15（2 项依赖外部 fixture，默认跳过）、`LingXiIntegrationTests` 37/37、`LingXiUITests` 5/5、`LingXiMacPipelineTests` 3/3（真实 HEIC + 保险箱 + 任务日志管线）。
+- 自动化测试：本机 1.9.1 全量 168 项、3 项跳过、0 失败：`LingXiKitTests` 73/73（含保险箱、任务日志、多档权益与试用）、`LingXiPurchaseTests` 29/29（含跨设备日卡与退款）、`LingXiEngineTests` 5/5、`StylePortCoreTests` 15（2 项依赖外部 fixture，默认跳过）、`LingXiIntegrationTests` 37/37、`LingXiUITests` 6（5 通过 + 1 条 iPad-only 在 iPhone 上跳过）、`LingXiMacPipelineTests` 3/3（真实 HEIC + 保险箱 + 任务日志管线）。
 - 构建：`generic/platform=iOS` 的 Debug 与 Release，以及 `platform=macOS,arch=arm64` 的 Debug 与 Release，均 0 error、0 Swift 源码 warning；签名 Debug 构建与模拟器签名构建通过。
 - 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.2 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过；1.3 沿用同一引擎并在模拟器保存成功。
 - 1.7 在同一台 iPhone 17（iOS 27.3）完成分享扩展端到端：从「照片」分享 5,924,047 字节原片，读入、转换、另存成功，额度从 4 / 5 变为 3 / 5；分享已处理过的照片会提示「无需重复处理」且不扣额度。当时的签名模拟器构建使用同一旧 Keychain Access Group（`$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared`）；当前 Bundle ID 与共享组已切换为 Texel，需重新验证签名。
@@ -147,6 +147,8 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiMacPipelineTests \
 1. 目标设备和系统矩阵很窄，HEIC 的 `iref` / grid / tile 结构会随机型和系统版本变化，尚未做完整验证。
 2. 预编译 IPA 无法用不同人的签名复用；免费证书 7 天过期，最适合的方式就是自己从源码编译。
 3. 分享扩展、快捷指令与系统权限矩阵仍处于真机验证阶段，尚不适合作为预编译包分发。
+
+Universal Purchase 的代码侧配置已完成：`TexelMac` 与 iOS / iPadOS 同为 `com.lingxifox.Texel`，四个商品 ID 共用；App Store Connect 现有记录添加 macOS 平台、上传 Mac 构建仍是人工步骤，见 [docs/app-store/universal-purchase.md](docs/app-store/universal-purchase.md)。
 
 因此仓库不发布 IPA，也不提供 AltStore / 侧载支持。
 
@@ -397,7 +399,7 @@ project.yml             XcodeGen 工程定义
 
 ## 已知限制
 
-- 1.9.1 本机完成 iOS Debug / Release、macOS Debug / Release 构建与模拟器运行；自动化 157 项、2 项跳过、0 失败。iPhone 17 与 iPad 13 模拟器完成首屏、选片与保险箱 / 历史 / 购买入口检查；macOS 完成启动、导入与首屏额度显示。iPad 拖放与 macOS 真实转换已由代码路径与管线测试覆盖，但未做逐一点击的完整人工流程。
+- 1.9.1 本机完成 iOS Debug / Release、macOS Debug / Release 构建与模拟器运行；自动化 168 项、3 项跳过、0 失败。iPhone 17 与 iPad 13 模拟器完成首屏、选片与保险箱 / 历史 / 购买入口检查；iPad 横竖屏两栏布局与 XCUITest 断言通过；macOS 完成启动、设置、四档 Pro 页与首屏额度显示。iPad 拖放与 macOS 真实转换已由代码路径与管线测试覆盖，但未做逐一点击的完整人工流程。
 - 真机安装、真实 App Store 交易（尤其订阅续订 / 到期 / 退款）、iOS 18 / 26 运行时、权限拒绝页、快捷指令 UI、Duo 内屏完整转换与折叠中间态仍未验证。模拟器签名构建不能替代真机 distribution 签名。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 - 分享扩展与快捷指令各自使用独立容器，不读取主 App 的保险箱与任务历史；这是 1.9.1 的已知边界。
 - iOS 上的免费体验与 Pro 权益依赖 Keychain；`CODE_SIGNING_ALLOWED=NO` 的模拟器构建缺少共享组 entitlement，会显示「额度暂不可用」，属于 fail-closed，不是线上行为。
@@ -431,5 +433,7 @@ project.yml             XcodeGen 工程定义
 - [AppStoreRelease.md](AppStoreRelease.md)：App Store Connect、商品、地区定价、Sandbox 与发布清单。
 - [docs/app-store/README.md](docs/app-store/README.md)：四语言商店文案、截图规范、中国大陆合规清单，以及可部署的隐私 / 支持页面。
 - [docs/app-store/release-notes-1.9.1.md](docs/app-store/release-notes-1.9.1.md)：1.9.1 四语言版本说明。
+- [docs/app-store/universal-purchase.md](docs/app-store/universal-purchase.md)：iOS / iPadOS / macOS 通用购买与 App Store Connect 手动配置。
+- [docs/app-store/screenshots-1.9.1.md](docs/app-store/screenshots-1.9.1.md)：1.9.1 分平台截图规格、页面清单与商品说明。
 - [docs/compatibility/photo-styles-research-1.9.1.md](docs/compatibility/photo-styles-research-1.9.1.md)：第二代摄影风格与第三代纹理 / 颗粒的研究记录与结论。
 - [AGENTS.md](AGENTS.md)：给在本仓库工作的编码代理的约束。

@@ -25,9 +25,9 @@ UI 与测试都不得把它当作生产价格。
   仓库 entitlements 使用 `$(AppIdentifierPrefix)com.lingxifox.Texel.shared`。
   免费 Personal Team 的个人资料没有 App Groups，因此默认不依赖 App Group。
 - iPad 与 iPhone 共用 `com.lingxifox.Texel`（`TARGETED_DEVICE_FAMILY = "1,2"`）。
-- macOS 版是独立 target `TexelMac`，Bundle ID `com.lingxifox.Texel.Mac`。上架前需要决定：
-  与 iOS 合并为同一 App 记录（共享内购与权益），或作为独立 Mac App 单独配置商品；
-  见第 7 节「已知边界」。
+- macOS 版是独立 target `TexelMac`，Bundle ID 与 iOS / iPadOS 同为 `com.lingxifox.Texel`；
+  使用同一条 App Store Connect 记录与 Universal Purchase，保留独立原生桌面界面。
+  上架前需在现有记录中添加 macOS 平台，步骤见 `docs/app-store/universal-purchase.md`。
 
 ## 2. 创建内购项目（四种）
 
@@ -131,7 +131,8 @@ Offer Code，代码中不得出现固定兑换码、开发者账号白名单或�
 
 - [ ] 版本号 `1.9.1`、Build `11`（或更高）已写入 `project.yml`。
 - [ ] `xcodegen generate` 后 Debug scheme 仍带 `Configuration.storekit`。
-- [ ] `LingXiKitTests`、`LingXiPurchaseTests`、`LingXiEngineTests`、`StylePortCoreTests`、`LingXiIntegrationTests`、`LingXiUITests`、`LingXiMacPipelineTests` 全绿（本机 157 项 / 2 跳过 / 0 失败）。
+- [ ] `LingXiKitTests`、`LingXiPurchaseTests`、`LingXiEngineTests`、`StylePortCoreTests`、`LingXiIntegrationTests`、`LingXiUITests`、`LingXiMacPipelineTests` 全绿（本机 168 项 / 3 跳过 / 0 失败）。
+- [ ] 已在 App Store Connect 现有 Texel 记录中添加 macOS 平台，并按 `docs/app-store/universal-purchase.md` 检查 Bundle ID、能力与四商品共用。
 - [ ] Release 构建不包含 StoreKit 测试配置。
 - [ ] 商品 ID、类型、本地化、价格、审核截图已填。
 - [ ] Paid Apps Agreement、税务、银行信息完成。
@@ -162,8 +163,8 @@ Offer Code，代码中不得出现固定兑换码、开发者账号白名单或�
 - [x] App target 已提供 `PrivacyInfo.xcprivacy`（`UserDefaults` / `CA92.1`）；Share Extension 已提供独立清单（`FileTimestamp` / `C617.1`）。
 - [ ] 隐私说明、支持 URL、审核备注已填写。
 - [x] 1.8.1 Release archive 已生成（1.8.1 / build 10，`Apple Distribution` 签名，IPA 无本地 StoreKit 配置）。
-- [ ] 1.9.1 Release archive / IPA 尚未生成与上传；本项目前只做了 Debug / Release 构建与模拟器运行验证。
-- [ ] 已上传 App Store Connect / TestFlight（本轮只生成 archive 与 IPA，未上传）。
+- [x] 1.9.1 未签名归档已生成（iOS `Texel-iOS.xcarchive`、macOS `TexelMac.xcarchive`，均为 1.9.1 / build 11）；未做 distribution 签名与 IPA 导出。
+- [ ] 未上传 App Store Connect / TestFlight；无 distribution 签名 IPA，不能把本机归档写成可提审包。
 
 ## 6. 审核备注建议
 
@@ -189,11 +190,11 @@ are shown before purchase; deleting the app does not cancel a subscription.
 - 1.7.1 新增真实 48MP HEIC 端到端集成测试与 XCUITest 启动冒烟；本机六套测试合计
   98 项执行 / 96 通过 / 2 跳过。Duo 仅验证首页、设置与 Pro 页。
 - 1.8.1 本机六套测试 118 项执行 / 0 失败 / 2 跳过；实况双模式、106 帧额度、9 步教程、Duo 外屏全流程与 Duo 内屏双栏已验证。
-- 1.9.1 本机七套测试 157 项 / 2 跳过 / 0 失败；iOS / iPadOS 与 macOS Debug、Release 构建通过；无真机、无 iOS 18 / 26 运行时，
+- 1.9.1 本机七套测试 168 项 / 3 跳过 / 0 失败；iOS / iPadOS 与 macOS Debug、Release 构建通过；无真机、无 iOS 18 / 26 运行时，
   真实交易与订阅续订 / 退款、iPad / Mac 完整人工流程未验证。
-- `TexelMac` 目前使用独立 Bundle ID `com.lingxifox.Texel.Mac`。若要实现 iPhone / iPad / Mac 同一 App 记录下的
-  统一购买与恢复，上架前必须把它并入 iOS 的 App 记录（或改用同一 Bundle ID 的 macOS 平台）；
-  否则 Mac 版需要单独配置商品，跨平台权益连续性无法保证。这是发布配置决策，代码层的权益计算已按统一 product ID 实现。
+- 通用购买的代码侧配置已完成：`TexelMac` 与 iOS / iPadOS 同为 `com.lingxifox.Texel`，四个商品 ID 共用；
+  App Store Connect 现有记录添加 macOS 平台、上传 Mac 构建仍为人工步骤，详见 `docs/app-store/universal-purchase.md`。
+  在完成线上平台配置前，不得宣称 Mac 版已经可以在 App Store 恢复 iOS 购买。
 - 100% Offer Code 的生产兑换依赖 App Store Connect 配置与商品可发放状态；
   本地配置不能替代生产资格检查。
 - 若未来改用 App Group + SQLite 作为额度存储，必须同时为 App 与扩展申请 App Group，

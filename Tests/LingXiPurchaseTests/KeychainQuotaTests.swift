@@ -169,6 +169,9 @@ final class KeychainQuotaTests: XCTestCase {
         XCTAssertNil(KeychainQuotaStore.accessGroup(from: ""))
         XCTAssertNil(KeychainQuotaStore.accessGroup(from: "   "))
         XCTAssertNil(KeychainQuotaStore.accessGroup(from: "$(AppIdentifierPrefix)com.lingxifox.Texel.shared"))
+        XCTAssertNil(KeychainQuotaStore.accessGroup(from: "com.lingxifox.Texel.shared"),
+                     "an unsigned build expands the prefix to nothing and must fall back")
+        XCTAssertNil(KeychainQuotaStore.accessGroup(from: "TEAM.com.lingxifox.Texel.shared"))
         XCTAssertEqual(KeychainQuotaStore.accessGroup(from: " 4VXWMYSQG8.com.lingxifox.Texel.shared "),
                        "4VXWMYSQG8.com.lingxifox.Texel.shared")
     }

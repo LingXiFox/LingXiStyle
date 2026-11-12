@@ -158,7 +158,7 @@ public final class ConversionService: @unchecked Sendable {
                 $0.state = .saved
                 $0.savedAssetIdentifier = result.savedAssetIdentifier
                 $0.outputByteCount = result.outputByteCount
-                $0.quotaState = .committed
+                $0.quotaState = $0.quotaReservationID == nil ? .none : .committed
             }
             return result
         } catch {

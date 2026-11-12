@@ -16,8 +16,11 @@ struct MacPurchaseView: View {
                     header
                     if purchases.access.isActive {
                         accessCard
-                    } else {
+                    }
+                    if canPurchaseMore {
                         planList
+                    }
+                    if !purchases.access.isActive {
                         trialCard
                     }
                     legal
@@ -29,6 +32,11 @@ struct MacPurchaseView: View {
         }
         .background(MacPalette.background)
         .task { await purchases.loadPlans() }
+    }
+
+    /// Lifetime owners and active subscribers never see another purchase prompt.
+    private var canPurchaseMore: Bool {
+        !purchases.access.isLifetime && purchases.access.source != .subscription
     }
 
     private var header: some View {
@@ -173,7 +181,7 @@ struct MacPurchaseView: View {
             Spacer()
             Button(String(localized: "关闭", defaultValue: "关闭")) { dismiss() }
                 .buttonStyle(MacQuietButtonStyle())
-            if !purchases.access.isActive {
+            if canPurchaseMore {
                 Button(purchaseTitle) {
                     Task { await model.purchase(selectedPlan) }
                 }

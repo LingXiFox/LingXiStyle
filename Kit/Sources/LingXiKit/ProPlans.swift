@@ -131,21 +131,30 @@ public enum ProAccessEvaluator {
             return ProAccessSnapshot(source: .lifetime, plan: .lifetime, expiresAt: nil)
         }
 
-        let subscriptions = active.compactMap { record -> (ProPlan, Date)? in
+        let subscriptions = active.compactMap { record -> (ProPlan, Date, Date)? in
             guard let plan = ProPlan.plan(forProductID: record.productID),
                   plan.isSubscription,
                   let expiration = record.expirationDate else { return nil }
-            return (plan, expiration)
+            return (plan, record.purchaseDate, expiration)
         }
-        if let best = subscriptions.max(by: { $0.1 < $1.1 }) {
-            return ProAccessSnapshot(source: .subscription, plan: best.0, expiresAt: best.1)
+        // If StoreKit briefly reports both the old and the new plan during a switch, the most
+        // recent purchase is the plan the user chose; expiry only breaks ties.
+        if let best = subscriptions.max(by: { ($0.1, $0.2) < ($1.1, $1.2) }) {
+            return ProAccessSnapshot(source: .subscription, plan: best.0, expiresAt: best.2)
         }
 
         let purchasedDayPassExpiry = active
             .filter { $0.productID == ProPlan.dayPass.productID }
             .map { $0.purchaseDate.addingTimeInterval(dayPassDuration) }
             .max()
-        let dayPassExpiry = [purchasedDayPassExpiry, storedDayPassExpiry]
+        // A refund removes the transaction from currentEntitlements but leaves the local
+        // Keychain mirror behind. If the newest day-pass transaction was revoked, ignore the
+        // mirror so a refunded pass cannot keep Pro alive until its old expiry.
+        let latestDayPass = records
+            .filter { $0.productID == ProPlan.dayPass.productID }
+            .max { $0.purchaseDate < $1.purchaseDate }
+        let usableStoredDayPassExpiry = latestDayPass?.revocationDate == nil ? storedDayPassExpiry : nil
+        let dayPassExpiry = [purchasedDayPassExpiry, usableStoredDayPassExpiry]
             .compactMap { $0 }
             .filter { $0 > now }
             .max()
@@ -255,6 +264,21 @@ public struct ProTrialService: Sendable {
     }
 }
 
+/// The app and its share extension have different bundle IDs but must read the same
+/// per-device trial and day-pass ledger. Test hosts keep their own scope.
+enum ProLedgerScope {
+    static func ownerBundleID(for bundle: Bundle) -> String {
+        ownerBundleID(for: bundle.bundleIdentifier ?? "unknown")
+    }
+
+    static func ownerBundleID(for identifier: String) -> String {
+        if identifier.hasSuffix(".Share") {
+            return String(identifier.dropLast(".Share".count))
+        }
+        return identifier
+    }
+}
+
 final class KeychainTrialStore: ProTrialStoring, @unchecked Sendable {
     static let defaultService = "com.lingxifox.LingXiStyle.trial"
 
@@ -266,7 +290,7 @@ final class KeychainTrialStore: ProTrialStoring, @unchecked Sendable {
     init(service: String = KeychainTrialStore.defaultService,
          bundle: Bundle = .main) {
         self.service = service
-        self.account = "trial." + (bundle.bundleIdentifier ?? "unknown")
+        self.account = "trial." + ProLedgerScope.ownerBundleID(for: bundle)
         self.accessGroup = KeychainQuotaStore.defaultAccessGroup(bundle: bundle)
     }
 
@@ -323,10 +347,11 @@ final class KeychainTrialStore: ProTrialStoring, @unchecked Sendable {
         return query
     }
 }
-/// A day pass is a non-renewing purchase, and StoreKit does not guarantee that it keeps showing
-/// up in `Transaction.currentEntitlements` once the purchase dialog closes. The 24-hour deadline
-/// is therefore mirrored into the Keychain, keyed per bundle, so it survives relaunches and
-/// reinstalls on the same device.
+/// A day pass is a non-renewing purchase. StoreKit 2 keeps the latest transaction for a
+/// non-renewing subscription in `Transaction.currentEntitlements`, even after it finishes, so
+/// the verified purchase date restores the same 24-hour window on every device signed in to
+/// the same Apple ID. The Keychain mirror is a local fallback for the moment between a
+/// successful purchase and StoreKit publishing the transaction; it is not a cross-device store.
 /// One activated day pass. The transaction identifier makes activation idempotent: a replayed
 /// StoreKit update can never buy the same purchase twice.
 public struct ProDayPass: Codable, Sendable, Equatable {
@@ -381,12 +406,18 @@ public struct ProDayPassService: Sendable {
         guard let expiry = store.load()?.expiresAt, expiry > now() else { return nil }
         return expiry
     }
+    /// Clears the mirror only when it belongs to the revoked transaction, so a late update for
+    /// an old pass cannot wipe a newer, active purchase.
+    public func clear(ifTransactionID transactionID: String) throws {
+        guard let existing = store.load(), existing.transactionID == transactionID else { return }
+        try store.clear()
+    }
 
     /// Buys 24 more hours on top of whatever is still left, so a second purchase never shortens
     /// an active window. Activating the same transaction twice is a no-op, which keeps replayed
     /// StoreKit updates from stacking free time.
     @discardableResult
-    public func activate(transactionID: String? = nil) throws -> Date {
+    public func activate(transactionID: String? = nil, purchasedAt: Date? = nil) throws -> Date {
         let existing = store.load()
         if let transactionID,
            let existing,
@@ -395,7 +426,10 @@ public struct ProDayPassService: Sendable {
             return existing.expiresAt
         }
         let current = now()
-        let base = max(current, existing?.expiresAt ?? current)
+        // StoreKit's purchase date is issued by Apple; using it for the fallback window keeps a
+        // manually changed device clock from stretching the paid 24 hours.
+        let start = purchasedAt ?? current
+        let base = max(start, existing?.expiresAt ?? start)
         let pass = ProDayPass(expiresAt: base.addingTimeInterval(ProAccessEvaluator.dayPassDuration),
                               activatedAt: current,
                               transactionID: transactionID)
@@ -415,7 +449,7 @@ final class KeychainDayPassStore: ProDayPassStoring, @unchecked Sendable {
     init(service: String = KeychainDayPassStore.defaultService,
          bundle: Bundle = .main) {
         self.service = service
-        self.account = "daypass." + (bundle.bundleIdentifier ?? "unknown")
+        self.account = "daypass." + ProLedgerScope.ownerBundleID(for: bundle)
         self.accessGroup = KeychainQuotaStore.defaultAccessGroup(bundle: bundle)
     }
 

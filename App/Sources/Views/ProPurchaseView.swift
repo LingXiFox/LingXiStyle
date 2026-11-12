@@ -63,14 +63,18 @@ struct ProPurchaseView: View {
                     accessCard
                         .padding(.top, Spacing.m)
 
-                    plans
-                        .padding(.top, Spacing.m)
+                    if !purchases.access.isLifetime, purchases.access.source != .subscription {
+                        plans
+                            .padding(.top, Spacing.m)
 
-                    purchaseArea
-                        .padding(.top, Spacing.m)
+                        purchaseArea
+                            .padding(.top, Spacing.m)
+                    }
 
-                    trialArea
-                        .padding(.top, Spacing.m)
+                    if !purchases.access.isActive {
+                        trialArea
+                            .padding(.top, Spacing.m)
+                    }
 
                     restoreArea
                         .padding(.top, Spacing.s)

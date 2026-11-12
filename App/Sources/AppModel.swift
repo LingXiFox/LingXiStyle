@@ -1029,6 +1029,16 @@ final class AppModel: ObservableObject {
     var vaultAvailableByteCount: Int? { vaultStore.availableByteCount().map { Int(clamping: $0) } }
 
     func refreshVault() {
+        var keeping = Set(taskJournal.activeTasks().map(\.id))
+        if let currentTaskID { keeping.insert(currentTaskID) }
+        do {
+            let result = try vaultStore.purgeExpired(keepingTaskIDs: keeping)
+            if result.removedCount > 0 {
+                vaultMessage = String(localized: "vault.cleanupDone", defaultValue: "已清理 \(result.removedCount) 项，释放 \(Self.byteText(result.freedByteCount))。")
+            }
+        } catch {
+            vaultMessage = error.localizedDescription
+        }
         vaultRecords = (try? vaultStore.records()) ?? []
     }
 
@@ -1130,6 +1140,9 @@ final class AppModel: ObservableObject {
     // MARK: - Task journal plumbing
 
     private func recoverInterruptedTasks() {
+        // Only recover records left behind by a previous launch. If a task is running in this
+        // process, its journal entry is live and must not be rewritten as interrupted.
+        guard currentTaskID == nil else { return }
         guard let recoveries = try? taskJournal.recoverInterrupted(), !recoveries.isEmpty else { return }
         for recovery in recoveries {
             // A reservation without a vault copy means the conversion never finished, so the

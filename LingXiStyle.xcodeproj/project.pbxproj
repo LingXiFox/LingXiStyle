@@ -74,6 +74,7 @@
 		5ACD261902AB33FA1FAD07EA /* StyleMaps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8671E6B1008C10EC462AF59C /* StyleMaps.swift */; };
 		5B3D55EB7F21D0A55366A54D /* LivePhotoConversion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FEDF5148812B5EF86A0ADD7 /* LivePhotoConversion.swift */; };
 		5CE53B355E3F3E94C6FED07D /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82B1BC0FF36F5A5E85C23DC3 /* AppModel.swift */; };
+		5D6015CCC4693CE2E0220DB1 /* IPadLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 685E5AE31F959523D0DA97DF /* IPadLayoutTests.swift */; };
 		5DBADCC448C0EA3E3FBC8F1A /* StylePortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6647713B5C86FADAEFB05D9E /* StylePortCore.framework */; };
 		5E0077B4E30A8682CC72D07B /* LingXiKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 154F183BEF663EE14ADFE5F4 /* LingXiKit.framework */; };
 		5F810C9203ADD4BD5A3B28DD /* LingXiServices.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 8D43CFB4D22CAA063C1A80D1 /* LingXiServices.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -629,6 +630,7 @@
 		6647713B5C86FADAEFB05D9E /* StylePortCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = StylePortCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		66CA895589D440E5B2A339E2 /* IMG_5963-long.MOV */ = {isa = PBXFileReference; path = "IMG_5963-long.MOV"; sourceTree = "<group>"; };
 		675E93C9C5CEF878594FB35B /* LingXiStyle.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LingXiStyle.entitlements; sourceTree = "<group>"; };
+		685E5AE31F959523D0DA97DF /* IPadLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPadLayoutTests.swift; sourceTree = "<group>"; };
 		6CE0EEACA3A1A458614DE7E1 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		6DDCB0E2CF970C081C5453D4 /* ConversionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionService.swift; sourceTree = "<group>"; };
 		6E4FFFD39328E7769F1D2987 /* ConversionSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionSummary.swift; sourceTree = "<group>"; };
@@ -1278,6 +1280,7 @@
 			isa = PBXGroup;
 			children = (
 				20EEB5864BAF74C935D8CAE3 /* HomeSmokeTests.swift */,
+				685E5AE31F959523D0DA97DF /* IPadLayoutTests.swift */,
 				56F10E738929A91449A851E0 /* TutorialUITests.swift */,
 			);
 			path = LingXiUITests;
@@ -2002,6 +2005,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				83FE08901E49C31F3BF6D411 /* HomeSmokeTests.swift in Sources */,
+				5D6015CCC4693CE2E0220DB1 /* IPadLayoutTests.swift in Sources */,
 				0ACDE976E7B8E04925902FC3 /* TutorialUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2416,7 +2420,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.Mac;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel;
 				PRODUCT_NAME = Texel;
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "$(TEXEL_MAC_APP_STORE_PROFILE)";
 				SDKROOT = macosx;
@@ -2952,7 +2956,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel.Mac;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingxifox.Texel;
 				PRODUCT_NAME = Texel;
 				SDKROOT = macosx;
 			};

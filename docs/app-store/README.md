@@ -9,6 +9,8 @@
 | --- | --- |
 | `listing.md` | 四语言 App Store 名称、副标题、推广文本、关键词、描述、What's New、审核备注、占位符 |
 | `release-notes-1.9.1.md` | 1.9.1 四语言 What's New 与发布备注 |
+| `universal-purchase.md` | iOS / iPadOS / macOS 通用购买、Bundle ID、签名能力与 App Store Connect 手动步骤 |
+| `screenshots-1.9.1.md` | 1.9.1 分平台截图规格、页面清单、四语言文案与商品说明清单（待捕获） |
 | `screenshots.md` | iPhone 截图规格、6 页清单、四语言截图文案、捕获步骤 |
 | `china-mainland.md` | 中国大陆 App 备案 / ICP 备案、权限、内购、数据出境清单 |
 | `../index.html` | 公开首页（纹粒 / Texel、1.9.1、隐私与支持入口） |
@@ -63,6 +65,7 @@ python3 -m http.server 8080 --directory docs
 - [ ] `<ICP_FILING_NUMBER>`：如适用，网站 ICP 备案号。
 - [ ] `<REVIEW_CONTACT_NAME>` / `<REVIEW_CONTACT_EMAIL>` / `<REVIEW_CONTACT_PHONE>`：
       App Review 联系人。
+- [ ] 1.9.1 分平台截图：iPhone / iPadOS / macOS 的规格、页面与文案已列于 `screenshots-1.9.1.md`，正式截图尚未批量捕获；1.7.1 的四语言 iPhone 截图仅作历史素材，不能复用。
 - [x] 真实 App 截图：1.7.1 四语言各 6 张已捕获，保存在本地 `AppStoreScreenshots/`（不提交仓库）；Pro 页待商品配置后补拍。
 - [x] App target 已提供 `PrivacyInfo.xcprivacy`（`UserDefaults` / `CA92.1`）。
 - [x] Share Extension 已提供独立 `PrivacyInfo.xcprivacy`（`FileTimestamp` / `C617.1`，用于清理自身临时目录）；
@@ -71,7 +74,7 @@ python3 -m http.server 8080 --directory docs
 ## 原则
 
 - 文案与代码行为一致；不虚构价格、联系方式、备案号、审核状态或媒体评价。
-- 保留品牌「纹粒 / Texel」、每日免费 5 张、一次性永久 Pro。
+- 保留品牌「纹粒 / Texel」、每日免费 5 张与多档 Pro（日卡 / 周订阅 / 月订阅 / 永久）。
 - 不生成虚假 App 截图；不把测试 fixture 用作商店素材。
 - 页面保持简洁、响应式、可键盘访问，并尊重 Reduce Motion。
 - 本目录只描述发布准备，不代表 App 已提交、已备案或已通过审核。

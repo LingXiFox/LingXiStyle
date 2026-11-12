@@ -64,6 +64,12 @@ final class KeychainQuotaStore: @unchecked Sendable {
         guard let raw else { return nil }
         let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !value.isEmpty, !value.contains("$(") else { return nil }
+        // A real keychain group always starts with the 10-character team prefix. An unsigned
+        // build expands $(AppIdentifierPrefix) to nothing, and asking for that bare group would
+        // fail with errSecMissingEntitlement instead of falling back to the process keychain.
+        guard let prefix = value.split(separator: ".", maxSplits: 1).first,
+              prefix.count == 10,
+              prefix.allSatisfy({ $0.isNumber || ("A"..."Z").contains($0) }) else { return nil }
         return value
     }
 

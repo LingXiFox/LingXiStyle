@@ -1,6 +1,6 @@
-# Texel 1.7.1 — App Store listing copy
+# Texel 1.9.1 — App Store listing copy
 
-可复制到 App Store Connect 的四语言商店文案。版本 **1.7.1 (9)**，Bundle ID
+可复制到 App Store Connect 的四语言商店文案。版本 **1.9.1 (11)**，Bundle ID
 `com.lingxifox.Texel`。内容依据仓库 README、`AppStoreRelease.md`、本地化文件与
 实际代码行为整理；不包含虚构的价格、联系方式、备案号或审核状态。
 

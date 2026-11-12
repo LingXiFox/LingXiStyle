@@ -2,9 +2,9 @@
 
 - 日期：2026-11-12
 - 版本：1.9.1（build 11）
-- 结论：iOS / iPadOS 与 macOS Debug、Release 构建通过；七套自动化测试合计 160 项、0 失败、2 跳过。
-  成果保险箱、任务日志与中断恢复、多档 Pro 权益、免费体验与 macOS 真实 HEIC 管线均有自动化覆盖。
-  iPhone 17 与 iPad 13 模拟器、macOS 本机完成界面冒烟。本机没有真机与 iOS 18 / 26 运行时，
+- 结论：iOS / iPadOS 与 macOS Debug、Release 构建通过；七套自动化测试合计 168 项、0 失败、3 跳过。
+  成果保险箱、任务日志与中断恢复、多档 Pro 权益（含跨设备日卡与退款）、免费体验与 macOS 真实 HEIC 管线均有自动化覆盖。
+  iPhone 17、iPad 13 模拟器与 macOS 本机完成界面冒烟。本机没有真机与 iOS 18 / 26 运行时，
   真实交易、订阅续订 / 退款与 iPad / Mac 的完整人工流程未验证。
 
 ## 2026-11-12 1.9.1 验证
@@ -19,7 +19,7 @@
 | 多档 Pro（P1） | 完成（本地 StoreKit） | `ProPlansTests` 11 条：永久优先、订阅到期、撤销、日卡 24h、两次日卡取更晚、试用仅在无购买时生效 |
 | 一次性免费体验（P1） | 完成 | Keychain 记录领取时间与设备种子；同设备重复领取抛 `alreadyClaimed`；跨 service 实例保留；到期回落到实际权益 |
 | iPadOS（P0） | 完成 | 两栏首页、居中限宽、横竖屏；模拟器截图与元素检查；拖放走 `AppModel.enqueue(fileURLs:)` |
-| macOS（P0） | 完成 | `TexelMac` 独立 target，Debug / Release 构建；`LingXiMacPipelineTests` 3 条真实管线；本机启动、导入与额度显示冒烟 |
+| macOS（P0） | 完成（构建与管线） | `TexelMac` 独立 target，Debug / Release 构建；`LingXiMacPipelineTests` 3 条真实管线；本机启动、设置、四档 Pro 页与额度显示冒烟；Finder 导入面板可打开，未完成逐项点击流程 |
 | 兼容性研究（P1） | 完成（不集成） | 结论与依据见 `docs/compatibility/photo-styles-research-1.9.1.md`；无真机样本，不宣称支持「第二代风格转第三代质感」 |
 
 升级兼容：额度账本、Pro 商品 ID（永久版沿用 `com.lingxifox.LingXiStyle.pro`）与既有 UserDefaults 键均保持原样，新增保留期默认 7 天；没有破坏性迁移，1.8.1 的购买、额度与设置可直接沿用。
@@ -33,24 +33,27 @@
 | `xcodebuild -scheme TexelMac -destination 'platform=macOS,arch=arm64' -configuration Debug` | BUILD SUCCEEDED，0 error |
 | 同上 `-configuration Release` | BUILD SUCCEEDED，0 error |
 | `xcodebuild -scheme LingXiStyle -destination 'platform=iOS Simulator,name=Texel iPad 13' build` | BUILD SUCCEEDED；产物安装到 iPad 13 并启动 |
+| `xcodebuild -scheme LingXiStyle -destination 'generic/platform=iOS' archive` | ARCHIVE SUCCEEDED（未签名）；`/tmp/Texel-iOS.xcarchive`，`com.lingxifox.Texel` 1.9.1 / build 11，arm64，含 dSYMs |
+| `xcodebuild -scheme TexelMac -destination 'platform=macOS,arch=arm64' archive` | ARCHIVE SUCCEEDED（未签名）；`/tmp/TexelMac.xcarchive`，同一 Bundle ID、1.9.1 / build 11，x86_64 + arm64，含 PrivacyInfo 与 dSYMs |
 
 签名说明：界面冒烟用的 iOS 构建带共享 Keychain 组（`Simulated.xcent`），额度显示正常；
 `CODE_SIGNING_ALLOWED=NO` 的产物缺少 entitlement，会按设计走 fail-closed 显示「额度暂不可用」，
 不作为缺陷记录。macOS 本机冒烟为 ad-hoc 签名，无 App Group entitlement，额度走 Keychain 槽位账本。
 
+归档说明：两份 xcarchive 均为 `CODE_SIGNING_ALLOWED=NO` 的本地产物，不含 distribution 签名、描述文件或可上架 IPA；Mac 归档为 ad-hoc linker-signed，可直接在本机启动，不能作为上传 App Store Connect 的证据。
+
 ### 3. 自动化测试
 
 | scheme | 环境 | 结果 |
 | --- | --- | --- |
-| `LingXiKitTests` | macOS arm64 | 68 / 68 通过（新增 VaultStore 8、TaskJournal 7、ProPlans 11） |
-| `LingXiPurchaseTests` | iPhone 17 模拟器（iOS 27.2） | 27 / 27 通过（新增 3 条多档购买：四商品加载、日卡 24h、周订阅） |
+| `LingXiKitTests` | macOS arm64 | 73 / 73 通过（VaultStore 8、TaskJournal 7、ProPlans 23、其余既有用例） |
+| `LingXiPurchaseTests` | iPhone 17 模拟器（iOS 27.2） | 29 / 29 通过（四商品加载、日卡 24h、跨设备日卡、日卡退款、周订阅） |
 | `LingXiEngineTests` | macOS arm64 | 5 / 5 通过 |
 | `StylePortCoreTests` | macOS arm64 | 15 项，13 通过、2 跳过（依赖外部 fixture） |
 | `LingXiIntegrationTests` | iPhone 17 模拟器 | 37 / 37 通过（新增 VaultJournal 3：保存 + 保险箱 + journal、重存不扣费、中断不提交） |
-| `LingXiUITests` | iPhone 17 模拟器 | 5 / 5 通过（4 教程 + 1 启动 / 首页 / 设置 / Pro 冒烟） |
+| `LingXiUITests` | iPhone 17 模拟器 | 6 项，5 通过、1 跳过（iPad-only 布局用例在 iPhone 上跳过；其余为 4 教程 + 启动 / 首页 / 设置 / Pro 冒烟） |
 | `LingXiMacPipelineTests` | macOS arm64 | 3 / 3 通过（真实 HEIC → ConversionService → 保险箱 + 任务日志；markSaved 不改额度；中断恢复释放预留） |
-
-合计执行 160 项、通过 158、跳过 2、失败 0。
+合计执行 168 项、通过 165、跳过 3、失败 0。
 
 **已知偶发**：`LingXiPurchaseTests` 整套首次运行时，`testFreeOfferCodeGrantsVerifiedPro` 曾失败一次，
 日志为 `StoreKitServiceError(... ErrorType.system(StoreKitInternalError.unknown), environment: XcodeTest)`；
@@ -66,14 +69,16 @@ CI：GitHub Actions run 43220844706（head `6dc6bf6`）五个 job 全部 success
   设置 / 保险箱 / 历史 / Pro 在 iPad 上以整页 sheet 呈现（`presentationSizing(.page)`），导航标题与返回可用；
   选择 / 处理 / 结果页居中限宽；未执行完整转换的人工点击流程。
 - macOS（Apple Silicon，macOS 15）：`Texel.app` 启动，窗口 1160 × 780，侧栏三项、拖放区、
-  底部额度与「升级 纹粒 Pro」、操作栏可见；额度显示 5 / 5。导入 / 转换的真实管线由
-  `LingXiMacPipelineTests` 覆盖，未做逐项人工点击。
+  底部额度与「升级 纹粒 Pro」、操作栏可见；额度显示 5 / 5。设置窗口 560 × 450，四档 Pro 页、
+  试用卡与法务文案正常。已通过 Finder 导入面板选择 `Tests/Fixtures/IMG_5296.HEIC`，队列显示「1 张待转换」；
+  为避免抢占主人鼠标键盘，未在 GUI 继续点击转换。真实 HEIC → ConversionService → 保险箱 / 任务日志由 `LingXiMacPipelineTests` 覆盖，不能把“已入队”写成完整 GUI 转换通过。
 - 模拟器同一时间只启动一台；测试结束后已 shutdown。
 
 ### 5. 未验证项（不得写成通过）
 
-- 真机安装与真机 Keychain 共享组、真实 App Store 交易、订阅续订 / 到期 / 退款 / 撤销。
-- iOS 18 / 26 真机与运行时人工走查（本机只有 iOS 27.2；CI 在 18.5 / 26.0 模拟器上完成构建与自动化测试）；iPadOS 多窗口拖拽与 macOS 全屏 / 多显示器。
+- 真机安装与真机 Keychain 共享组、真实 App Store 交易、订阅续订 / 到期 / 退款 / 撤销，以及同一 Apple ID 的两台真实设备间日卡恢复。
+- App Store Connect 现有记录添加 macOS 平台、Mac 构建上传与 Universal Purchase 线上验证；本轮未创建线上记录、未上传构建、未提审。
+- iOS 18 / 26 真机与运行时人工走查（本机只有 iOS 27.2；CI 在 18.5 / 26.0 模拟器上完成构建与自动化测试）；iPad 分屏 / 多任务拖放与 macOS 全屏 / 多显示器未逐项人工验证。
 - 强杀 App 的真实设备恢复（自动化用 journal 状态与 `recoverInterrupted` 覆盖，未做真机强杀）。
 - 分享扩展与快捷指令在 1.9.1 容器隔离下的行为：集成测试通过，但未在真机分享面板复验。
 - 第二代摄影风格样本与第三代纹理的叠加显示效果（无真机样本）。
@@ -82,12 +87,24 @@ CI：GitHub Actions run 43220844706（head `6dc6bf6`）五个 job 全部 success
 
 | 风险 | 影响 | 现状与缓解 |
 | --- | --- | --- |
-| 主 App 与 `TexelMac` 使用不同 Bundle ID | Mac App Store 需独立 App 记录，Pro 交易与 iOS 记录不共享 | 文档与发布说明已标注；上架前需在新记录配置四个商品并复验恢复购买 |
+| App Store Connect 尚未添加 macOS 平台 | 线上 Universal Purchase、Mac 恢复 iOS 购买无法验证 | 代码侧已统一 Bundle ID 与四个商品 ID；手动步骤见 `docs/app-store/universal-purchase.md`；未创建线上记录、未提审 |
 | 191.md 要求永久版 $7.99，仓库与线上为 $2.99 | 改价属未授权操作 | 本地 StoreKit 配置与 CI 校验保持 $2.99，待运营授权后统一改价，不静默修改 |
 | 保险箱不参与 iCloud 备份 | 换机或删除 App 后保险箱清空 | 已保存成果仍在系统相册；隐私页与发布说明写明「仅本机、删除即清空」 |
 | 分享扩展 / 快捷指令使用各自容器 | 无法读取 App 保险箱与历史 | 作为已知限制记录；两个入口仍统一走 `ConversionService` 与额度账本 |
 | StoreKitTest 偶发 `system(StoreKitInternalError.unknown)` | 单测偶发失败 | 重跑通过；CI 使用全新模拟器未复现，测试报告如实记录 |
+| 日卡跨设备依赖 StoreKit 交易历史 | 同一 Apple ID 的另一台设备才能恢复；Keychain 只是本机镜像 | 已改用 `Transaction.all` + Apple `purchaseDate`，并用本地 StoreKit 测试覆盖；未做双真机验证 |
 | 无真机验证 | 权限、分享面板、Duo、真实交易未覆盖 | 仅在文档中声明模拟器与自动化结论，不写成真机通过 |
+
+### 7. RC 收尾补充（通用购买 / 跨设备权益 / 布局）
+
+- 通用购买：`TexelMac` Bundle ID 由 `com.lingxifox.Texel.Mac` 改为 `com.lingxifox.Texel`；Mac Info.plist 与 entitlements 增加同一 Keychain 共享组；iOS / iPadOS / macOS 共用四个商品 ID。App Store Connect 添加 macOS 平台仍是人工步骤，见 `docs/app-store/universal-purchase.md`。
+- 日卡跨设备：`StoreKitEntitlementProvider.snapshot()` 改用 `Transaction.all`，`ProDayPassService.activate(transactionID:purchasedAt:)` 以 Apple `purchaseDate` 为 24 小时基准；`ProAccessEvaluator` 忽略已撤销的最新日卡 Keychain 镜像；`PurchaseManager.handle` 收到日卡撤销时清理匹配的本地记录。测试覆盖跨设备恢复与退款。
+- 共享账本：`ProLedgerScope.ownerBundleID` 将 `com.lingxifox.Texel.Share` 映射到 `com.lingxifox.Texel`，分享扩展能读取主 App 的体验 / 日卡状态。
+- 任务与额度：`recoverInterruptedTasks` 增加活跃任务守卫；`refreshVault` 自动清理过期成果且跳过活跃任务；成功路径 Pro 无预留时不再写 `committed`。
+- iPad：新增 `IPadLayoutTests`，横屏断言 `app.windows.firstMatch.frame.width > height`；竖屏 / 横屏直接截图均为两栏、额度 5 / 5。
+- macOS：Pro 页四档计划、试用卡、法务与额度正常；直接运行未加载 StoreKit 配置，日 / 周 / 月价格显示 `—` 属运行方式限制。
+- Core 手动证据：`testWriteReferenceComparisons` 用现有 `Tests/Fixtures/IMG_5296.HEIC` 直跑通过；`testWriteStyledLivePhotoVideo` 用 `Tests/Fixtures/LivePhoto/IMG_5963.MOV` 失败，因为 fixture 已含 mattes / styleInfo / textureInfo，测试预期从空样式开始，保持默认跳过，不作为产品回归。
+- 未验证：App Store Connect 线上通用购买、两台真机日卡恢复、真实订阅续订 / 退款、Mac 完整导入转换点击流程、iPad 分屏拖放。
 
 ## 2026-11-11 1.8.1 验证
 

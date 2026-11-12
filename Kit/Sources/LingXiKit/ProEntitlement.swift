@@ -42,12 +42,13 @@ public struct StoreKitEntitlementProvider: ProEntitlementProviding {
         await snapshot().isActive
     }
 
-    /// Combines every verified StoreKit entitlement with the Keychain trial and day pass ledgers.
-    /// A day pass is a non-renewing purchase, so its 24-hour window is read from the verified
-    /// purchase date and from the Keychain mirror the purchase path writes.
+    /// Combines every verified StoreKit transaction with the Keychain trial and day pass
+    /// ledgers. `Transaction.all` is used instead of `currentEntitlements` so the evaluator can
+    /// still see a refunded day pass and suppress its stale local mirror; revoked and expired
+    /// records are filtered by `ProAccessEvaluator`.
     public func snapshot() async -> ProAccessSnapshot {
         var records: [ProEntitlementRecord] = []
-        for await result in Transaction.currentEntitlements {
+        for await result in Transaction.all {
             guard case .verified(let transaction) = result else { continue }
             guard ProPlan.plan(forProductID: transaction.productID) != nil else { continue }
             records.append(ProEntitlementRecord(productID: transaction.productID,
@@ -194,7 +195,8 @@ public final class PurchaseManager: ObservableObject {
                 }
                 await transaction.finish()
                 if plan == .dayPass {
-                    activateDayPass(transactionID: String(transaction.id))
+                    activateDayPass(transactionID: String(transaction.id),
+                                    purchasedAt: transaction.purchaseDate)
                 }
                 await refreshEntitlement()
                 purchaseState = isPro ? .success : .failed(String(localized: "交易已验证，但权益尚未生效，请稍后重试。"))
@@ -231,10 +233,10 @@ public final class PurchaseManager: ObservableObject {
 
     /// Mirrors a verified day pass purchase into the Keychain so the 24-hour window survives
     /// relaunches even after StoreKit stops listing the non-renewing product.
-    private func activateDayPass(transactionID: String) {
+    private func activateDayPass(transactionID: String, purchasedAt: Date) {
         dayPassError = nil
         do {
-            _ = try dayPassService.activate(transactionID: transactionID)
+            _ = try dayPassService.activate(transactionID: transactionID, purchasedAt: purchasedAt)
         } catch {
             dayPassError = (error as? LocalizedError)?.errorDescription
                 ?? String(localized: "无法保存通行证记录，请稍后重试。")
@@ -267,13 +269,17 @@ public final class PurchaseManager: ObservableObject {
         // A refund or family-sharing revocation arrives as an update for the same transaction.
         // Never finish or celebrate it as a purchase; re-read StoreKit's current entitlement.
         if transaction.revocationDate != nil {
+            if transaction.productID == ProPlan.dayPass.productID {
+                try? dayPassService.clear(ifTransactionID: String(transaction.id))
+            }
             await refreshEntitlement()
             if !isPro { purchaseState = .idle }
             return
         }
         await transaction.finish()
         if transaction.productID == ProPlan.dayPass.productID {
-            activateDayPass(transactionID: String(transaction.id))
+            activateDayPass(transactionID: String(transaction.id),
+                            purchasedAt: transaction.purchaseDate)
         }
         await refreshEntitlement()
         if isPro { purchaseState = .success }

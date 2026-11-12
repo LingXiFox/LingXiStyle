@@ -476,6 +476,9 @@ final class MacModel: ObservableObject {
     }
 
     private func recoverInterruptedTasks() {
+        // Only recover records left behind by a previous launch. A window rebuild can run
+        // bootstrap again while a conversion is still active; never retire that task.
+        guard currentTaskID == nil else { return }
         guard let recoveries = try? taskJournal.recoverInterrupted(), !recoveries.isEmpty else { return }
         for recovery in recoveries {
             for reservation in recovery.reservationsToRelease {
@@ -497,6 +500,13 @@ final class MacModel: ObservableObject {
     // MARK: - Vault
 
     func refreshVault() {
+        var keeping = Set(taskJournal.activeTasks().map(\.id))
+        if let currentTaskID { keeping.insert(currentTaskID) }
+        if let result = try? vaultStore.purgeExpired(keepingTaskIDs: keeping),
+           result.removedCount > 0 {
+            notice = String(localized: "mac.notice.purged",
+                            defaultValue: "已清理 \(result.removedCount) 项过期成果，释放 \(Self.byteText(result.freedByteCount))。")
+        }
         vaultRecords = (try? vaultStore.records()) ?? []
     }
 

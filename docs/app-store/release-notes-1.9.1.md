@@ -1,7 +1,7 @@
 # 纹粒 / Texel 1.9.1 版本说明
 
 - 版本：1.9.1（build 11）
-- Bundle ID：`com.lingxifox.Texel`（iOS / iPadOS）、`com.lingxifox.Texel.Mac`（macOS）
+- Bundle ID：`com.lingxifox.Texel`（iOS / iPadOS / macOS，Universal Purchase）
 - 日期：2026-11-12
 - 适用：iPhone 16 / 17、iPhone Duo、iPad、Apple Silicon Mac（iOS / iPadOS 18.0+、macOS 15.0+）
 - 内购：新增日卡、周订阅、月订阅；永久版沿用原商品 ID，老用户权益不变

@@ -86,6 +86,75 @@ final class StoreKitPurchaseTests: XCTestCase {
         XCTAssertLessThanOrEqual(remaining, 24 * 3600)
     }
 
+    /// A non-renewing day pass must be recoverable on another device signed in to the same
+    /// Apple ID. StoreKit 2 keeps the latest non-renewing transaction in currentEntitlements,
+    /// so a fresh device with empty local Keychain stores can still derive the 24-hour window
+    /// from the verified purchase date.
+    func testDayPassRestoresOnSecondDeviceFromStoreKitHistory() async throws {
+        let firstTrial = MemoryTrialStore()
+        let firstDayPass = MemoryDayPassStore()
+        let first = PurchaseManager(
+            entitlementProvider: StoreKitEntitlementProvider(
+                trial: { ProTrialService(store: firstTrial).state() },
+                dayPass: { ProDayPassService(store: firstDayPass).expiresAt() }
+            ),
+            trialService: ProTrialService(store: firstTrial),
+            dayPassService: ProDayPassService(store: firstDayPass)
+        )
+        await first.loadPlans()
+        await first.purchase(plan: .dayPass)
+        XCTAssertTrue(first.isPro)
+
+        let secondTrial = MemoryTrialStore()
+        let secondDayPass = MemoryDayPassStore()
+        let second = PurchaseManager(
+            entitlementProvider: StoreKitEntitlementProvider(
+                trial: { ProTrialService(store: secondTrial).state() },
+                dayPass: { ProDayPassService(store: secondDayPass).expiresAt() }
+            ),
+            trialService: ProTrialService(store: secondTrial),
+            dayPassService: ProDayPassService(store: secondDayPass)
+        )
+        await second.start()
+
+        XCTAssertNil(secondDayPass.record, "the second device starts without a local day-pass mirror")
+        XCTAssertTrue(second.isPro)
+        XCTAssertEqual(second.access.source, .dayPass)
+        XCTAssertEqual(second.access.plan, .dayPass)
+        let remaining = try XCTUnwrap(second.access.expiresAt).timeIntervalSinceNow
+        XCTAssertGreaterThan(remaining, 23.5 * 3600)
+        XCTAssertLessThanOrEqual(remaining, 24 * 3600)
+    }
+
+    func testDayPassRefundRevokesAccessEvenWithTheLocalMirror() async throws {
+        let trialStore = MemoryTrialStore()
+        let dayPassStore = MemoryDayPassStore()
+        let manager = PurchaseManager(
+            entitlementProvider: StoreKitEntitlementProvider(
+                trial: { ProTrialService(store: trialStore).state() },
+                dayPass: { ProDayPassService(store: dayPassStore).expiresAt() }
+            ),
+            trialService: ProTrialService(store: trialStore),
+            dayPassService: ProDayPassService(store: dayPassStore)
+        )
+        await manager.loadPlans()
+        await manager.purchase(plan: .dayPass)
+        XCTAssertTrue(manager.isPro)
+        XCTAssertNotNil(dayPassStore.record)
+
+        let transaction = try XCTUnwrap(session.allTransactions()
+            .first { $0.productIdentifier == ProPlan.dayPass.productID })
+        try session.refundTransaction(identifier: transaction.identifier)
+
+        let revoked = await waitUntil {
+            await manager.refreshEntitlement()
+            return !manager.isPro
+        }
+        XCTAssertTrue(revoked, "a refunded day pass must not stay active through the Keychain mirror")
+        // Transaction.updates may not replay in a test host, so the adapter deliberately keeps
+        // the mirror. The verified revocation in Transaction.all must still win.
+    }
+
     func testWeeklySubscriptionPurchaseReportsSubscriptionAccess() async throws {
         let manager = PurchaseManager()
         await manager.loadPlans()
@@ -500,6 +569,8 @@ private final class MemoryDayPassStore: ProDayPassStoring, @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         return value
     }
+
+    var record: ProDayPass? { load() }
 
     func save(_ pass: ProDayPass) throws {
         lock.lock(); defer { lock.unlock() }

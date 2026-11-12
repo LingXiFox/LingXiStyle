@@ -126,7 +126,6 @@ targets:
         UILaunchScreen:
           UIColorName: LaunchBackground
         UISupportedInterfaceOrientations:
-        UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
@@ -222,11 +221,12 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
+        LingXiKeychainGroup: $(AppIdentifierPrefix)com.lingxifox.Texel.shared
         LSApplicationCategoryType: public.app-category.photography
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.Texel.Mac
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.Texel
         PRODUCT_NAME: Texel
         CODE_SIGN_ENTITLEMENTS: Mac/Resources/TexelMac.entitlements
         ENABLE_HARDENED_RUNTIME: YES

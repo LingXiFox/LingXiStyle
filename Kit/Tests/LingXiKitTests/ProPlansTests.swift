@@ -39,6 +39,17 @@ final class ProPlansTests: XCTestCase {
         XCTAssertEqual(snapshot.expiresAt?.timeIntervalSince(now), 7 * 86_400)
     }
 
+    func testSwitchingPlansUsesTheMostRecentSubscription() {
+        let snapshot = ProAccessEvaluator.snapshot(
+            records: [record(.monthly, purchased: -10 * 86_400, expires: 20 * 86_400),
+                      record(.weekly, purchased: -86_400, expires: 6 * 86_400)],
+            trial: nil,
+            now: now
+        )
+        XCTAssertEqual(snapshot.plan, .weekly)
+        XCTAssertEqual(snapshot.expiresAt?.timeIntervalSince(now), 6 * 86_400)
+    }
+
     func testExpiredOrRevokedPurchasesGiveFreeAccess() {
         let snapshot = ProAccessEvaluator.snapshot(
             records: [record(.weekly, expires: -60), record(.lifetime, revoked: -60)],
@@ -75,6 +86,28 @@ final class ProPlansTests: XCTestCase {
             now: now
         )
         XCTAssertEqual(snapshot.expiresAt?.timeIntervalSince(now), 86_400 - 600)
+    }
+
+    func testRevokedDayPassIgnoresTheStoredMirror() {
+        let snapshot = ProAccessEvaluator.snapshot(
+            records: [record(.dayPass, purchased: -86_400, revoked: -60)],
+            trial: nil,
+            storedDayPassExpiry: now.addingTimeInterval(3 * 3_600),
+            now: now
+        )
+        XCTAssertEqual(snapshot, .free, "a refund must not leave the Keychain mirror in charge")
+    }
+
+    func testNewerDayPassAfterRefundUsesTheActivePurchase() {
+        let snapshot = ProAccessEvaluator.snapshot(
+            records: [record(.dayPass, purchased: -90_000, revoked: -80_000),
+                      record(.dayPass, purchased: -3_600)],
+            trial: nil,
+            storedDayPassExpiry: now.addingTimeInterval(600),
+            now: now
+        )
+        XCTAssertEqual(snapshot.source, .dayPass)
+        XCTAssertEqual(snapshot.expiresAt?.timeIntervalSince(now), 23 * 3_600)
     }
 
     func testTrialIsUsedOnlyWithoutPurchase() {
@@ -150,6 +183,15 @@ final class ProPlansTests: XCTestCase {
         XCTAssertEqual(store.load()?.transactionID, "42")
     }
 
+    func testDayPassUsesStoreKitPurchaseDateForTheWindow() throws {
+        let store = MemoryDayPassStore()
+        let service = ProDayPassService(store: store, now: { self.now })
+        let purchasedAt = now.addingTimeInterval(-6 * 3_600)
+        let expiry = try service.activate(transactionID: "43", purchasedAt: purchasedAt)
+        XCTAssertEqual(expiry.timeIntervalSince(now), 18 * 3_600,
+                       "a late-applied transaction must not restart the 24-hour window")
+    }
+
     func testSecondDayPassExtendsFromTheRemainingWindow() throws {
         let store = MemoryDayPassStore()
         var clock = now
@@ -215,6 +257,12 @@ final class ProPlansTests: XCTestCase {
             now: now
         )
         XCTAssertEqual(snapshot.source, .lifetime)
+    }
+    func testShareExtensionReadsTheHostAppLedger() {
+        XCTAssertEqual(ProLedgerScope.ownerBundleID(for: "com.lingxifox.Texel"), "com.lingxifox.Texel")
+        XCTAssertEqual(ProLedgerScope.ownerBundleID(for: "com.lingxifox.Texel.Share"), "com.lingxifox.Texel")
+        XCTAssertEqual(ProLedgerScope.ownerBundleID(for: "com.lingxifox.Texel.PurchaseHost"),
+                       "com.lingxifox.Texel.PurchaseHost")
     }
 }
 
