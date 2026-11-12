@@ -118,7 +118,9 @@ public enum VaultError: LocalizedError, Equatable, Sendable {
             let formatter = ByteCountFormatter()
             formatter.countStyle = .file
             return String(
-                localized: "设备可用空间不足，存放这一项需要 \(formatter.string(fromByteCount: required))，当前可用 \(formatter.string(fromByteCount: available))。请清理空间后重试。"
+                format: String(localized: "设备可用空间不足，存放这一项需要 %@，当前可用 %@。请清理空间后重试。"),
+                formatter.string(fromByteCount: required),
+                formatter.string(fromByteCount: available)
             )
         case .recordNotFound:
             return String(localized: "保险箱中的这条成果已经不存在了。")
