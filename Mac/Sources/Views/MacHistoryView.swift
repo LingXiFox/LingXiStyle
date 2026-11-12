@@ -18,6 +18,12 @@ struct MacHistoryView: View {
                         ForEach(model.history) { task in
                             taskCard(task)
                         }
+                        Text(String(localized: "mac.history.footer",
+                                    defaultValue: "转换失败的项需要重新选择原片；已进入保险箱的成果可直接重新保存。"))
+                            .font(MacType.caption)
+                            .foregroundStyle(MacPalette.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, MacSpacing.xs)
                     }
                     .padding(MacSpacing.xl)
                     .frame(maxWidth: 900, alignment: .leading)

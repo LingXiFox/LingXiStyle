@@ -20735,6 +20735,64 @@
           }
         }
       }
+    },
+    "history.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "转换失败的项需要重新选择原片；已进入保险箱的成果可直接重新保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轉換失敗的項目需要重新選擇原片；已進入保險箱的成果可直接重新儲存。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed photos need to be selected again; results already in the vault can be saved again directly."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変換に失敗した項目は元の写真を選び直してください。保管庫にある成果はそのまま再保存できます。"
+          }
+        }
+      }
+    },
+    "mac.history.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "转换失败的项需要重新选择原片；已进入保险箱的成果可直接重新保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轉換失敗的項目需要重新選擇原片；已進入保險箱的成果可直接重新儲存。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed photos need to be selected again; results already in the vault can be saved again directly."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変換に失敗した項目は元の写真を選び直してください。保管庫にある成果はそのまま再保存できます。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

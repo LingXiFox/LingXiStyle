@@ -46,6 +46,12 @@ struct TaskHistoryContent: View {
                         ForEach(model.history) { task in
                             taskCard(task)
                         }
+                        Text(String(localized: "history.footer",
+                                    defaultValue: "转换失败的项需要重新选择原片；已进入保险箱的成果可直接重新保存。"))
+                            .font(Typography.micro)
+                            .foregroundStyle(Palette.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, Spacing.xs)
                     }
                 }
                 .padding(.horizontal, Spacing.m)

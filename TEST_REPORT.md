@@ -14,7 +14,7 @@
 | 项目 | 状态 | 证据 |
 | --- | --- | --- |
 | 成果保险箱（P0） | 完成 | `VaultStoreTests` 8 条；`VaultJournalPipelineTests` 真实 HEIC 落盘、元数据与字节数一致；iPhone / iPad / Mac 界面可打开、预览、重存、导出、删除；暂存失败（体积不足 / 磁盘满）通过 `vaultWarning` 在 App 与 Mac 提示，不影响已保存的成果 |
-| 任务历史与恢复（P0） | 完成 | `TaskJournalTests` 7 条；`recoverInterrupted` 释放未确认占位、幂等；App 启动时自动恢复并提示；任务详情可展开、可重试 |
+| 任务历史与恢复（P0） | 完成 | `TaskJournalTests` 7 条；`recoverInterrupted` 释放未确认占位、幂等；App 启动时自动恢复并提示；任务详情可展开，有保险箱成果的项可直接重新保存，转换失败的项在界面说明需重新选择原片 |
 | 额度可靠性（P0） | 完成 | 集成测试覆盖保存后提交、中断不提交、保险箱重存不扣费；`QuotaTests` / `KeychainQuotaTests` 保持通过 |
 | 多档 Pro（P1） | 完成（本地 StoreKit） | `ProPlansTests` 11 条：永久优先、订阅到期、撤销、日卡 24h、两次日卡取更晚、试用仅在无购买时生效 |
 | 一次性免费体验（P1） | 完成 | Keychain 记录领取时间与设备种子；同设备重复领取抛 `alreadyClaimed`；跨 service 实例保留；到期回落到实际权益 |
