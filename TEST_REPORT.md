@@ -57,6 +57,7 @@
 单独重跑与随后两次整套重跑均通过。判断为 StoreKitTest 会话在上一轮被杀掉的 xcodebuild 之后残留脏状态，
 不是商品配置或验签逻辑缺陷。CI 每次使用全新模拟器，不复现该现象。
 
+CI：GitHub Actions run 43220844706（head `6dc6bf6`）五个 job 全部 success：Policy and project checks、macOS unit tests、macOS app build and pipeline tests、iOS 18.5 compatibility、iOS 26.x current；两套 iOS 均执行了购买、集成与教程 / 启动 UI 测试。
 ### 4. 模拟器与本机界面验证
 
 - iPhone 17（iOS 27.2）：启动、首页额度胶囊、设置「成果与记录」入口、任务历史、保险箱、
