@@ -46,6 +46,59 @@ final class StoreKitPurchaseTests: XCTestCase {
         print("USA displayPrice=\(product.displayPrice) currency=\(product.priceFormatStyle.currencyCode)")
     }
 
+    func testEveryProPlanLoadsFromStoreKitConfiguration() async throws {
+        let manager = PurchaseManager()
+        await manager.loadPlans()
+
+        XCTAssertNil(manager.productLoadError)
+        XCTAssertEqual(Set(manager.planProducts.keys), Set(ProPlan.allCases))
+        XCTAssertEqual(manager.planProducts[.lifetime]?.displayPrice, "$2.99")
+        XCTAssertEqual(manager.planProducts[.dayPass]?.displayPrice, "$0.49")
+        XCTAssertEqual(manager.planProducts[.dayPass]?.type, .nonRenewable)
+        XCTAssertEqual(manager.planProducts[.weekly]?.type, .autoRenewable)
+        XCTAssertEqual(manager.planProducts[.monthly]?.type, .autoRenewable)
+        XCTAssertFalse(manager.planProducts[.weekly]?.displayPrice.isEmpty ?? true)
+        XCTAssertFalse(manager.planProducts[.monthly]?.displayPrice.isEmpty ?? true)
+    }
+
+    func testDayPassPurchaseUnlocksProForTwentyFourHours() async throws {
+        let trialStore = MemoryTrialStore()
+        let dayPassStore = MemoryDayPassStore()
+        let manager = PurchaseManager(
+            entitlementProvider: StoreKitEntitlementProvider(
+                trial: { ProTrialService(store: trialStore).state() },
+                dayPass: { ProDayPassService(store: dayPassStore).expiresAt() }
+            ),
+            trialService: ProTrialService(store: trialStore),
+            dayPassService: ProDayPassService(store: dayPassStore)
+        )
+
+        await manager.loadPlans()
+        await manager.purchase(plan: .dayPass)
+
+        XCTAssertEqual(manager.purchaseState, .success)
+        XCTAssertTrue(manager.isPro)
+        XCTAssertEqual(manager.access.source, .dayPass)
+        XCTAssertEqual(manager.access.plan, .dayPass)
+        let expiresAt = try XCTUnwrap(manager.access.expiresAt)
+        let remaining = expiresAt.timeIntervalSinceNow
+        XCTAssertGreaterThan(remaining, 23.5 * 3600)
+        XCTAssertLessThanOrEqual(remaining, 24 * 3600)
+    }
+
+    func testWeeklySubscriptionPurchaseReportsSubscriptionAccess() async throws {
+        let manager = PurchaseManager()
+        await manager.loadPlans()
+        await manager.purchase(plan: .weekly)
+
+        XCTAssertEqual(manager.purchaseState, .success)
+        XCTAssertTrue(manager.isPro)
+        XCTAssertEqual(manager.access.source, .subscription)
+        XCTAssertEqual(manager.access.plan, .weekly)
+        let expiresAt = try XCTUnwrap(manager.access.expiresAt)
+        XCTAssertGreaterThan(expiresAt.timeIntervalSinceNow, 6 * 24 * 3600)
+    }
+
     func testRegionalStorefrontPricesComeFromStoreKit() async throws {
         let storefronts = [
             ("USA", "en_US", "USD", "$"),
@@ -415,4 +468,46 @@ private final class RecordingQuotaManager: QuotaManaging, @unchecked Sendable {
 
 private struct FreeEntitlementProvider: ProEntitlementProviding {
     func isPro() async -> Bool { false }
+}
+
+/// In-memory ledgers so plan purchase tests never leave trial or day pass records in the
+/// simulator Keychain.
+private final class MemoryTrialStore: ProTrialStoring, @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: ProTrial?
+
+    func load() -> ProTrial? {
+        lock.lock(); defer { lock.unlock() }
+        return value
+    }
+
+    func save(_ trial: ProTrial) throws {
+        lock.lock(); defer { lock.unlock() }
+        value = trial
+    }
+
+    func clear() throws {
+        lock.lock(); defer { lock.unlock() }
+        value = nil
+    }
+}
+
+private final class MemoryDayPassStore: ProDayPassStoring, @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: ProDayPass?
+
+    func load() -> ProDayPass? {
+        lock.lock(); defer { lock.unlock() }
+        return value
+    }
+
+    func save(_ pass: ProDayPass) throws {
+        lock.lock(); defer { lock.unlock() }
+        value = pass
+    }
+
+    func clear() throws {
+        lock.lock(); defer { lock.unlock() }
+        value = nil
+    }
 }

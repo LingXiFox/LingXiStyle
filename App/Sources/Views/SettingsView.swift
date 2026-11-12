@@ -168,6 +168,7 @@ struct SettingsView: View {
                 controlInset: controlInset
             )
             .presentationDragIndicator(.visible)
+            .padPageSheet()
         }
         .sheet(isPresented: $showTutorial) {
             TutorialView(model: model, isFirstRun: false) { showTutorial = false }

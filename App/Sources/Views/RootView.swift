@@ -103,6 +103,7 @@ struct RootView: View {
                     controlInset: duoControlInset
                 )
                 .presentationDetents([.large])
+                .padPageSheet()
                 .presentationDragIndicator(.visible)
             case .quotaExhausted:
                 QuotaExhaustedView(
@@ -121,6 +122,7 @@ struct RootView: View {
                     controlInset: duoControlInset
                 )
                 .presentationDetents([.large])
+                .padPageSheet()
                 .presentationDragIndicator(.visible)
             case .vault:
                 VaultView(
@@ -129,6 +131,7 @@ struct RootView: View {
                     controlInset: duoControlInset
                 )
                 .presentationDetents([.large])
+                .padPageSheet()
                 .presentationDragIndicator(.visible)
             case .history:
                 TaskHistoryView(
@@ -137,6 +140,7 @@ struct RootView: View {
                     controlInset: duoControlInset
                 )
                 .presentationDetents([.large])
+                .padPageSheet()
                 .presentationDragIndicator(.visible)
             }
         }
@@ -350,5 +354,27 @@ struct DuoSheetWidth: ViewModifier {
 extension View {
     func duoSheetWidth() -> some View {
         modifier(DuoSheetWidth())
+    }
+}
+
+// MARK: - iPad sheet sizing
+
+/// A sheet on iPad defaults to a compact form size, which can hide most of the vault,
+/// history or plan lists. Promote full-screen-width sheets to the page size there.
+private struct PadPageSheet: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    func body(content: Content) -> some View {
+        if horizontalSizeClass == .regular {
+            content.presentationSizing(.page)
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    func padPageSheet() -> some View {
+        modifier(PadPageSheet())
     }
 }

@@ -1100,7 +1100,7 @@ final class AppModel: ObservableObject {
             } else {
                 saved = try await library.saveNewPhoto(from: photoURL, preferredName: record.displayName)
             }
-            try? vaultStore.markSaved(id: record.id, assetIdentifier: saved.identifier)
+            _ = try? vaultStore.markSaved(id: record.id, assetIdentifier: saved.identifier)
             vaultMessage = String(localized: "vault.resaved", defaultValue: "已重新保存到相册。")
             refreshVault()
         } catch {
@@ -1156,7 +1156,7 @@ final class AppModel: ObservableObject {
             return entry
         }
         record.state = .running
-        try? taskJournal.upsert(record)
+        _ = try? taskJournal.upsert(record)
         return id
     }
 
@@ -1164,7 +1164,7 @@ final class AppModel: ObservableObject {
                                  state: ConversionItemState,
                                  failure: (code: String, message: String)? = nil) {
         guard let taskID = currentTaskID else { return }
-        try? taskJournal.mutate(taskID: taskID) { record in
+        _ = try? taskJournal.mutate(taskID: taskID) { record in
             guard let index = record.items.firstIndex(where: { $0.id == id }) else { return }
             record.items[index].state = state
             if let failure {
@@ -1201,7 +1201,7 @@ final class AppModel: ObservableObject {
             }
         }
         record.applyResolvedState(isCancelled: isCancelled)
-        try? taskJournal.upsert(record)
+        _ = try? taskJournal.upsert(record)
         currentTaskID = nil
         refreshHistory()
         refreshVault()

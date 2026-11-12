@@ -82,6 +82,8 @@ struct VaultContent: View {
         } message: {
             Text(String(localized: "vault.clearAll.message", defaultValue: "所有保留中的成果都会被删除，已保存到相册的照片不受影响。"))
         }
+        .navigationTitle(String(localized: "vault.title", defaultValue: "成果保险箱"))
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear { model.refreshVault() }
     }
 

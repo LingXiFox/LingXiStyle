@@ -6,11 +6,13 @@
 ## 项目一句话
 
 本地 SwiftUI App：读取 PhotoKit 中 iPhone 16/17 的 HEIC **原始资源文件**，只追加
-纹理与颗粒（Texture / Grain），另存为相册新照片。原图不覆盖、不转码、不上传。当前版本 1.8.1（build 10），
-包含品牌「纹粒 / Texel」、四语言本地化、5 张 / 日免费额度、StoreKit 2 一次性 Pro 内购、
+纹理与颗粒（Texture / Grain），另存为相册新照片。原图不覆盖、不转码、不上传。当前版本 1.9.1（build 11），
+包含品牌「纹粒 / Texel」、四语言本地化、5 张 / 日免费额度、StoreKit 2 多档 Pro 内购、
 首页设置入口与应用内语言切换、首次额度用尽的一次性 Pro 介绍，以及 1.5 的 iOS 分组表面 / 狐橙视觉重构。
+1.9.1 新增成果保险箱（默认保留 7 天，重存不扣额度）、任务历史与中断恢复、日卡 / 周订阅 / 月订阅 / 永久四档 Pro、
+每设备一次的 24 小时免费体验，以及 iPad 原生两栏与 macOS 原生 App（TexelMac）。
 1.8.1 新增实况照片双模式（仅主帧 / 完整处理，均只计 1 张额度）、9 步首启教程与常驻入口、
-iPhone Duo 外屏全流程与内屏双栏；App 为 iPhone-only。
+iPhone Duo 外屏全流程与内屏双栏；iPhone / iPad 共用 App，Mac 为独立 target。
 1.7.1 是发布验证补强：新增真实 HEIC 端到端集成测试（真实 ConversionService、PhotoKit 保存回读、
 Keychain 额度扣减与持久化）、分享扩展 12 条异常 / 取消 / 超时 / 重试状态机测试、快捷指令 9 条批量与额度测试，
 以及 1 条 XCUITest 启动 / 首页 / 设置 / Pro 入口冒烟；CI 增加集成测试与启动冒烟，并预授权模拟器相册权限。
@@ -36,6 +38,11 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiIntegrationTests \
   -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' test
 xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiUITests \
   -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' test
+xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiMacPipelineTests \
+  -destination 'platform=macOS,arch=arm64' test
+
+xcodebuild -project LingXiStyle.xcodeproj -scheme TexelMac \
+  -configuration Debug -destination 'platform=macOS,arch=arm64' build
 ```
 
 集成测试运行前必须给宿主授权：
@@ -142,13 +149,14 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiUITests \
 | `App/Sources/Integrations/Shortcuts` | AppIntent 与 AppShortcutsProvider |
 | `Services/Sources/LingXiServices` | PhotoKit 适配 + ConversionService |
 | `Engine/Sources/LingXiEngine` | URL → URL 固定管线 |
-| `Kit/Sources/LingXiKit` | HEIF 解析、兼容性、无损校验、ConversionRun、诊断格式化 |
+| `Kit/Sources/LingXiKit` | HEIF 解析、兼容性、无损校验、ConversionRun、VaultStore、TaskJournal、Pro 权益 |
+| `Mac/Sources` | macOS 原生界面与模型（TexelMac target） |
 | `Core/Sources/StylePortCore` | vendor 风格核心，尽量不改 |
 | `ShareExtension/Sources` | 分享扩展入口与 SwiftUI 流程 |
 | `Resources/Localization` | String Catalog（App / 分享扩展 / 快捷指令 / Info.plist） |
 | `App/Resources/PrivacyInfo.xcprivacy` | App 隐私清单：无跟踪 / 无数据收集，UserDefaults CA92.1 |
 | `ShareExtension/Resources/PrivacyInfo.xcprivacy` | 扩展隐私清单：FileTimestamp C617.1（临时目录清理） |
-| `.github/workflows` | CI：XcodeGen 一致性、四语言完整性、凭据扫描、iOS 18.5 / 26.0 双 SDK 构建与测试、macOS 单元测试 |
+| `.github/workflows` | CI：XcodeGen 一致性、四语言完整性、凭据扫描、StoreKit 配置、iOS 18.5 / 26.0 双 SDK 构建与测试、macOS 单元测试与 TexelMac 构建 |
 | `.github/actions/setup` | CI 复用的 Xcode 选择 + XcodeGen 安装 action |
 
 ## Resource Lifecycle and Cleanup

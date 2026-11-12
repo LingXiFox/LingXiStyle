@@ -431,7 +431,7 @@ final class MacModel: ObservableObject {
                                  state: ConversionItemState,
                                  failure: (String, String)? = nil) {
         guard let taskID = currentTaskID else { return }
-        try? taskJournal.mutate(taskID: taskID) { task in
+        _ = try? taskJournal.mutate(taskID: taskID) { task in
             guard let index = task.items.firstIndex(where: { $0.id == id }) else { return }
             task.items[index].state = state
             if let failure {
@@ -443,7 +443,7 @@ final class MacModel: ObservableObject {
 
     private func completeTaskRecord(isCancelled: Bool) {
         guard let taskID = currentTaskID,
-              var task = try? taskJournal.task(id: taskID) else {
+              var task = taskJournal.task(id: taskID) else {
             currentTaskID = nil
             return
         }
@@ -487,7 +487,7 @@ final class MacModel: ObservableObject {
     }
 
     func refreshHistory() {
-        history = ((try? taskJournal.tasks()) ?? []).filter { !$0.isActive }
+        history = taskJournal.tasks().filter { !$0.isActive }
     }
 
     // MARK: - Vault
@@ -517,7 +517,7 @@ final class MacModel: ObservableObject {
     }
 
     func purgeExpired() {
-        let keeping = Set((try? taskJournal.activeTasks().map(\.id)) ?? [])
+        let keeping = Set(taskJournal.activeTasks().map(\.id))
         guard let result = try? vaultStore.purgeExpired(keepingTaskIDs: keeping) else { return }
         notice = String(localized: "mac.notice.purged",
                         defaultValue: "已清理 \(result.removedCount) 项过期成果，释放 \(Self.byteText(result.freedByteCount))。")

@@ -134,9 +134,9 @@ public final class ConversionService: @unchecked Sendable {
         let taskID = request.taskID
         let itemID = request.itemID
 
-        func mutateItem(_ update: (inout TaskItemRecord) -> Void) {
+        @Sendable func mutateItem(_ update: (inout TaskItemRecord) -> Void) {
             guard let journal = storage.journal, let taskID, let itemID else { return }
-            try? journal.mutate(taskID: taskID) { task in
+            _ = try? journal.mutate(taskID: taskID) { task in
                 guard let index = task.items.firstIndex(where: { $0.id == itemID }) else { return }
                 update(&task.items[index])
             }

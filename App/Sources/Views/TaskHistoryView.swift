@@ -54,6 +54,8 @@ struct TaskHistoryContent: View {
                 .frame(maxWidth: Layout.iPadContentMaxWidth)
             }
         }
+        .navigationTitle(String(localized: "history.title", defaultValue: "任务历史"))
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear { model.refreshHistory() }
     }
 

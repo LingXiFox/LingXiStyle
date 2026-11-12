@@ -222,10 +222,6 @@ struct ProPurchaseView: View {
 
     private var plans: some View {
         VStack(spacing: Spacing.xs) {
-            ForEach(ProPlan.allCases) { plan in
-                planRow(plan)
-            }
-
             if purchases.planProducts.isEmpty, !purchases.isLoadingProduct {
                 InlineErrorNotice(
                     message: purchases.productLoadError ?? String(localized: "暂时无法加载商品信息，请稍后重试。"),
@@ -233,6 +229,12 @@ struct ProPurchaseView: View {
                 ) {
                     Task { await purchases.loadPlans() }
                 }
+                .padding(.bottom, Spacing.xs)
+            }
+
+
+            ForEach(ProPlan.allCases) { plan in
+                planRow(plan)
             }
         }
     }
