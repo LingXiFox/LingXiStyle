@@ -23,6 +23,15 @@ public final class ConversionService: @unchecked Sendable {
         /// its session workspace so the result can be previewed/shared and cleaned up with it.
         public var outputDirectory: URL?
 
+        /// Identity of the task/item this conversion belongs to. The app passes both so the
+        /// conversion can update the task journal as it moves through reserve → save → commit.
+        /// The share extension and shortcuts leave them nil and keep their own containers.
+        public let taskID: UUID?
+        public let itemID: UUID?
+        /// When set, a finished result is copied into the vault before it is saved, so the user
+        /// can re-save or export it later without paying the allowance twice.
+        public let vaultRetention: VaultRetention?
+
         public init(fileURL: URL,
                     pairedVideoURL: URL? = nil,
                     livePhotoMode: LivePhotoProcessingMode? = nil,
@@ -30,7 +39,10 @@ public final class ConversionService: @unchecked Sendable {
                     preferredName: String,
                     saveToLibrary: Bool,
                     returnsFile: Bool = false,
-                    outputDirectory: URL? = nil) {
+                    outputDirectory: URL? = nil,
+                    taskID: UUID? = nil,
+                    itemID: UUID? = nil,
+                    vaultRetention: VaultRetention? = nil) {
             self.fileURL = fileURL
             self.pairedVideoURL = pairedVideoURL
             self.livePhotoMode = livePhotoMode
@@ -39,6 +51,9 @@ public final class ConversionService: @unchecked Sendable {
             self.saveToLibrary = saveToLibrary
             self.returnsFile = returnsFile
             self.outputDirectory = outputDirectory
+            self.taskID = taskID
+            self.itemID = itemID
+            self.vaultRetention = vaultRetention
         }
 
         /// The movie file name that belongs next to `preferredName`.
@@ -62,16 +77,29 @@ public final class ConversionService: @unchecked Sendable {
         /// `.stillOnly` / `.full` for a Live Photo, `nil` for a regular still.
         public let livePhotoMode: LivePhotoProcessingMode?
         public let videoFrameCount: Int?
+        /// The vault record that keeps this result for the configured retention window.
+        public let vaultRecordID: UUID?
+        /// Set when the result was produced but could not be kept in the vault (for example a
+        /// nearly full disk). The conversion itself still succeeded.
+        public let vaultWarning: String?
     }
 
     private let engine: ConversionEngine
-    private let library: PhotoLibraryService
+    private let library: any PhotoDestination
     private let entitlementProvider: any ProEntitlementProviding
     private let quotaManager: any QuotaManaging
     private let fileManager = FileManager.default
+    private let storageConfiguration = StorageConfiguration()
+
+    /// Vault and task journal are attached by the app at launch. The share extension and the
+    /// shortcut intents keep them nil: they run in their own containers and must not write into
+    /// the app's vault.
+    public func configureStorage(vault: VaultStore?, journal: TaskJournal?) {
+        storageConfiguration.update(vault: vault, journal: journal)
+    }
 
     public init(engine: ConversionEngine = ConversionEngine(),
-                library: PhotoLibraryService = PhotoLibraryService(),
+                library: any PhotoDestination = PhotoDestinations.standard,
                 entitlementProvider: any ProEntitlementProviding = StoreKitEntitlementProvider(),
                 quotaManager: any QuotaManaging = QuotaManager.shared) {
         self.engine = engine
@@ -102,6 +130,54 @@ public final class ConversionService: @unchecked Sendable {
 
     public func convert(_ request: Request,
                         onStage: @escaping @Sendable (ConversionStage) -> Void) async throws -> Result {
+        let storage = storageConfiguration.current
+        let taskID = request.taskID
+        let itemID = request.itemID
+
+        func mutateItem(_ update: (inout TaskItemRecord) -> Void) {
+            guard let journal = storage.journal, let taskID, let itemID else { return }
+            try? journal.mutate(taskID: taskID) { task in
+                guard let index = task.items.firstIndex(where: { $0.id == itemID }) else { return }
+                update(&task.items[index])
+            }
+        }
+
+        mutateItem { $0.state = .converting }
+        do {
+            let result = try await convertCore(
+                request,
+                onStage: onStage,
+                onReserved: { reservation in
+                    mutateItem { $0.attachReservation(reservation) }
+                },
+                onVaultStored: { recordID in
+                    mutateItem { $0.vaultRecordID = recordID }
+                }
+            )
+            mutateItem {
+                $0.state = .saved
+                $0.savedAssetIdentifier = result.savedAssetIdentifier
+                $0.outputByteCount = result.outputByteCount
+                $0.quotaState = .committed
+            }
+            return result
+        } catch {
+            let cancelled = error is CancellationError || Task.isCancelled
+            let failure = error as? ConversionFailure
+            mutateItem {
+                $0.state = cancelled ? .cancelled : .failed
+                $0.failureCode = failure?.diagnosticCode ?? (cancelled ? "E_CANCELLED" : "E_UNKNOWN")
+                $0.failureMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                if $0.quotaState == .reserved { $0.quotaState = .released }
+            }
+            throw error
+        }
+    }
+
+    private func convertCore(_ request: Request,
+                             onStage: @escaping @Sendable (ConversionStage) -> Void,
+                             onReserved: @Sendable (QuotaReservation) -> Void,
+                             onVaultStored: @Sendable (UUID) -> Void) async throws -> Result {
         let isPro = await entitlementProvider.isPro()
         // One Live Photo is one photo: the reservation happens once per asset, whatever the
         // mode and however many frames the movie has.
@@ -112,6 +188,10 @@ public final class ConversionService: @unchecked Sendable {
             throw ConversionFailure.quota(error)
         } catch {
             throw ConversionFailure.quota(.database(error.localizedDescription))
+        }
+
+        if let reservation {
+            onReserved(reservation)
         }
 
         // A reservation is released on every failure path: incompatible file, engine error,
@@ -161,6 +241,25 @@ public final class ConversionService: @unchecked Sendable {
         // The engine has reached a safe boundary. From here on every await is preceded by a
         // cancellation check, so a cancelled app session cannot silently save a photo.
         try Task.checkCancellation()
+
+        var vaultRecordID: UUID?
+        var vaultWarning: String?
+        if let retention = request.vaultRetention, let vault = storageConfiguration.current.vault {
+            do {
+                let record = try vault.insert(photoURL: output.outputURL,
+                                              videoURL: output.pairedVideoURL,
+                                              displayName: request.preferredName,
+                                              livePhotoMode: request.livePhotoMode?.rawValue,
+                                              sourceTaskID: request.taskID,
+                                              sourceItemID: request.itemID,
+                                              retention: retention)
+                vaultRecordID = record.id
+                onVaultStored(record.id)
+            } catch {
+                vaultWarning = (error as? LocalizedError)?.errorDescription
+                    ?? String(localized: "vault.error.store", defaultValue: "无法把成果存入保险箱。")
+            }
+        }
 
         var handedBack: URL?
         var handedBackVideo: URL?
@@ -227,7 +326,28 @@ public final class ConversionService: @unchecked Sendable {
                       inspectionAfter: output.inspectionAfter,
                       mode: output.mode,
                       livePhotoMode: output.livePhotoMode,
-                      videoFrameCount: output.videoFrameCount)
+                      videoFrameCount: output.videoFrameCount,
+                      vaultRecordID: vaultRecordID,
+                      vaultWarning: vaultWarning)
+    }
+
+    private final class StorageConfiguration: @unchecked Sendable {
+        private let lock = NSLock()
+        private var vault: VaultStore?
+        private var journal: TaskJournal?
+
+        func update(vault: VaultStore?, journal: TaskJournal?) {
+            lock.lock()
+            defer { lock.unlock() }
+            self.vault = vault
+            self.journal = journal
+        }
+
+        var current: (vault: VaultStore?, journal: TaskJournal?) {
+            lock.lock()
+            defer { lock.unlock() }
+            return (vault, journal)
+        }
     }
 
     private func replaceCopy(from source: URL, to destination: URL) throws {

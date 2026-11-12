@@ -12,29 +12,53 @@ public enum ProProduct {
 /// never turn this into true.
 public protocol ProEntitlementProviding: Sendable {
     func isPro() async -> Bool
+    func snapshot() async -> ProAccessSnapshot
+}
+
+public extension ProEntitlementProviding {
+    /// Fallback for providers that only know a single yes/no state (test stubs, integrations).
+    func snapshot() async -> ProAccessSnapshot {
+        let unlocked = await isPro()
+        return unlocked
+            ? ProAccessSnapshot(source: .lifetime, plan: .lifetime, expiresAt: nil)
+            : .free
+    }
 }
 
 public struct StoreKitEntitlementProvider: ProEntitlementProviding {
-    public init() {}
+    private let trial: @Sendable () -> ProTrialState
+    private let dayPass: @Sendable () -> Date?
+    private let now: @Sendable () -> Date
 
-    public func isPro() async -> Bool {
-        if #available(iOS 18.4, macOS 15.4, *) {
-            for await result in Transaction.currentEntitlements(for: ProProduct.identifier) {
-                if Self.isActiveEntitlement(result) { return true }
-            }
-            return false
-        } else {
-            for await result in Transaction.currentEntitlements {
-                if Self.isActiveEntitlement(result) { return true }
-            }
-            return false
-        }
+    public init(trial: @escaping @Sendable () -> ProTrialState = { ProTrialService.live().state() },
+                dayPass: @escaping @Sendable () -> Date? = { ProDayPassService.live().expiresAt() },
+                now: @escaping @Sendable () -> Date = { Date() }) {
+        self.trial = trial
+        self.dayPass = dayPass
+        self.now = now
     }
 
-    private static func isActiveEntitlement(_ result: VerificationResult<Transaction>) -> Bool {
-        guard case .verified(let transaction) = result else { return false }
-        guard transaction.productID == ProProduct.identifier else { return false }
-        return transaction.revocationDate == nil && transaction.expirationDate == nil
+    public func isPro() async -> Bool {
+        await snapshot().isActive
+    }
+
+    /// Combines every verified StoreKit entitlement with the Keychain trial and day pass ledgers.
+    /// A day pass is a non-renewing purchase, so its 24-hour window is read from the verified
+    /// purchase date and from the Keychain mirror the purchase path writes.
+    public func snapshot() async -> ProAccessSnapshot {
+        var records: [ProEntitlementRecord] = []
+        for await result in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = result else { continue }
+            guard ProPlan.plan(forProductID: transaction.productID) != nil else { continue }
+            records.append(ProEntitlementRecord(productID: transaction.productID,
+                                                purchaseDate: transaction.purchaseDate,
+                                                expirationDate: transaction.expirationDate,
+                                                revocationDate: transaction.revocationDate))
+        }
+        return ProAccessEvaluator.snapshot(records: records,
+                                           trial: trial().trial,
+                                           storedDayPassExpiry: dayPass(),
+                                           now: now())
     }
 }
 
@@ -49,23 +73,40 @@ public final class PurchaseManager: ObservableObject {
         case failed(String)
     }
 
+    /// Official App Store subscription management page. Used for the "manage subscription" row so
+    /// the app never guesses at a private scheme.
+    public static let manageSubscriptionsURL = URL(string: "https://apps.apple.com/account/subscriptions")!
+
+    /// Kept for the 1.8 paywall and its tests: the lifetime product.
     @Published public private(set) var product: Product?
+    @Published public private(set) var planProducts: [ProPlan: Product] = [:]
+    @Published public private(set) var access: ProAccessSnapshot = .free
     @Published public private(set) var isPro = false
     @Published public private(set) var isLoadingProduct = false
     @Published public private(set) var productLoadError: String?
     @Published public private(set) var purchaseState: PurchaseState = .idle
     @Published public private(set) var isRestoring = false
     @Published public private(set) var restoreMessage: String?
+    @Published public private(set) var trialState: ProTrialState = .eligible
+    @Published public private(set) var trialError: String?
+    @Published public private(set) var dayPassError: String?
 
     public let productID: String
+    public let trialService: ProTrialService
+    public let dayPassService: ProDayPassService
     private let entitlementProvider: any ProEntitlementProviding
     private var updatesTask: Task<Void, Never>?
     private var hasStarted = false
 
     public init(productID: String = ProProduct.identifier,
-                entitlementProvider: any ProEntitlementProviding = StoreKitEntitlementProvider()) {
+                entitlementProvider: any ProEntitlementProviding = StoreKitEntitlementProvider(),
+                trialService: ProTrialService = ProTrialService.live(),
+                dayPassService: ProDayPassService = ProDayPassService.live()) {
         self.productID = productID
         self.entitlementProvider = entitlementProvider
+        self.trialService = trialService
+        self.dayPassService = dayPassService
+        self.trialState = trialService.state()
     }
 
     deinit {
@@ -88,7 +129,9 @@ public final class PurchaseManager: ObservableObject {
     }
 
     public func refreshEntitlement() async {
-        isPro = await entitlementProvider.isPro()
+        trialState = trialService.state()
+        access = await entitlementProvider.snapshot()
+        isPro = access.isActive
         // Ask to Buy approval can arrive while the app is backgrounded. iOS 18 does not always
         // replay that approval through Transaction.updates in a test host, so recover the visible
         // state from the verified entitlement instead of leaving the sheet on "awaiting approval".
@@ -97,27 +140,43 @@ public final class PurchaseManager: ObservableObject {
         }
     }
 
+    /// Loads the lifetime product only. Retained so 1.8 callers and tests keep working.
     public func loadProduct() async {
+        await loadProducts(plans: [.lifetime])
+    }
+
+    /// Loads every Pro plan. The paywall calls this; prices always come from StoreKit.
+    public func loadPlans() async {
+        await loadProducts(plans: ProPlan.allCases)
+    }
+
+    private func loadProducts(plans: [ProPlan]) async {
         guard !isLoadingProduct else { return }
         isLoadingProduct = true
         productLoadError = nil
         defer { isLoadingProduct = false }
         do {
-            let products = try await Product.products(for: [productID])
-            guard let match = products.first(where: { $0.id == productID }) else {
-                product = nil
-                productLoadError = String(localized: "App Store 暂时没有返回这个商品，请稍后重试。")
-                return
+            let products = try await Product.products(for: plans.map(\.productID))
+            for plan in plans {
+                planProducts[plan] = products.first { $0.id == plan.productID }
             }
-            product = match
+            product = planProducts[.lifetime]
+            if plans.contains(.lifetime), product == nil {
+                productLoadError = String(localized: "App Store 暂时没有返回这个商品，请稍后重试。")
+            }
         } catch {
+            for plan in plans { planProducts[plan] = nil }
             product = nil
             productLoadError = Self.message(for: error, fallback: String(localized: "无法连接 App Store，请检查网络后重试。"))
         }
     }
 
     public func purchase() async {
-        guard let product else {
+        await purchase(plan: .lifetime)
+    }
+
+    public func purchase(plan: ProPlan) async {
+        guard let product = planProducts[plan] ?? (plan == .lifetime ? product : nil) else {
             purchaseState = .failed(String(localized: "商品信息尚未加载，请稍后重试。"))
             return
         }
@@ -128,12 +187,15 @@ public final class PurchaseManager: ObservableObject {
             switch result {
             case .success(let verification):
                 guard case .verified(let transaction) = verification,
-                      transaction.productID == productID,
+                      transaction.productID == plan.productID,
                       transaction.revocationDate == nil else {
                     purchaseState = .failed(String(localized: "购买凭证未通过验证，未授予 Pro 权益。"))
                     return
                 }
                 await transaction.finish()
+                if plan == .dayPass {
+                    activateDayPass(transactionID: String(transaction.id))
+                }
                 await refreshEntitlement()
                 purchaseState = isPro ? .success : .failed(String(localized: "交易已验证，但权益尚未生效，请稍后重试。"))
             case .pending:
@@ -149,6 +211,33 @@ public final class PurchaseManager: ObservableObject {
             } else {
                 purchaseState = .failed(Self.message(for: error, fallback: String(localized: "购买未完成，请稍后重试。")))
             }
+        }
+    }
+
+    /// Claims the one-time, per-device trial. It starts now and is never renewed or charged.
+    @discardableResult
+    public func claimTrial() async -> Bool {
+        trialError = nil
+        do {
+            _ = try trialService.claim()
+            await refreshEntitlement()
+            return isPro
+        } catch {
+            trialError = (error as? LocalizedError)?.errorDescription ?? String(localized: "无法领取免费体验，请稍后重试。")
+            trialState = trialService.state()
+            return false
+        }
+    }
+
+    /// Mirrors a verified day pass purchase into the Keychain so the 24-hour window survives
+    /// relaunches even after StoreKit stops listing the non-renewing product.
+    private func activateDayPass(transactionID: String) {
+        dayPassError = nil
+        do {
+            _ = try dayPassService.activate(transactionID: transactionID)
+        } catch {
+            dayPassError = (error as? LocalizedError)?.errorDescription
+                ?? String(localized: "无法保存通行证记录，请稍后重试。")
         }
     }
 
@@ -174,7 +263,7 @@ public final class PurchaseManager: ObservableObject {
 
     private func handle(_ result: VerificationResult<Transaction>) async {
         guard case .verified(let transaction) = result else { return }
-        guard transaction.productID == productID else { return }
+        guard ProPlan.plan(forProductID: transaction.productID) != nil else { return }
         // A refund or family-sharing revocation arrives as an update for the same transaction.
         // Never finish or celebrate it as a purchase; re-read StoreKit's current entitlement.
         if transaction.revocationDate != nil {
@@ -183,6 +272,9 @@ public final class PurchaseManager: ObservableObject {
             return
         }
         await transaction.finish()
+        if transaction.productID == ProPlan.dayPass.productID {
+            activateDayPass(transactionID: String(transaction.id))
+        }
         await refreshEntitlement()
         if isPro { purchaseState = .success }
     }

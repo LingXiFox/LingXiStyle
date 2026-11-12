@@ -96,6 +96,7 @@ struct EmptyStateView: View {
             }
             .accessibilityIdentifier("home.quota")
             Spacer(minLength: 0)
+            vaultButton
             settingsButton
         }
         .frame(minHeight: Layout.minimumTouchTarget)
@@ -115,6 +116,29 @@ struct EmptyStateView: View {
         .accessibilityLabel(String(localized: "settings.title", defaultValue: "设置"))
         .accessibilityIdentifier("home.settings")
     }
+    private var vaultButton: some View {
+        Button {
+            model.activeModal = .vault
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "shippingbox")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(Palette.textSecondary)
+                    .frame(width: Layout.minimumTouchTarget, height: Layout.minimumTouchTarget)
+                    .background(Palette.fillControl, in: Circle())
+                if !model.vaultRecords.isEmpty {
+                    Circle()
+                        .fill(Palette.accent)
+                        .frame(width: 8, height: 8)
+                        .offset(x: -2, y: 2)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(String(localized: "vault.title", defaultValue: "成果保险箱"))
+        .accessibilityIdentifier("home.vault")
+    }
+
 
     // MARK: - Duo cover (466 × 678)
 
@@ -234,6 +258,7 @@ struct EmptyStateView: View {
                     }
                     .accessibilityIdentifier("home.quota")
                     Spacer(minLength: 0)
+                    vaultButton
                     settingsButton
                 }
                 .frame(minHeight: Layout.minimumTouchTarget)

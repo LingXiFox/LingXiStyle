@@ -30,6 +30,34 @@ struct SettingsView: View {
                         .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
                         .accessibilityIdentifier("settings.proRow")
                     }
+                    Section {
+                        NavigationLink {
+                            VaultContent(model: model)
+                        } label: {
+                            settingsRow(icon: "shippingbox",
+                                        title: String(localized: "settings.vault", defaultValue: "成果保险箱"),
+                                        detail: model.vaultRecords.isEmpty
+                                            ? String(localized: "settings.vault.empty", defaultValue: "暂无成果")
+                                            : String(localized: "settings.vault.count",
+                                                       defaultValue: "\(model.vaultRecords.count) 份 · \(AppModel.byteText(model.vaultTotalByteCount))"))
+                        }
+                        .accessibilityIdentifier("settings.vault")
+
+                        NavigationLink {
+                            TaskHistoryContent(model: model)
+                        } label: {
+                            settingsRow(icon: "clock.arrow.circlepath",
+                                        title: String(localized: "settings.history", defaultValue: "任务历史"),
+                                        detail: String(localized: "settings.history.count",
+                                                       defaultValue: "\(model.history.count) 条记录"))
+                        }
+                        .accessibilityIdentifier("settings.history")
+                    } header: {
+                        Text(String(localized: "settings.records.section", defaultValue: "成果与记录"))
+                    } footer: {
+                        Text(String(localized: "settings.records.footer",
+                                    defaultValue: "转换成果会在设备上保留一段时间，重新保存不占用免费额度。"))
+                    }
 
                     Section {
                         LivePhotoModeSelector(
@@ -199,6 +227,21 @@ struct SettingsView: View {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
         return "\(version) (\(build))"
+    }
+    private func settingsRow(icon: String, title: String, detail: String) -> some View {
+        HStack(spacing: Spacing.s) {
+            Image(systemName: icon)
+                .font(.system(.body, design: .default, weight: .medium))
+                .foregroundStyle(Palette.textSecondary)
+                .frame(width: 22)
+            Text(title)
+                .font(Typography.body)
+                .foregroundStyle(Palette.textPrimary)
+            Spacer(minLength: 0)
+            Text(detail)
+                .font(Typography.caption)
+                .foregroundStyle(Palette.textSecondary)
+        }
     }
 
     private func select(_ option: AppLanguage) {

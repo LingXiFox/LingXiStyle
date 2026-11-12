@@ -1,24 +1,14 @@
 import Foundation
+import LingXiKit
+
+#if canImport(UIKit)
 import Photos
 import UIKit
 import UniformTypeIdentifiers
-import LingXiKit
 
-public struct SavedPhoto: Sendable {
-    public let identifier: String
-    /// Set when the asset exists but the post-save re-read could not confirm HEIC. The photo is
-    /// already in the library, so callers must treat it as saved (never retry and duplicate it).
-    public let warning: String?
-    /// True when PhotoKit stored the still and the movie as one Live Photo. A false value after a
-    /// requested Live Photo save means the pair was split, which the UI reports as a warning.
-    public let isLivePhoto: Bool
-
-    public init(identifier: String, warning: String? = nil, isLivePhoto: Bool = false) {
-        self.identifier = identifier
-        self.warning = warning
-        self.isLivePhoto = isLivePhoto
-    }
-}
+/// The Photos-library destination the iPhone and iPad builds use. The macOS build exports files
+/// instead, so it never links PhotoKit.
+extension PhotoLibraryService: PhotoDestination {}
 
 /// The still plus, for a Live Photo, the paired movie PhotoKit handed over with it.
 public struct ExportedOriginal: Sendable {
@@ -499,3 +489,5 @@ private final class ExportRequestState: @unchecked Sendable {
         continuation?.resume(throwing: CancellationError())
     }
 }
+
+#endif

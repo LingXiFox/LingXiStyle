@@ -122,6 +122,22 @@ struct RootView: View {
                 )
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+            case .vault:
+                VaultView(
+                    model: model,
+                    onClose: { model.dismissModal() },
+                    controlInset: duoControlInset
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            case .history:
+                TaskHistoryView(
+                    model: model,
+                    onClose: { model.dismissModal() },
+                    controlInset: duoControlInset
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
             }
         }
         .onChange(of: model.activeModal) { _, modal in

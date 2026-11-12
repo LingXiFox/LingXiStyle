@@ -1,6 +1,37 @@
 {
   "identifier": "A1B2C3D4-5E6F-4A7B-8C9D-0E1F2A3B4C5D",
-  "nonRenewingSubscriptions": [],
+  "nonRenewingSubscriptions": [
+    {
+      "displayPrice": "0.49",
+      "familyShareable": false,
+      "internalID": "1F64FE14-78DB-46CB-9EB9-EC55A8DA5A63",
+      "localizations": [
+        {
+          "description": "24 hours of unlimited conversions. One-time purchase, no auto-renewal.",
+          "displayName": "Texel Pro Day Pass",
+          "locale": "en_US"
+        },
+        {
+          "description": "24 時間、写真変換が無制限。買い切りで自動更新はありません。",
+          "displayName": "Texel Pro デイパス",
+          "locale": "ja_JP"
+        },
+        {
+          "description": "24 小时内不限张数转换，一次性购买，不会自动续期。",
+          "displayName": "纹粒 Pro 日卡",
+          "locale": "zh_CN"
+        },
+        {
+          "description": "24 小時內不限張數轉換，一次性購買，不會自動續訂。",
+          "displayName": "紋粒 Pro 日卡",
+          "locale": "zh_TW"
+        }
+      ],
+      "productID": "com.lingxifox.LingXiStyle.pro.day",
+      "referenceName": "Texel Pro Day Pass",
+      "type": "NonRenewingSubscription"
+    }
+  ],
   "products": [
     {
       "displayPrice": "2.99",
@@ -56,7 +87,89 @@
     "_storefront": "USA",
     "_storeKitErrors": []
   },
-  "subscriptionGroups": [],
+  "subscriptionGroups": [
+    {
+      "id": "1A7C5D10",
+      "localizations": [],
+      "name": "Texel Pro",
+      "subscriptions": [
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "0.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "6D10E5D9-9666-496B-8922-CA683EA5D47B",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Unlimited conversions, renewed every week. Cancel anytime.",
+              "displayName": "Texel Pro Weekly",
+              "locale": "en_US"
+            },
+            {
+              "description": "写真変換が無制限。毎週自動更新。いつでも解約できます。",
+              "displayName": "Texel Pro 週額",
+              "locale": "ja_JP"
+            },
+            {
+              "description": "不限张数转换，每周自动续期，可随时取消。",
+              "displayName": "纹粒 Pro 周订阅",
+              "locale": "zh_CN"
+            },
+            {
+              "description": "不限張數轉換，每週自動續訂，可隨時取消。",
+              "displayName": "紋粒 Pro 週訂閱",
+              "locale": "zh_TW"
+            }
+          ],
+          "productID": "com.lingxifox.LingXiStyle.pro.weekly",
+          "recurringSubscriptionPeriod": "P1W",
+          "referenceName": "Texel Pro Weekly",
+          "subscriptionGroupID": "1A7C5D10",
+          "type": "RecurringSubscription",
+          "winBackOffers": []
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "1.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "E547A28C-CA3C-4F5D-BA47-BE64CF4D6867",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Unlimited conversions, renewed every month. Cancel anytime.",
+              "displayName": "Texel Pro Monthly",
+              "locale": "en_US"
+            },
+            {
+              "description": "写真変換が無制限。毎月自動更新。いつでも解約できます。",
+              "displayName": "Texel Pro 月額",
+              "locale": "ja_JP"
+            },
+            {
+              "description": "不限张数转换，每月自动续期，可随时取消。",
+              "displayName": "纹粒 Pro 月订阅",
+              "locale": "zh_CN"
+            },
+            {
+              "description": "不限張數轉換，每月自動續訂，可隨時取消。",
+              "displayName": "紋粒 Pro 月訂閱",
+              "locale": "zh_TW"
+            }
+          ],
+          "productID": "com.lingxifox.LingXiStyle.pro.monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "Texel Pro Monthly",
+          "subscriptionGroupID": "1A7C5D10",
+          "type": "RecurringSubscription",
+          "winBackOffers": []
+        }
+      ]
+    }
+  ],
   "version": {
     "major": 3,
     "minor": 0

@@ -42,11 +42,21 @@ final class AppModel: ObservableObject {
     @Published private(set) var livePhotoModeOverride: LivePhotoProcessingMode?
     /// First-run tutorial. Presented once automatically, then available from Home and Settings.
     @Published var isTutorialPresented = false
+    /// Vault records newest first. Refreshed whenever a conversion finishes or the vault changes.
+    @Published var vaultRecords: [VaultRecord] = []
+    /// Tasks that already reached a final state, newest first.
+    @Published var history: [ConversionTaskRecord] = []
+    /// How long finished results stay in the vault. Persisted per install.
+    @Published private(set) var vaultRetention: VaultRetention = .standard
+    /// One-line feedback for vault actions (re-saved, deleted, cleanup, storage errors).
+    @Published var vaultMessage: String?
 
     enum Modal: String, Identifiable {
         case pro
         case quotaExhausted
         case settings
+        case vault
+        case history
 
         var id: String { rawValue }
     }
@@ -59,6 +69,11 @@ final class AppModel: ObservableObject {
     }
 
     let purchases = PurchaseManager()
+    /// Finished results live here so the user can re-save or export without paying again.
+    let vaultStore: VaultStore
+    /// Durable task log: survives crashes, feeds the history list and interrupted-task recovery.
+    let taskJournal: TaskJournal
+    private var currentTaskID: UUID?
     private let library = PhotoLibraryService()
     private var deferredItemIDs: Set<UUID> = []
     private var workspace: SessionWorkspace?
@@ -77,12 +92,18 @@ final class AppModel: ObservableObject {
     static let livePhotoModeKey = "LingXiStyle.livePhotoMode"
     private static let firstQuotaReminderKey = "LingXiStyle.hasShownFirstQuotaReminder"
     private static let hasSeenTutorialKey = "LingXiStyle.hasSeenTutorial"
+    private static let vaultRetentionKey = "LingXiStyle.vaultRetention"
 
     var hasSeenTutorial: Bool { UserDefaults.standard.bool(forKey: Self.hasSeenTutorialKey) }
 
     init() {
         let stored = UserDefaults.standard.string(forKey: Self.livePhotoModeKey)
         livePhotoModePreference = stored.flatMap(LivePhotoProcessingMode.init(rawValue:)) ?? .defaultMode
+        vaultStore = VaultStore(rootURL: VaultStore.defaultRootURL())
+        taskJournal = TaskJournal(storeURL: TaskJournal.defaultStoreURL())
+        let storedRetention = UserDefaults.standard.object(forKey: Self.vaultRetentionKey) as? Int
+        vaultRetention = storedRetention.flatMap(VaultRetention.init(rawValue:)) ?? .standard
+        ConversionService.shared.configureStorage(vault: vaultStore, journal: taskJournal)
     }
 
     // MARK: Derived state
@@ -157,6 +178,9 @@ final class AppModel: ObservableObject {
         // UI remain usable without photo-library access. The permission page appears only when
         // a PhotoKit action actually needs read access.
         refreshPermissions()
+        recoverInterruptedTasks()
+        refreshVault()
+        refreshHistory()
         await purchases.start()
         await refreshQuota()
     }
@@ -246,6 +270,7 @@ final class AppModel: ObservableObject {
     func reset() {
         conversionTask?.cancel()
         conversionTask = nil
+        if run != nil || currentTaskID != nil { completeTaskRecord(isCancelled: true) }
         cancelPreparation()
         run = nil
         quotaExhaustedDuringRun = false
@@ -710,6 +735,8 @@ final class AppModel: ObservableObject {
             }
             return (item.id, Self.initialState(for: item))
         }
+        let taskID = startTaskRecord(isPro: status.isPro)
+        currentTaskID = taskID
         let newRun = ConversionRun(entries: entries)
         workspace.begin()
         run = newRun
@@ -749,13 +776,16 @@ final class AppModel: ObservableObject {
                     $0.stage = nil
                     $0.failedDuringStage = false
                 }
+                markJournalItem(id, state: .cancelled)
             case .skip(let id):
                 guard let item = items.first(where: { $0.id == id }) else { continue }
                 let issue = item.verdict?.issues.first
                 update(id) {
                     $0.outcome = .skipped(issue ?? .alreadyHasTexture)
                     $0.stage = nil
+                    $0.stage = nil
                 }
+                markJournalItem(id, state: .skipped)
             case .convert(let id):
                 guard let item = items.first(where: { $0.id == id }) else {
                     run?.complete(id, state: .cancelled)
@@ -787,7 +817,10 @@ final class AppModel: ObservableObject {
                               preferredName: preferredName,
                               saveToLibrary: true,
                               returnsFile: true,
-                              outputDirectory: outputDirectory)
+                              outputDirectory: outputDirectory,
+                              taskID: currentTaskID,
+                              itemID: id,
+                              vaultRetention: vaultRetention)
                     ) { [weak self] stage in
                         Task { @MainActor [weak self] in
                             guard let self, self.run?.id == sessionID else { return }
@@ -851,6 +884,7 @@ final class AppModel: ObservableObject {
                         $0.integrity = (error as? ConversionFailure)?.integrityReport
                         $0.outcome = .failed(message: message, code: code)
                     }
+                    markJournalItem(id, state: .failed, failure: (code, message))
                     run?.complete(id, state: .failed)
                 }
             }
@@ -864,6 +898,7 @@ final class AppModel: ObservableObject {
         guard run?.id == sessionID else { return }
         let summary = ConversionSummary(items: items)
         self.summary = summary
+        completeTaskRecord(isCancelled: isCancelling)
         diagnosticsText = buildDiagnostics(summary: summary)
         run = nil
         conversionTask = nil
@@ -979,6 +1014,194 @@ final class AppModel: ObservableObject {
             }
         }
         return fallback ?? UIImage(systemName: "photo") ?? UIImage()
+    }
+
+    // MARK: - Vault
+
+    var vaultTotalByteCount: Int { (try? vaultStore.totalByteCount()) ?? 0 }
+    var vaultAvailableByteCount: Int? { vaultStore.availableByteCount().map { Int(clamping: $0) } }
+
+    func refreshVault() {
+        vaultRecords = (try? vaultStore.records()) ?? []
+    }
+
+    func refreshHistory() {
+        history = taskJournal.tasks().filter { !$0.isActive }
+    }
+
+    func vaultRecord(id: UUID?) -> VaultRecord? {
+        guard let id else { return nil }
+        return vaultRecords.first { $0.id == id }
+    }
+
+    func setVaultRetention(_ retention: VaultRetention) {
+        guard retention != vaultRetention else { return }
+        vaultRetention = retention
+        UserDefaults.standard.set(retention.rawValue, forKey: Self.vaultRetentionKey)
+        do {
+            try vaultStore.applyRetention(retention)
+        } catch {
+            vaultMessage = error.localizedDescription
+        }
+        refreshVault()
+    }
+
+    /// Manual cleanup from Settings. Results of tasks that are still running are never purged.
+    func purgeExpiredVault() {
+        var keeping = Set(taskJournal.activeTasks().map(\.id))
+        if let currentTaskID { keeping.insert(currentTaskID) }
+        do {
+            let result = try vaultStore.purgeExpired(keepingTaskIDs: keeping)
+            if result.removedCount == 0 {
+                vaultMessage = String(localized: "vault.cleanupNothing", defaultValue: "没有可清理的过期成果。")
+            } else {
+                vaultMessage = String(localized: "vault.cleanupDone", defaultValue: "已清理 \(result.removedCount) 项，释放 \(Self.byteText(result.freedByteCount))。")
+            }
+        } catch {
+            vaultMessage = error.localizedDescription
+        }
+        refreshVault()
+    }
+
+    func deleteVaultRecord(_ record: VaultRecord) {
+        do {
+            try vaultStore.delete(id: record.id)
+        } catch {
+            vaultMessage = error.localizedDescription
+        }
+        refreshVault()
+    }
+
+    func deleteAllVaultRecords() {
+        do {
+            try vaultStore.deleteAll()
+        } catch {
+            vaultMessage = error.localizedDescription
+        }
+        refreshVault()
+    }
+
+    /// Saves a vault copy back to Photos without reserving or committing allowance: the
+    /// original conversion already paid for it, and re-saving must stay free.
+    func resaveFromVault(_ record: VaultRecord) async {
+        guard !record.isExpired() else {
+            vaultMessage = String(localized: "vault.expired", defaultValue: "这项成果已过保留期，无法再次保存。")
+            refreshVault()
+            return
+        }
+        let photoURL = vaultStore.photoURL(for: record)
+        do {
+            let saved: SavedPhoto
+            if record.isLivePhoto, let videoURL = vaultStore.videoURL(for: record) {
+                saved = try await library.saveNewLivePhoto(still: photoURL, video: videoURL, preferredName: record.displayName)
+            } else {
+                saved = try await library.saveNewPhoto(from: photoURL, preferredName: record.displayName)
+            }
+            try? vaultStore.markSaved(id: record.id, assetIdentifier: saved.identifier)
+            vaultMessage = String(localized: "vault.resaved", defaultValue: "已重新保存到相册。")
+            refreshVault()
+        } catch {
+            vaultMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    static func byteText(_ byteCount: Int) -> String {
+        ByteCountFormatter.string(fromByteCount: Int64(byteCount), countStyle: .file)
+    }
+
+    static func lifetimeText(_ interval: TimeInterval) -> String {
+        let minutes = Int(interval / 60)
+        if minutes >= 24 * 60 {
+            return String(localized: "vault.lifetime.days", defaultValue: "\(minutes / (24 * 60)) 天")
+        }
+        if minutes >= 60 {
+            return String(localized: "vault.lifetime.hours", defaultValue: "\(minutes / 60) 小时")
+        }
+        return String(localized: "vault.lifetime.minutes", defaultValue: "不到 1 小时")
+    }
+
+    // MARK: - Task journal plumbing
+
+    private func recoverInterruptedTasks() {
+        guard let recoveries = try? taskJournal.recoverInterrupted(), !recoveries.isEmpty else { return }
+        for recovery in recoveries {
+            // A reservation without a vault copy means the conversion never finished, so the
+            // allowance goes back. A reservation with a vault copy was saved but not settled.
+            for reservation in recovery.reservationsToRelease {
+                try? QuotaManager.shared.release(reservation)
+            }
+            for reservation in recovery.reservationsToCommit {
+                try? QuotaManager.shared.commit(reservation)
+            }
+        }
+        notice = String(localized: "tasks.recovered", defaultValue: "上次有 \(recoveries.count) 个任务中断。已完成的结果留在保险箱，可在任务历史中重存。")
+    }
+
+    private func startTaskRecord(isPro: Bool) -> UUID {
+        let id = UUID()
+        var record = ConversionTaskRecord(id: id, origin: .app, isPro: isPro)
+        record.items = items.map { item in
+            var entry = TaskItemRecord(
+                id: item.id,
+                displayName: item.displayName,
+                isLivePhoto: item.videoURL != nil,
+                livePhotoMode: item.videoURL == nil ? nil : (item.livePhotoMode ?? effectiveLivePhotoMode).rawValue
+            )
+            if !item.isConvertible { entry.state = .skipped }
+            if deferredItemIDs.contains(item.id) { entry.state = .deferred }
+            if case .skipped? = item.outcome { entry.state = .skipped }
+            return entry
+        }
+        record.state = .running
+        try? taskJournal.upsert(record)
+        return id
+    }
+
+    private func markJournalItem(_ id: UUID,
+                                 state: ConversionItemState,
+                                 failure: (code: String, message: String)? = nil) {
+        guard let taskID = currentTaskID else { return }
+        try? taskJournal.mutate(taskID: taskID) { record in
+            guard let index = record.items.firstIndex(where: { $0.id == id }) else { return }
+            record.items[index].state = state
+            if let failure {
+                record.items[index].failureCode = failure.code
+                record.items[index].failureMessage = failure.message
+            }
+        }
+    }
+
+    /// Reconciles the journal with what the run actually did, then closes the task. The
+    /// conversion service already wrote saved/failed details and quota fields; this only
+    /// fills in items that never reached it (skipped, cancelled while queued, deferred).
+    private func completeTaskRecord(isCancelled: Bool) {
+        guard let taskID = currentTaskID,
+              var record = taskJournal.task(id: taskID) else { return }
+        for index in record.items.indices {
+            guard let item = items.first(where: { $0.id == record.items[index].id }) else { continue }
+            let state = record.items[index].state
+            guard state == .pending || state == .converting || state == .saving else { continue }
+            if case .saved? = item.outcome {
+                record.items[index].state = .saved
+            } else if case .skipped? = item.outcome {
+                record.items[index].state = .skipped
+            } else if case .cancelled? = item.outcome {
+                record.items[index].state = .cancelled
+            } else if case .failed(let message, let code)? = item.outcome {
+                record.items[index].state = .failed
+                record.items[index].failureMessage = message
+                record.items[index].failureCode = code
+            } else {
+                record.items[index].state = deferredItemIDs.contains(item.id)
+                    ? .deferred
+                    : (isCancelled ? .cancelled : .interrupted)
+            }
+        }
+        record.applyResolvedState(isCancelled: isCancelled)
+        try? taskJournal.upsert(record)
+        currentTaskID = nil
+        refreshHistory()
+        refreshVault()
     }
 }
 
