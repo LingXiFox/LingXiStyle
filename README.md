@@ -2,7 +2,8 @@
 
 公开品牌：简体中文「纹粒」，繁体中文 / 英文 / 日文「Texel」；App Bundle ID 为 `com.lingxifox.Texel`，分享扩展为 `com.lingxifox.Texel.Share`；仓库、Keychain 服务名与 StoreKit Product ID 仍沿用 LingXiStyle。
 
-给 iPhone 16 / 17 系列 HEIC 原片和实况照片追加纹理与颗粒（Texture / Grain），另存为一张新的 HEIC；实况照片另存为新的实况照片。
+给 iPhone / iPad 的 HEIC 原片和实况照片追加纹理与颗粒（Texture / Grain），另存为一张新的 HEIC；实况照片另存为新的实况照片。
+iPhone、iPad 与 Mac 都提供原生界面，iPad 与 Mac 另支持从「文件」/ Finder 批量导入。
 原图不会被覆盖、不会被转码，照片不离开设备。
 
 ![LingXiStyle app icon](App/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png)
@@ -14,14 +15,15 @@
 
 ## 状态
 
-- **1.8.1（build 10）**：实况照片双模式（仅处理主帧 / 完整处理，两种模式一张都只计 1 张额度）、9 步首启教程与首页 / 设置常驻入口、iPhone Duo 外屏完整流程与内屏双栏。App 为 iPhone-only；宽屏双栏由 Duo 内屏的 regular size class 触发。
+- **1.9.1（build 11）**：新增成果保险箱（默认保留 7 天，可预览 / 重存 / 导出 / 删除，重存不扣额度）、任务历史与中断恢复（强杀后可识别、失败可重试、每张只结算一次额度）、多档 Pro（日卡 / 周订阅 / 月订阅 / 永久）、新用户一次性 24 小时免费体验，以及 iPadOS 与 macOS 原生界面。macOS 为独立 target `TexelMac`，导出到用户选择的文件夹；App 不再局限于 iPhone。
+- **1.8.1（build 10）**：实况照片双模式（仅处理主帧 / 完整处理，两种模式一张都只计 1 张额度）、9 步首启教程与首页 / 设置常驻入口、iPhone Duo 外屏完整流程与内屏双栏。1.9.1 保留这些能力与视觉。
 - **1.7.1（build 9）**：发布验证补强。新增真实 HEIC 端到端集成测试（真实 `ConversionService`、PhotoKit 保存回读、额度扣减与持久化）、分享扩展 12 条异常 / 取消 / 超时 / 重试状态机测试、快捷指令 9 条批量与额度测试，以及 1 条 XCUITest 启动 / 首页 / 设置 / Pro 入口冒烟；CI 增加集成测试与启动冒烟步骤，并预授权模拟器相册权限。1.7.0 的 CI 编译修复、分享扩展阻塞修复、共享 Keychain 组与免费 Offer Code 测试保持不变。
 - **1.7.0（build 8）**：发布候选收口。修复 CI 在 Xcode 16.4 / iOS 18.5 SDK 上的编译失败（`StoreKitError` 新 case 的显式匹配，以及 `PeopleDetection` / `RasterImport` 与 Core 测试 fixture 的复杂表达式都改为旧编译器可处理的形式）；CI 拆成 iOS 18.5 与 iOS 26.0 两条构建 + 测试矩阵；修掉分享扩展读取完成后不进入处理流程的阻塞缺陷，并补 3 秒数据回退与 15 秒超时；模拟器签名构建实际走共享 Keychain Access Group；新增 100% 免费 Offer Code 的 StoreKit 自动化测试。
 - 免费用户每天可成功转换 5 张 HEIC；失败、跳过、不兼容不扣额度。额度按本地自然日重置，App、分享扩展与快捷指令共用同一账本。
-- Pro 是 StoreKit 2 非消耗型内购，Product ID `com.lingxifox.LingXiStyle.pro`（显示名「纹粒 Pro」/「Texel Pro」）；一次性购买、永久无限，可恢复购买，退款 / 撤销后回到免费额度。
+- Pro 是 StoreKit 2 权益集合：永久 `com.lingxifox.LingXiStyle.pro`、日卡 `...pro.day`（一次性 24 小时）、周订阅 `...pro.weekly`、月订阅 `...pro.monthly`；四种权益相同，只是期限不同。老用户已购的永久版保持不变。新用户可一次性领取 24 小时免费体验，不订阅、不扣费。
 - 本地化使用 String Catalog，支持简体中文、繁体中文、英文、日文；内部 Bundle ID、Keychain 服务名与 StoreKit Product ID 保持不变，升级不丢购买。
-- 自动化测试：本机 1.8.1 全量 118 项执行、0 失败、2 跳过：`LingXiKitTests` 35/35、`LingXiPurchaseTests` 24/24（14 个 StoreKit + 10 个 Keychain）、`LingXiEngineTests` 5/5、`StylePortCoreTests` 15（2 个依赖外部 fixture，默认跳过）、`LingXiIntegrationTests` 34/34（8 真实转换 / PhotoKit、5 实况照片、12 分享扩展、9 快捷指令）、`LingXiUITests` iPhone 17 5/5（4 教程 + 1 首页 / 设置 / Pro 冒烟）。1.7.1 的 [run 42435430433](https://github.com/LingXiFox/LingXiStyle/actions/runs/42435430433) 全绿（commit `365abf5`：Policy、macOS 单测、iOS 18.5、iOS 26.x 四个 job 全部 success；两条运行时集成均为 29 项执行 / 0 跳过 / 0 失败）；1.7.0 的 [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297) 也曾全绿。
-- `generic/platform=iOS` 的 Debug 与 Release 构建均通过，0 error、0 Swift 源码 warning；签名 Debug 构建与模拟器签名构建通过。
+- 自动化测试：本机 1.9.1 全量 157 项、2 项跳过、0 失败：`LingXiKitTests` 68/68（含保险箱、任务日志、多档权益与试用）、`LingXiPurchaseTests` 24/24、`LingXiEngineTests` 5/5、`StylePortCoreTests` 15（2 项依赖外部 fixture，默认跳过）、`LingXiIntegrationTests` 37/37、`LingXiUITests` 5/5、`LingXiMacPipelineTests` 3/3（真实 HEIC + 保险箱 + 任务日志管线）。
+- 构建：`generic/platform=iOS` 的 Debug 与 Release，以及 `platform=macOS,arch=arm64` 的 Debug 与 Release，均 0 error、0 Swift 源码 warning；签名 Debug 构建与模拟器签名构建通过。
 - 真实样张：8064×6048 的 48MP HEIC，54 个主图 tile、15 个 HDR tile；1.2 在 iPhone 17 模拟器（iOS 27.3）完成从选图到保存回读的端到端转换，11/11 项无损校验通过；1.3 沿用同一引擎并在模拟器保存成功。
 - 1.7 在同一台 iPhone 17（iOS 27.3）完成分享扩展端到端：从「照片」分享 5,924,047 字节原片，读入、转换、另存成功，额度从 4 / 5 变为 3 / 5；分享已处理过的照片会提示「无需重复处理」且不扣额度。当时的签名模拟器构建使用同一旧 Keychain Access Group（`$(AppIdentifierPrefix)com.lingxifox.LingXiStyle.shared`）；当前 Bundle ID 与共享组已切换为 Texel，需重新验证签名。
 - 兼容性验证边界：本机运行时为 iOS 27.2（Xcode 27.2），iPhone 17 与 iPhone Duo 外屏完成安装、启动、教程、选片、转换与保存回读；Duo 内屏通过 DeviceHub 姿态切换进入，验证了 669×951 pt 双栏、设置与 Pro sheet。没有 iOS 18 / 26 运行时，也没有真机。Duo 内屏的完整转换流程与折叠中间态未验证，不能把布局验证写成整条流程通过。详见 [TEST_REPORT.md](TEST_REPORT.md)。
@@ -37,13 +39,16 @@
 - 转换任务按会话隔离：取消、重试、清空只影响所属批次，已保存照片不会被再次写入。
 - 结果页可在 App 内查看已保存照片，并分享转换后的真实 HEIC；不依赖未公开的系统跳转。
 - 免费额度 5 张 / 本地自然日，所有入口共享；转换成功并保存后才扣 1 张。
-- 一次性购买「纹粒 Pro」/「Texel Pro」后无限张数；价格来自 `Product.displayPrice`，按当前 App Store 地区显示。
+- 「纹粒 Pro」/「Texel Pro」提供永久、日卡、周订阅与月订阅四种选择，权益相同（不限张数），只是期限不同；价格来自 `Product.displayPrice`，按当前 App Store 地区显示。新用户可一次性领取 24 小时免费体验。
 - 实况照片支持两种模式：仅处理主帧（动态视频逐字节保留）与完整处理（追加缺失的纹理风格轨，由系统逐帧渲染，保留声音、关键帧与配对）；两种模式都只扣 1 张额度。
 - 首次启动展示 9 步分步教程，可跳过；首页与设置都保留「使用教程」入口，可随时重看。
 - 额度耗尽时提供「了解纹粒 Pro」与「明天再来」；批量超出时只处理剩余额度，不静默弹付费墙。
 - 首次额度用尽时展示一次 Pro 介绍；之后只显示安静的额度页，不重复弹付费墙。
 - 首页右上角设置可切换应用语言、查看 Pro 状态与恢复购买；语言切换写入系统 AppleLanguages，重启 App 后生效。
-
+- 首页右上角设置可切换应用语言、查看 Pro 状态与恢复购买；语言切换写入系统 AppleLanguages，重启 App 后生效。
+- 转换成果进入 App 内「成果保险箱」，默认保留 7 天；可预览、重新保存（不扣额度）、导出或删除，设置里可改保留期限并手动清理。
+- 「任务历史」记录每次任务的时间、张数、状态与结果，失败项可直接重试；异常退出后重启 App 会识别中断任务并释放未结算的额度预约。
+- iPad 使用两栏原生首页与居中的内容列，支持横竖屏、多窗口与拖入 HEIC；Mac 通过「文件」/ Finder 导入或拖放，支持批量、自定义导出文件夹、快捷键与系统设置窗口。
 ## 它不做什么
 
 - 不覆盖原图，不修改原 Asset，不写回原文件。
@@ -59,9 +64,9 @@
 | 项 | 版本 / 值 |
 | --- | --- |
 | 开发环境 | macOS + Xcode 16 或更高（作者使用 Xcode 27.3） |
-| 部署目标 | iOS 18.0+ |
-| 内购 | StoreKit 2；本地 `Configuration.storekit`，真实商品需 App Store Connect |
-| 目标设备 | iPhone 16 / 17、iPhone Duo（iPhone-only）；其他 HEIC 需自行验证 |
+| 部署目标 | iOS 18.0+ / iPadOS 18.0+ / macOS 15.0+ |
+| 内购 | StoreKit 2；本地 `Configuration.storekit`（永久 / 日卡 / 周订阅 / 月订阅），真实商品需 App Store Connect |
+| 目标设备 | iPhone 16 / 17、iPhone Duo、iPad、Apple Silicon Mac；其他 HEIC 需自行验证 |
 | 工程生成 | [XcodeGen](https://github.com/yonaskolb/XcodeGen) 2.46 |
 | 签名 | 你自己的 Apple Development Team；仓库不含 Team ID |
 | 第三方依赖 | 仅 Apple 系统框架；无第三方 UI 框架 |
@@ -78,7 +83,7 @@ xcodegen generate
 open LingXiStyle.xcodeproj
 ```
 
-在 Xcode 的 Signing & Capabilities 里为 `LingXiStyle` **和 `LingXiStyleShare`** 选择自己的 Team。
+在 Xcode 的 Signing & Capabilities 里为 `LingXiStyle`、`LingXiStyleShare` 与 `TexelMac` 选择自己的 Team。
 如果 Bundle ID 冲突，把 `project.yml` 中的 `com.lingxifox` 全部替换成自己的前缀，再执行
 `xcodegen generate`。
 
@@ -91,6 +96,16 @@ open LingXiStyle.xcodeproj
 xcodebuild -project LingXiStyle.xcodeproj \
   -scheme LingXiStyle \
   -destination 'generic/platform=iOS' \
+  DEVELOPMENT_TEAM=YOUR_TEAM_ID \
+  -allowProvisioningUpdates build
+```
+
+Mac 版是独立 target：
+
+```bash
+xcodebuild -project LingXiStyle.xcodeproj \
+  -scheme TexelMac \
+  -destination 'platform=macOS,arch=arm64' \
   DEVELOPMENT_TEAM=YOUR_TEAM_ID \
   -allowProvisioningUpdates build
 ```
@@ -110,6 +125,8 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiIntegrationTests \
   -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' test
 xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiUITests \
   -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' test
+xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiMacPipelineTests \
+  -destination 'platform=macOS,arch=arm64' test
 ```
 
 `LingXiIntegrationTests` 使用仓库内的 48MP HEIC fixture，真实调用 `ConversionService`、PhotoKit
@@ -121,7 +138,7 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiUITests \
 `LingXiPurchaseTests` 是 iPhone Simulator 上由最小宿主 App 承载的单元测试：
 `SKTestSession` 必须在任何 StoreKit 客户端之前初始化，因此宿主刻意不创建 `AppModel`。
 它覆盖 StoreKit 2 购买 / 恢复 / 退款与 Keychain 额度；Quota 的 SQLite 测试仍在 macOS
-`LingXiKitTests` 中。
+`LingXiKitTests` 中。`LingXiMacPipelineTests` 在 macOS 上跑真实 HEIC 管线，验证保险箱落盘、任务日志记账与中断恢复。
 
 ## 分发方式
 
@@ -136,9 +153,9 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme LingXiUITests \
 ## 架构
 
 ```
-App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
-        \                              /
-         \                            /
+App (SwiftUI)      Mac (TexelMac)      ShareExtension (SwiftUI in UIKit host)
+        \               |                  /
+         \              |                 /
           LingXiServices  ← 唯一的 ConversionService
                 |
           LingXiEngine  (URL → URL，固定管线)
@@ -148,10 +165,11 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 
 | 层 | 位置 | 职责 |
 | --- | --- | --- |
-| App | `App/Sources` | 四态 UI、DesignSystem、AppModel、快捷指令、Pro / 额度页面 |
+| App | `App/Sources` | iPhone / iPad 四态 UI、DesignSystem、AppModel、快捷指令、保险箱、任务历史、Pro / 额度页面 |
+| Mac | `Mac/Sources` | macOS 原生窗口：转换、保险箱、任务历史、设置与购买页；独立 `TexelMac` target |
 | Services | `Services/Sources/LingXiServices` | PhotoKit 适配 + 唯一转换入口 + 额度预约 / 提交，App 与扩展共用同一份二进制 |
 | Engine | `Engine/Sources/LingXiEngine` | 读文件 → 检查 → 调核心 → 复审 → 写临时文件 |
-| Kit | `Kit/Sources/LingXiKit` | ISO BMFF / HEIF 解析、兼容性判定、无损校验、任务状态机、额度、StoreKit 权益、诊断 |
+| Kit | `Kit/Sources/LingXiKit` | ISO BMFF / HEIF 解析、兼容性判定、无损校验、任务状态机、额度、StoreKit 权益、保险箱、任务日志、诊断 |
 | Core | `Core/Sources/StylePortCore` | 上游纹理与颗粒编码核心（MIT，见 ThirdPartyNotices） |
 
 所有入口（图库、文件导入、快捷指令、分享扩展）最终都调用
@@ -159,7 +177,19 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 不参与编码决策。
 
 `Kit/Sources/LingXiKit/ConversionRun.swift` 是任务会话状态机：记录每张照片的
-`pending / saved / skipped / failed / cancelled` 状态，只有所属 session token 能推进队列；
+`pending / saved / skipped / failed / cancelled / deferred` 状态，只有所属 session token 能推进队列；
+已保存项不会被重试，取消后的未开始项按顺序标记为取消。
+
+### 保险箱与任务日志
+
+- `Kit/Sources/LingXiKit/VaultStore.swift` 把转换产物复制到 App Support 下的 `Texel/Vault/<uuid>/`，
+  先写 staging 再原子重命名，附带 `metadata.json`（保留期、字节数、是否实况、来源任务）。
+  目录标记为不参与 iCloud 备份；插入前检查可用空间，清理时跳过仍在进行中的任务成果。
+- `Kit/Sources/LingXiKit/TaskJournal.swift` 用单文件 JSON 记录任务与每张照片的状态、额度预约
+  （reservation id / day / slot）和保险箱记录。启动时 `recoverInterrupted` 把未完成任务标为
+  中断，并释放未确认的额度占位；只有真正保存成功才提交额度。
+- `ConversionService.convert` 可注入 `vaultStore` 与 `taskJournal`（默认 nil，分享扩展与快捷指令
+  各用自己的容器）。从保险箱重新保存走独立路径，不经过 `reserve` / `commit`，所以不扣额度。
 已保存项不会被重试，取消后的未开始项按顺序标记为取消。
 
 ### 固定管线
@@ -200,9 +230,14 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 3. **处理中**：4pt 确定性进度条、300pt 清晰预览、真实阶段列表与 X/Y、可取消队列；不使用扫光、呼吸光或渐变边框。
 4. **结果页**：已保存照片预览、成功 / 跳过 / 失败统计、应用内查看与分享、单条诊断入口、继续处理与失败重试；原始错误码只放诊断。
 5. **教程**：首启自动展示 9 步分步 onboarding，每步一个大图示与一两句短文案，中间可直接配置实况照片默认模式；底部有页码、上一步 / 下一步、跳过（首启）与完成。
-6. **Duo / 宽屏**：Duo 外屏单栏完整流程；内屏（regular size class，669 pt 宽）显示左照片队列 / 右当前照片详情的双栏，选择、处理、结果阶段联动，折叠或调整宽度不会重复处理或重复扣额。App 为 iPhone-only，不包含 iPad 产品支持。
+6. **Duo / 宽屏**：Duo 外屏单栏完整流程；内屏（regular size class，669 pt 宽）显示左照片队列 / 右当前照片详情的双栏，选择、处理、结果阶段联动，折叠或调整宽度不会重复处理或重复扣额。
+7. **成果保险箱**：按时间列出的转换成果，带缩略图、实况徽章、剩余保留时间与大小；支持全屏预览、重新保存（不扣额度）、系统分享导出与删除，顶部汇总占用与设备可用空间，可选择保留 3 / 7 / 14 / 30 天或永久，并手动清理过期成果。
+8. **任务历史**：每次任务的时间、来源、张数与状态（成功 / 部分成功 / 失败 / 取消 / 中断），展开可看每张照片的结果与失败原因；有保险箱记录的项可直接重新保存。
+9. **Pro 方案页**：日卡、周订阅、月订阅、永久四档单选，价格只显示 `Product.displayPrice`；含当前权益、试用领取、恢复购买与订阅管理。
+10. **iPad**：首页为左文右卡两栏、内容限宽 980 pt；选择 / 处理 / 结果页居中限宽；支持横竖屏、多窗口与把 HEIC 拖入页面。
+11. **macOS**：三栏式侧栏（转换 / 成果保险箱 / 任务历史）+ 详情区；拖放或 `⌘O` 导入，`⌘R` 开始、`⌘.` 取消，自定义导出文件夹，系统设置窗口管理保留期与 Pro。
 
-设置页使用原生 Form：Pro 状态与恢复购买、实况照片处理方式（仅主帧 / 完整处理，持久保存）、使用教程、跟随系统 / 简体中文 / 繁体中文 / English / 日本語、隐私说明与第三方许可。Pro 页、额度耗尽页与权限页均为独立 sheet / 页面，支持深色、浅色与 Dynamic Type。
+设置页使用原生 Form：Pro 状态与恢复购买、实况照片处理方式（仅主帧 / 完整处理，持久保存）、成果与记录（保险箱 / 任务历史入口）、使用教程、跟随系统 / 简体中文 / 繁体中文 / English / 日本語、隐私说明与第三方许可。Pro 页、额度耗尽页与权限页均为独立 sheet / 页面，支持深色、浅色与 Dynamic Type。
 
 支持真深 / 浅色、Dynamic Type、横竖屏、窄屏、VoiceOver 与 Reduce Motion
 （关闭循环动效，只保留状态变化）。设计令牌见
@@ -251,16 +286,26 @@ App (SwiftUI)                     ShareExtension (SwiftUI in UIKit host)
 
 ### Pro 购买
 
-- StoreKit 2，非消耗型：`com.lingxifox.LingXiStyle.pro`。
+- StoreKit 2，四种商品：
+  - 永久 `com.lingxifox.LingXiStyle.pro`（Non-Consumable，沿用 1.8 商品 ID，老用户无需重复购买）
+  - 日卡 `com.lingxifox.LingXiStyle.pro.day`（非续期订阅，一次性 24 小时）
+  - 周订阅 `com.lingxifox.LingXiStyle.pro.weekly`、月订阅 `com.lingxifox.LingXiStyle.pro.monthly`
+- 权益统一由 `ProAccessEvaluator` 合成：只接受已验证交易（`revocationDate` / `expirationDate` 必须有效），
+  永久优先，其次到期最晚的活跃订阅，再按日卡购买时间 +24h、最后是免费体验。退款 / 撤销或订阅到期后
+  自动回到免费额度，不会误降级仍在有效期内的其他权益。
 - 商品加载失败时 Pro 页面显示本地化错误与「重试」，不显示任何假价格；成功后只使用
-  `Product.displayPrice`。
+  `Product.displayPrice`，四种商品分别加载，任一失败不影响其余。
 - 购买结果必须经过 `VerificationResult<Transaction>` 验证，并再次读取
   `Transaction.currentEntitlements(for:)` 才把 `isPro` 置为 true；本地布尔值、按钮回调或
   未验证交易都不能解锁。
-- 支持恢复购买、未完成交易、交易监听、待批准、取消、失败、退款 / 撤销；退款后
-  `isPro` 变为 false，免费额度重新生效。
+- 支持恢复购买、未完成交易、交易监听、待批准、取消、失败、退款 / 撤销，以及跳转系统「管理订阅」。
+- 免费体验：`ProTrialService` 用 Keychain（service `com.lingxifox.LingXiStyle.trial`）记录领取时间与
+  设备种子，每次领取 24 小时，每台设备只领一次；卸载重装不会重置，到期自动回到实际权益。
+  该功能只读必要的本地标识，不上传照片。
 - 本地测试配置在仓库根目录 `Configuration.storekit`，只在 Debug scheme 生效；
   Release 构建不包含可购买测试商品。真实商品配置见 [AppStoreRelease.md](AppStoreRelease.md)。
+  其中永久版仍标价 $2.99 是沿用现有线上商品，1.9.1 项目书提到的 $7.99 属于改价，需另行授权后
+  在 App Store Connect 调整，本地配置与 CI 不擅自改价。
 
 ## 快捷指令
 
@@ -325,16 +370,18 @@ App Store Connect 官方 Offer Code 发放。
 
 ```
 App/Sources/            Views / Components / DesignSystem / Models / Integrations / AppModel.swift
+Mac/Sources/            macOS target TexelMac：MacModel + 转换 / 保险箱 / 历史 / 设置 / 购买视图
 Services/Sources/       LingXiServices（PhotoKit 适配 + ConversionService）
 Engine/Sources/         LingXiEngine
-Kit/Sources/            LingXiKit（含 ConversionRun 任务会话状态机）
+Kit/Sources/            LingXiKit（ConversionRun、VaultStore、TaskJournal、Quota、Pro 权益）
 Core/Sources/           StylePortCore（vendor）
 Core/Resources/Profiles 45-15 / 48-12 / live-photo-video
-Kit/Tests/              ISOBox / 兼容性 / 校验 / ConversionRun / Quota 测试
+Kit/Tests/              ISOBox / 兼容性 / 校验 / ConversionRun / Quota / 保险箱 / 任务日志 / Pro 测试
 Engine/Tests/           引擎集成测试
 Tests/LingXiPurchaseTests/  StoreKit 2 + Keychain 额度测试（Simulator）
 Tests/LingXiIntegrationTests/ 真实 HEIC / PhotoKit / 分享扩展 / 快捷指令集成测试
 Tests/LingXiUITests/   安装、启动、首页、设置与 Pro 入口冒烟
+Tests/LingXiMacPipelineTests/  macOS 真实 HEIC + 保险箱 + 任务日志管线
 Tests/Fixtures/        48MP 真实 HEIC 测试样张与来源说明
 Tests/IntegrationHost/ 仅用于承载集成测试的最小 App
 Tests/PurchaseHost/     仅用于承载 StoreKit 测试的最小 App
@@ -350,10 +397,12 @@ project.yml             XcodeGen 工程定义
 
 ## 已知限制
 
-- 1.8.1 本机已完成 Debug / Release generic iOS 构建与 Release archive（1.8.1 / build 10，Apple Distribution 签名）；自动化 118 项执行、0 失败、2 跳过。实况照片覆盖仅主帧、完整处理、106 帧仍只扣 1 张、真实保存回读配对；教程与 Duo 外屏以模拟器交互验证；Duo 内屏验证了双栏、设置与 Pro，完整转换流程未执行。
-- 真机安装、真实 App Store 交易、iOS 18 / 26 运行时、权限拒绝页、快捷指令 UI、Duo 内屏完整转换与折叠中间态仍未验证；Duo 外屏的选片、转换与结果页已在模拟器验证。模拟器签名构建不能替代真机 distribution 签名。详见 [TEST_REPORT.md](TEST_REPORT.md)。
+- 1.9.1 本机完成 iOS Debug / Release、macOS Debug / Release 构建与模拟器运行；自动化 157 项、2 项跳过、0 失败。iPhone 17 与 iPad 13 模拟器完成首屏、选片与保险箱 / 历史 / 购买入口检查；macOS 完成启动、导入与首屏额度显示。iPad 拖放与 macOS 真实转换已由代码路径与管线测试覆盖，但未做逐一点击的完整人工流程。
+- 真机安装、真实 App Store 交易（尤其订阅续订 / 到期 / 退款）、iOS 18 / 26 运行时、权限拒绝页、快捷指令 UI、Duo 内屏完整转换与折叠中间态仍未验证。模拟器签名构建不能替代真机 distribution 签名。详见 [TEST_REPORT.md](TEST_REPORT.md)。
+- 分享扩展与快捷指令各自使用独立容器，不读取主 App 的保险箱与任务历史；这是 1.9.1 的已知边界。
+- iOS 上的免费体验与 Pro 权益依赖 Keychain；`CODE_SIGNING_ALLOWED=NO` 的模拟器构建缺少共享组 entitlement，会显示「额度暂不可用」，属于 fail-closed，不是线上行为。
 - 免费 Personal Team 只能使用本地 StoreKit 配置测试；真实内购与上架需要付费 Apple Developer Program、App Store Connect 商品与 Sandbox / 生产环境。
-- `Configuration.storekit` 的 `$2.99` 只是本地测试价；线上价格由 App Store Connect 与 `Product.displayPrice` 决定。
+- `Configuration.storekit` 的 `$2.99` 只是本地测试价（沿用现有永久商品）；191.md 提到的 $7.99 属于改价，需在 App Store Connect 授权后调整。线上价格由 `Product.displayPrice` 决定。
 - 不同机型 / iOS 版本的 HEIC 可能使用不同的 `iref` 结构；已加 16-bit / 32-bit 回归测试，但仍需更多样本。
 - 分享扩展首次运行时可能拿不到相册写入授权（扩展内不一定能弹权限框）。此时会提示先回 App 授权；这是系统行为，需真机确认具体表现。
 - 分享面板可能把照片转成 JPEG，扩展会拒绝而不是偷偷转码。
@@ -366,6 +415,8 @@ project.yml             XcodeGen 工程定义
 - iCloud 原件下载由 PhotoKit 在系统层完成。
 - 导出与转换的临时文件位于沙盒 `tmp`；`SessionWorkspace` 用引用计数延迟删除，任务结束或清空后清理。
   成功保存的照片由系统相册管理；结果页分享使用所属会话的输出文件，继续处理时一并释放。
+- 保险箱成果保存在 App 沙盒的 App Support 下（`Texel/Vault`），标记为不参与 iCloud 备份；删除 App 即清除。
+  任务历史只记录名称、状态、额度预约与保险箱引用，不含照片内容。免费体验只在本机 Keychain 记录领取时间。
 
 ## 第三方与许可
 
@@ -379,4 +430,6 @@ project.yml             XcodeGen 工程定义
 - [TEST_REPORT.md](TEST_REPORT.md)：构建、测试、模拟器 / 真机验证与未覆盖矩阵。
 - [AppStoreRelease.md](AppStoreRelease.md)：App Store Connect、商品、地区定价、Sandbox 与发布清单。
 - [docs/app-store/README.md](docs/app-store/README.md)：四语言商店文案、截图规范、中国大陆合规清单，以及可部署的隐私 / 支持页面。
+- [docs/app-store/release-notes-1.9.1.md](docs/app-store/release-notes-1.9.1.md)：1.9.1 四语言版本说明。
+- [docs/compatibility/photo-styles-research-1.9.1.md](docs/compatibility/photo-styles-research-1.9.1.md)：第二代摄影风格与第三代纹理 / 颗粒的研究记录与结论。
 - [AGENTS.md](AGENTS.md)：给在本仓库工作的编码代理的约束。

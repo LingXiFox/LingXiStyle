@@ -1,6 +1,6 @@
 # Texel / 纹粒 — 发布资料索引
 
-本目录是 1.7.1 的可部署发布资料与可复制文案。所有页面均为静态 HTML/CSS，不依赖构建工具、
+本目录是 1.9.1 的可部署发布资料与可复制文案。所有页面均为静态 HTML/CSS，不依赖构建工具、
 外部字体、JavaScript 或第三方资源。
 
 ## 文件
@@ -8,9 +8,10 @@
 | 路径 | 内容 |
 | --- | --- |
 | `listing.md` | 四语言 App Store 名称、副标题、推广文本、关键词、描述、What's New、审核备注、占位符 |
+| `release-notes-1.9.1.md` | 1.9.1 四语言 What's New 与发布备注 |
 | `screenshots.md` | iPhone 截图规格、6 页清单、四语言截图文案、捕获步骤 |
 | `china-mainland.md` | 中国大陆 App 备案 / ICP 备案、权限、内购、数据出境清单 |
-| `../index.html` | 公开首页（纹粒 / Texel、1.7.1、隐私与支持入口） |
+| `../index.html` | 公开首页（纹粒 / Texel、1.9.1、隐私与支持入口） |
 | `../privacy/index.html` | 四语言隐私政策 |
 | `../support/index.html` | 四语言技术支持 / FAQ |
 | `../styles.css` | 共享响应式样式（浅色 / 深色、Reduce Motion） |

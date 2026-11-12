@@ -1,12 +1,78 @@
-# 测试报告（纹粒 / Texel 1.8.1）
+# 测试报告（纹粒 / Texel 1.9.1）
 
-- 日期：2026-11-11
-- 版本：1.8.1（build 10）
-- 结论：本机 Debug / Release generic iOS 构建通过，Release archive 与 App Store IPA 导出通过；
-  六套自动化测试合计执行 118 项，0 失败、2 跳过；实况照片双模式、106 帧额度、9 步教程、
-  iPhone 17 与 Duo 外屏完成实际交互验证；Duo 内屏通过 DeviceHub 姿态切换验证双栏、设置与 Pro。
-  本机没有真机与 iOS 18 / 26 运行时；Duo 内屏完整转换与折叠中间态未验证。
-  TestFlight 上传未执行。报告只记录实际执行过的证据。
+- 日期：2026-11-12
+- 版本：1.9.1（build 11）
+- 结论：iOS / iPadOS 与 macOS Debug、Release 构建通过；七套自动化测试合计 157 项、0 失败、2 跳过。
+  成果保险箱、任务日志与中断恢复、多档 Pro 权益、免费体验与 macOS 真实 HEIC 管线均有自动化覆盖。
+  iPhone 17 与 iPad 13 模拟器、macOS 本机完成界面冒烟。本机没有真机与 iOS 18 / 26 运行时，
+  真实交易、订阅续订 / 退款与 iPad / Mac 的完整人工流程未验证。
+
+## 2026-11-12 1.9.1 验证
+
+### 1. 范围与结论
+
+| 项目 | 状态 | 证据 |
+| --- | --- | --- |
+| 成果保险箱（P0） | 完成 | `VaultStoreTests` 8 条；`VaultJournalPipelineTests` 真实 HEIC 落盘、元数据与字节数一致；iPhone / iPad / Mac 界面可打开、预览、重存、导出、删除 |
+| 任务历史与恢复（P0） | 完成 | `TaskJournalTests` 7 条；`recoverInterrupted` 释放未确认占位、幂等；App 启动时自动恢复并提示；任务详情可展开、可重试 |
+| 额度可靠性（P0） | 完成 | 集成测试覆盖保存后提交、中断不提交、保险箱重存不扣费；`QuotaTests` / `KeychainQuotaTests` 保持通过 |
+| 多档 Pro（P1） | 完成（本地 StoreKit） | `ProPlansTests` 11 条：永久优先、订阅到期、撤销、日卡 24h、两次日卡取更晚、试用仅在无购买时生效 |
+| 一次性免费体验（P1） | 完成 | Keychain 记录领取时间与设备种子；同设备重复领取抛 `alreadyClaimed`；跨 service 实例保留；到期回落到实际权益 |
+| iPadOS（P0） | 完成 | 两栏首页、居中限宽、横竖屏；模拟器截图与元素检查；拖放走 `AppModel.enqueue(fileURLs:)` |
+| macOS（P0） | 完成 | `TexelMac` 独立 target，Debug / Release 构建；`LingXiMacPipelineTests` 3 条真实管线；本机启动、导入与额度显示冒烟 |
+| 兼容性研究（P1） | 完成（不集成） | 结论与依据见 `docs/compatibility/photo-styles-research-1.9.1.md`；无真机样本，不宣称支持「第二代风格转第三代质感」 |
+
+### 2. 构建
+
+| 命令 | 结果 |
+| --- | --- |
+| `xcodebuild -scheme LingXiStyle -destination 'generic/platform=iOS' -configuration Debug` | BUILD SUCCEEDED，0 error |
+| 同上 `-configuration Release` | BUILD SUCCEEDED，0 error |
+| `xcodebuild -scheme TexelMac -destination 'platform=macOS,arch=arm64' -configuration Debug` | BUILD SUCCEEDED，0 error |
+| 同上 `-configuration Release` | BUILD SUCCEEDED，0 error |
+| `xcodebuild -scheme LingXiStyle -destination 'platform=iOS Simulator,name=Texel iPad 13' build` | BUILD SUCCEEDED；产物安装到 iPad 13 并启动 |
+
+签名说明：界面冒烟用的 iOS 构建带共享 Keychain 组（`Simulated.xcent`），额度显示正常；
+`CODE_SIGNING_ALLOWED=NO` 的产物缺少 entitlement，会按设计走 fail-closed 显示「额度暂不可用」，
+不作为缺陷记录。macOS 本机冒烟为 ad-hoc 签名，无 App Group entitlement，额度走 Keychain 槽位账本。
+
+### 3. 自动化测试
+
+| scheme | 环境 | 结果 |
+| --- | --- | --- |
+| `LingXiKitTests` | macOS arm64 | 68 / 68 通过（新增 VaultStore 8、TaskJournal 7、ProPlans 11） |
+| `LingXiPurchaseTests` | iPhone 17 模拟器（iOS 27.2） | 24 / 24 通过 |
+| `LingXiEngineTests` | macOS arm64 | 5 / 5 通过 |
+| `StylePortCoreTests` | macOS arm64 | 15 项，13 通过、2 跳过（依赖外部 fixture） |
+| `LingXiIntegrationTests` | iPhone 17 模拟器 | 37 / 37 通过（新增 VaultJournal 3：保存 + 保险箱 + journal、重存不扣费、中断不提交） |
+| `LingXiUITests` | iPhone 17 模拟器 | 5 / 5 通过（4 教程 + 1 启动 / 首页 / 设置 / Pro 冒烟） |
+| `LingXiMacPipelineTests` | macOS arm64 | 3 / 3 通过（真实 HEIC → ConversionService → 保险箱 + 任务日志；markSaved 不改额度；中断恢复释放预留） |
+
+合计执行 157 项、通过 155、跳过 2、失败 0。
+
+**已知偶发**：`LingXiPurchaseTests` 整套首次运行时，`testFreeOfferCodeGrantsVerifiedPro` 曾失败一次，
+日志为 `StoreKitServiceError(... ErrorType.system(StoreKitInternalError.unknown), environment: XcodeTest)`；
+单独重跑与随后两次整套重跑均通过。判断为 StoreKitTest 会话在上一轮被杀掉的 xcodebuild 之后残留脏状态，
+不是商品配置或验签逻辑缺陷。CI 每次使用全新模拟器，不复现该现象。
+
+### 4. 模拟器与本机界面验证
+
+- iPhone 17（iOS 27.2）：启动、首页额度胶囊、设置「成果与记录」入口、任务历史、保险箱、
+  Pro 方案页四档与试用卡片均可打开；截图逐个复核。
+- iPad 13（iOS 27.2）：两栏首页（左文案、右 380 pt 选择卡）、内容限宽 980 pt、顶部额度胶囊；
+  选择 / 处理 / 结果页居中限宽；未执行完整转换的人工点击流程。
+- macOS（Apple Silicon，macOS 15）：`Texel.app` 启动，窗口 1160 × 780，侧栏三项、拖放区、
+  底部额度与「升级 纹粒 Pro」、操作栏可见；额度显示 5 / 5。导入 / 转换的真实管线由
+  `LingXiMacPipelineTests` 覆盖，未做逐项人工点击。
+- 模拟器同一时间只启动一台；测试结束后已 shutdown。
+
+### 5. 未验证项（不得写成通过）
+
+- 真机安装与真机 Keychain 共享组、真实 App Store 交易、订阅续订 / 到期 / 退款 / 撤销。
+- iOS 18 / 26 运行时（本机只有 iOS 27.2）；iPadOS 多窗口拖拽与 macOS 全屏 / 多显示器。
+- 强杀 App 的真实设备恢复（自动化用 journal 状态与 `recoverInterrupted` 覆盖，未做真机强杀）。
+- 分享扩展与快捷指令在 1.9.1 容器隔离下的行为：集成测试通过，但未在真机分享面板复验。
+- 第二代摄影风格样本与第三代纹理的叠加显示效果（无真机样本）。
 
 ## 2026-11-11 1.8.1 验证
 

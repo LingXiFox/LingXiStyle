@@ -1,4 +1,4 @@
-# App Store 发布配置（纹粒 / Texel 1.8.1）
+# App Store 发布配置（纹粒 / Texel 1.9.1）
 
 这份文档只描述**若要发布到 App Store**时需要完成的 App Store Connect 与签名配置。
 仓库本身仍然只提供源码，不附带 IPA、TestFlight 包或真实商品。
@@ -24,27 +24,32 @@ UI 与测试都不得把它当作生产价格。
 - 若要跨 App / 分享扩展共享免费额度，两个 target 必须使用同一个 Keychain Access Group；
   仓库 entitlements 使用 `$(AppIdentifierPrefix)com.lingxifox.Texel.shared`。
   免费 Personal Team 的个人资料没有 App Groups，因此默认不依赖 App Group。
+- iPad 与 iPhone 共用 `com.lingxifox.Texel`（`TARGETED_DEVICE_FAMILY = "1,2"`）。
+- macOS 版是独立 target `TexelMac`，Bundle ID `com.lingxifox.Texel.Mac`。上架前需要决定：
+  与 iOS 合并为同一 App 记录（共享内购与权益），或作为独立 Mac App 单独配置商品；
+  见第 7 节「已知边界」。
 
-## 2. 创建非消耗型商品
+## 2. 创建内购项目（四种）
 
-在 App Store Connect → 你的 App → **App 内购买项目**：
+在 App Store Connect → 你的 App → **App 内购买项目**。1.9.1 需要四种商品，权益相同、期限不同：
 
-1. 类型选择 **非消耗型（Non-Consumable）**。
-2. Product ID 必须精确为：
+| 类型 | Product ID | 说明 |
+| --- | --- | --- |
+| 非消耗型 Non-Consumable | `com.lingxifox.LingXiStyle.pro` | 永久版，沿用 1.8 商品，已购用户不受影响 |
+| 非续期订阅 Non-Renewing Subscription | `com.lingxifox.LingXiStyle.pro.day` | 24 小时日卡，一次性购买 |
+| 自动续期订阅（订阅组） | `com.lingxifox.LingXiStyle.pro.weekly` | 周订阅 |
+| 自动续期订阅（同一订阅组） | `com.lingxifox.LingXiStyle.pro.monthly` | 月订阅 |
 
-   ```
-   com.lingxifox.LingXiStyle.pro
-   ```
-
-3. 参考名称：`Texel Pro`。
-4. 本地化至少填写简体中文；建议同时填写繁体中文、英文、日文，德文可选：
-   - 简体中文：`纹粒 Pro` / `一次购买，永久不限张数。`
-   - 繁體中文：`Texel Pro` / `一次購買，永久不限張數。`
-   - English: `Texel Pro` / `One purchase. Unlimited photos, forever.`
-   - 日本語：`Texel Pro` / `一度の購入で、写真はいつでも無制限。`
-   - Deutsch（可选）：`Texel Pro` / `Einmal kaufen. Unbegrenzte Fotos, für immer.`
-5. 上传审核截图（Pro 页面 + 购买按钮 + 恢复购买）。
-6. 价格：先设置一个基准地区价格，其他地区使用 Apple 的自动定价，或按地区手动覆盖。
+1. 永久版类型必须是 **非消耗型**，Product ID 精确为 `com.lingxifox.LingXiStyle.pro`。
+2. 日卡类型必须是 **非续期订阅**，周期 1 天，不自动续订。
+3. 周 / 月订阅放在**同一个订阅组**，周为第 1 档、月为第 2 档；切换档次由系统按升级 / 降级规则处理。
+4. 参考名称统一使用 `Texel Pro`，本地化至少填写简体中文，建议同时填写繁体中文、英文、日文：
+   - 简体中文：`纹粒 Pro` / `解锁不限张数，支持日卡、订阅或永久。`
+   - 繁體中文：`Texel Pro` / `解鎖不限張數，支援日卡、訂閱或永久。`
+   - English: `Texel Pro` / `Unlock unlimited photos with a day pass, a subscription, or lifetime.`
+   - 日本語：`Texel Pro` / `日券・サブスク・買い切りのいずれかで枚数無制限。`
+5. 上传审核截图（Pro 方案页四档、购买按钮、恢复购买、管理订阅）。
+6. 价格：先设置基准地区价格，其他地区使用 Apple 自动定价或手动覆盖。
 7. 商品状态必须为 **Ready to Submit / 已准备提交**，并随 App 版本一起提交审核。
 
 App 代码只读取 `Product.displayPrice`，不包含任何美元 / 人民币 / 日元 / 欧元硬编码。
@@ -58,14 +63,20 @@ App 代码只读取 `Product.displayPrice`，不包含任何美元 / 人民币 /
    `$(AppIdentifierPrefix)com.lingxifox.Texel.shared`
 4. 不需要 App Groups；免费额度默认使用 Keychain 槽位账本。
 5. 真实内购不需要额外的 StoreKit entitlement，但需要 App Store Connect 商品与有效签名。
-6. 发布配置与 Debug 配置均为 iPhone-only（`TARGETED_DEVICE_FAMILY=1`）；宽屏双栏由 iPhone Duo 内屏的 regular size class 触发，不使用 iPad。
+6. `TexelMac`：选择同一 Team，启用 App Sandbox 与
+   `com.apple.security.files.user-selected.read-write`、`files.bookmarks.app-scope`；
+   entitlements 见 `Mac/Resources/TexelMac.entitlements`，隐私清单见 `Mac/Resources/PrivacyInfo.xcprivacy`。
+7. iOS 与 iPadOS 共用 iPhone 构建（`TARGETED_DEVICE_FAMILY = "1,2"`），宽屏双栏仍由 Duo 内屏的
+   regular size class 触发；iPad 使用两栏首页与居中内容列。
 
 ## 4. 本地与 Sandbox 验证
 
 ### 4.1 模拟器（仓库默认）
 
-`project.yml` 已把 `Configuration.storekit` 绑定到 Debug 的 `LingXiStyle` scheme。
-执行 `xcodegen generate` 后，用 Xcode Run 启动 App，购买面板会使用本地配置，不产生真实交易。
+`project.yml` 已把 `Configuration.storekit` 绑定到 Debug 的 `LingXiStyle` 与 `TexelMac` scheme。
+执行 `xcodegen generate` 后，用 Xcode Run 启动任一 App，购买面板会使用本地配置，不产生真实交易。
+本地配置包含四种商品：永久 2.99、日卡 0.49、周 0.99、月 1.99，这些只是测试显示价，
+与 191.md 提到的永久 $7.99 不同；改价必须在 App Store Connect 获得授权后单独进行。
 
 自动化测试：
 
@@ -92,9 +103,12 @@ Offer Code 测试的运行时限制：
 1. App Store Connect → 用户和访问 → Sandbox → 测试员，新建 Sandbox 账号。
 2. 真机退出日常 Apple ID 的 App Store 登录，用 Sandbox 账号购买。
 3. 验证：购买成功、取消、待批准、恢复购买、删除重装后恢复、退款后权益回收。
-4. 退款可在 App Store Connect → 用户与访问 → Sandbox → 交易记录中模拟；或使用
+4. 订阅额外验证：日卡 24 小时后回落到免费额度；周 / 月订阅在 Sandbox 中加速续订、到期与升级 / 降级；
+   订阅管理页能打开系统「管理订阅」；取消后到期前权益保持，到期后回落。
+5. 同一 Apple ID 在 iPhone、iPad 与 Mac 上分别恢复购买，确认权益一致。
+6. 退款可在 App Store Connect → 用户与访问 → Sandbox → 交易记录中模拟；或使用
    StoreKitTest 的 `refundTransaction` 做自动化回归。
-5. 真机必须验证 App 与分享扩展共享额度。Xcode 自动签名构建的模拟器产物会生成
+7. 真机必须验证 App 与分享扩展共享额度。Xcode 自动签名构建的模拟器产物会生成
    `*-Simulated.xcent`，1.7.1 已用签名模拟器与集成测试验证 App / 扩展同组同步；但这不等于真机 distribution
    签名通过，真机仍需复验。
 
@@ -115,9 +129,9 @@ Offer Code，代码中不得出现固定兑换码、开发者账号白名单或�
 
 ## 5. 发布前检查清单
 
-- [ ] 版本号 `1.8.1`、Build `10`（或更高）已写入 `project.yml`。
+- [ ] 版本号 `1.9.1`、Build `11`（或更高）已写入 `project.yml`。
 - [ ] `xcodegen generate` 后 Debug scheme 仍带 `Configuration.storekit`。
-- [ ] `LingXiKitTests`、`LingXiPurchaseTests`、`LingXiEngineTests`、`StylePortCoreTests`、`LingXiIntegrationTests`、`LingXiUITests` 全绿。
+- [ ] `LingXiKitTests`、`LingXiPurchaseTests`、`LingXiEngineTests`、`StylePortCoreTests`、`LingXiIntegrationTests`、`LingXiUITests`、`LingXiMacPipelineTests` 全绿（本机 157 项 / 2 跳过 / 0 失败）。
 - [ ] Release 构建不包含 StoreKit 测试配置。
 - [ ] 商品 ID、类型、本地化、价格、审核截图已填。
 - [ ] Paid Apps Agreement、税务、银行信息完成。
@@ -131,29 +145,38 @@ Offer Code，代码中不得出现固定兑换码、开发者账号白名单或�
 - [ ] 跨入口额度竞态：另一入口抢走最后额度时，未处理项显示为延后，不记失败。
 - [ ] Keychain 无共享组 entitlement 时 fail-closed，不静默拆成两套账本。
 - [ ] 分享扩展在真机完成读取、转换、保存；另测取消与 15 秒超时。
-- [ ] 集成测试宿主已授权相册，34 条真实 HEIC / 实况照片 / 分享 / 快捷指令测试通过。
-- [ ] XCUITest 教程分步、首页、设置与 Pro 入口冒烟通过；Duo 内屏双栏、设置与 Pro sheet 实测通过（发布版 iPhone-only）。
+- [ ] 集成测试宿主已授权相册，37 条真实 HEIC / 实况照片 / 分享 / 快捷指令 / 保险箱测试通过。
+- [ ] XCUITest 教程分步、首页、设置与 Pro 入口冒烟通过；Duo 内屏双栏、设置与 Pro sheet 实测通过（1.9.1 起 iPad 也属于发布支持范围）。
 - [x] GitHub Actions CI 已成功运行：[run 42435430433](https://github.com/LingXiFox/LingXiStyle/actions/runs/42435430433)
       （1.7.1 / commit `365abf5`；Policy、macOS 单测、iOS 18.5、iOS 26.x 全绿；两条集成均 29/29、0 跳过）。
       1.7.0 的 [run 42371186297](https://github.com/LingXiFox/LingXiStyle/actions/runs/42371186297) 亦全绿。
-- [ ] 设置页 Pro 行只显示「一次购买，永久不限张数。」或已购状态，不显示价格。
+- [ ] 设置页 Pro 行显示「解锁不限张数，支持日卡、订阅或永久。」或已购状态，不显示价格。
+- [ ] 成果保险箱：保留期、占用、剩余时间、重存不扣额度、删除与清理过期均有四语言文案。
+- [ ] 任务历史：成功 / 部分完成 / 失败 / 取消 / 中断状态可读，失败可重试，中断任务启动后可见。
+- [ ] 免费体验每台设备一次，卸载重装不重置，到期回到实际权益。
+- [ ] iPad 两栏首页、多窗口与拖放；Mac 导入 / 批量 / 自定义导出文件夹 / 快捷键。
 - [ ] 浅色 / 深色、Dynamic Type、Reduce Motion、VoiceOver 通过。
 - [ ] 四语言商店文案与可部署隐私 / 支持页已复核：`docs/app-store/listing.md`、`docs/privacy/index.html`、`docs/support/index.html`。
 - [ ] 真实 App 截图已按 `docs/app-store/screenshots.md` 捕获；未使用 `Tests/Fixtures/IMG_5296.HEIC` 或合成图。
 - [ ] 中国大陆 App 备案 / ICP 信息已按 `docs/app-store/china-mainland.md` 完成；未取得真实号码前不提交中国大陆区。
 - [x] App target 已提供 `PrivacyInfo.xcprivacy`（`UserDefaults` / `CA92.1`）；Share Extension 已提供独立清单（`FileTimestamp` / `C617.1`）。
 - [ ] 隐私说明、支持 URL、审核备注已填写。
-- [x] Release archive 已生成：1.8.1 / build 10，`Apple Distribution` 签名，IPA 无本地 StoreKit 配置。
+- [x] 1.8.1 Release archive 已生成（1.8.1 / build 10，`Apple Distribution` 签名，IPA 无本地 StoreKit 配置）。
+- [ ] 1.9.1 Release archive / IPA 尚未生成与上传；本项目前只做了 Debug / Release 构建与模拟器运行验证。
 - [ ] 已上传 App Store Connect / TestFlight（本轮只生成 archive 与 IPA，未上传）。
 
 ## 6. 审核备注建议
 
 ```
-Texel Pro is a one-time non-consumable in-app purchase that removes the
-free daily limit of 5 successful photo conversions. It is not a subscription.
-Free users can keep using 5 conversions per local calendar day. All conversions
-run on-device; no account or server is required. Restore Purchases is available
-on the Pro page.
+Texel Pro unlocks unlimited photo conversions. Four products share the same
+benefits and differ only in duration: a lifetime non-consumable (com.lingxifox.LingXiStyle.pro),
+a 24-hour non-renewing day pass (...pro.day), and weekly / monthly auto-renewable
+subscriptions (...pro.weekly / ...pro.monthly) in one subscription group.
+Free users can keep using 5 conversions per local calendar day. New users may claim
+one 24-hour Pro trial per device without subscribing or paying. All conversions run
+on-device; no account or server is required. Restore Purchases and Manage
+Subscriptions are available on the Pro page. Subscription terms and cancellation
+are shown before purchase; deleting the app does not cancel a subscription.
 ```
 
 ## 7. 已知边界
@@ -165,7 +188,12 @@ on the Pro page.
   1.7.0 已在 iOS 27.3 模拟器完成原片 → 读取 → 转换 → 保存 → 额度同步；真机分享扩展仍未验证。
 - 1.7.1 新增真实 48MP HEIC 端到端集成测试与 XCUITest 启动冒烟；本机六套测试合计
   98 项执行 / 96 通过 / 2 跳过。Duo 仅验证首页、设置与 Pro 页。
-- 1.8.1 本机六套测试 118 项执行 / 0 失败 / 2 跳过；实况双模式、106 帧额度、9 步教程、Duo 外屏全流程与 Duo 内屏双栏已验证；无真机、无 iOS 18 / 26 运行时；Duo 内屏完整转换与折叠中间态未验证。
+- 1.8.1 本机六套测试 118 项执行 / 0 失败 / 2 跳过；实况双模式、106 帧额度、9 步教程、Duo 外屏全流程与 Duo 内屏双栏已验证。
+- 1.9.1 本机七套测试 157 项 / 2 跳过 / 0 失败；iOS / iPadOS 与 macOS Debug、Release 构建通过；无真机、无 iOS 18 / 26 运行时，
+  真实交易与订阅续订 / 退款、iPad / Mac 完整人工流程未验证。
+- `TexelMac` 目前使用独立 Bundle ID `com.lingxifox.Texel.Mac`。若要实现 iPhone / iPad / Mac 同一 App 记录下的
+  统一购买与恢复，上架前必须把它并入 iOS 的 App 记录（或改用同一 Bundle ID 的 macOS 平台）；
+  否则 Mac 版需要单独配置商品，跨平台权益连续性无法保证。这是发布配置决策，代码层的权益计算已按统一 product ID 实现。
 - 100% Offer Code 的生产兑换依赖 App Store Connect 配置与商品可发放状态；
   本地配置不能替代生产资格检查。
 - 若未来改用 App Group + SQLite 作为额度存储，必须同时为 App 与扩展申请 App Group，

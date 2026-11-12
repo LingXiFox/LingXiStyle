@@ -28,14 +28,14 @@ Apple 的字符上限与本文文案的实际字符数（按 Unicode 字符计�
 | 字段 | 值 | 状态 |
 | --- | --- | --- |
 | App 名称（App Store Connect） | 按语言填写下方 Name | 可复制 |
-| 版本 | 1.7.1 | 与 `project.yml` 一致 |
-| Build | 9 | 与 `CURRENT_PROJECT_VERSION` 一致 |
+| 版本 | 1.9.1 | 与 `project.yml` 一致 |
+| Build | 11 | 与 `CURRENT_PROJECT_VERSION` 一致 |
 | Bundle ID | `com.lingxifox.Texel` | 已配置 |
 | 主要分类 | Photo & Video | 建议，提交时以 App Store Connect 可选值为准 |
 | 次要分类 | 可不填；如需要可选 Graphics & Design | 建议，不要为了排名堆分类 |
 | 版权 | `© 2026 LingXiFox` | 来自 LICENSE；如使用其他法律实体需替换 |
-| 价格 | 免费下载；Pro 为一次性非消耗型内购 | 价格由 App Store Connect 决定 |
-| 内购 Product ID | `com.lingxifox.LingXiStyle.pro` | 已在 `AppStoreRelease.md` 固定 |
+| 价格 | 免费下载；Pro 提供日卡 / 周订阅 / 月订阅 / 永久四种 | 价格由 App Store Connect 决定 |
+| 内购 Product ID | `com.lingxifox.LingXiStyle.pro`、`...pro.day`、`...pro.weekly`、`...pro.monthly` | 已在 `AppStoreRelease.md` 固定 |
 | 隐私政策 URL | `<PUBLIC_BASE_URL>/privacy/` | **占位，需部署后替换** |
 | 支持 URL | `<PUBLIC_BASE_URL>/support/` | **占位，需部署后替换** |
 | 营销 URL（可选） | `<PUBLIC_BASE_URL>/` | **占位，需部署后替换** |
@@ -62,7 +62,7 @@ App Store Connect: Simplified Chinese
 ### Promotional Text (170)
 
 ```text
-iPhone 16 / 17 HEIC 原片专用。只追加纹理与颗粒，不覆盖原图、不上传照片。每天 5 张免费，纹粒 Pro 一次购买，永久不限张数。
+iPhone / iPad HEIC 原片专用。只追加纹理与颗粒，不覆盖原图、不上传照片。每天 5 张免费，Pro 支持日卡、订阅或永久。
 ```
 
 ### Keywords (100)
@@ -86,7 +86,7 @@ HEIC,纹理,颗粒,胶片,质感,照片,修图,原图,无损,纹粒,Texel,滤镜
 【每天 5 张免费】
 • 按设备本地自然日重置，所有入口共享额度
 • 只有成功保存或导出才扣 1 张；失败、跳过、不兼容、取消不扣
-• 纹粒 Pro 为一次性购买，永久不限张数，支持恢复购买
+• 纹粒 Pro 提供 24 小时日卡、周 / 月订阅与永久买断，权益相同，支持恢复购买
 
 【为真实工作流设计】
 • 最多 9 张批量处理，iCloud 原件真实下载并显示阶段进度
@@ -99,15 +99,16 @@ HEIC,纹理,颗粒,胶片,质感,照片,修图,原图,无损,纹粒,Texel,滤镜
 • 无需登录；照片只在你明确选择时访问
 • 简体中文、繁体中文、English、日本語
 
-适用：iPhone 16 / 17 系列 HEIC 原片。Live Photo、RAW、JPEG / PNG 暂不支持。
+适用：iPhone 与 iPad 上拍摄的 HEIC / HEIF 原片，支持实况照片。RAW、JPEG / PNG 暂不支持。
 ```
 
 ### What's New (4000)
 
 ```text
-• 修复分享扩展在读取阶段可能阻塞的问题
-• 改进分享扩展在取消、超时与重试时的处理
-• 改进快捷指令批量处理与额度提示
+• 新增成果保险箱：转换结果在 App 内保留 7 天，可预览、重新保存、导出或删除，重新保存不扣额度
+• 新增任务历史与中断恢复：失败可重试，异常退出后不再重复扣额度
+• Pro 新增日卡、周订阅与月订阅，并可免费领取一次 24 小时体验
+• 新增 iPad 原生两栏布局与 macOS 版
 • 其他稳定性改进
 ```
 
@@ -130,7 +131,7 @@ Texel - 真實紋理與顆粒
 ### Promotional Text (170)
 
 ```text
-專為 iPhone 16 / 17 HEIC 原片設計。只加上紋理與顆粒，不覆蓋原圖、不上傳照片。每天 5 張免費，Texel Pro 一次購買，永久不限張數。
+專為 iPhone / iPad HEIC 原片設計。只加上紋理與顆粒，不覆蓋原圖、不上傳照片。每天 5 張免費，Pro 支援日卡、訂閱或永久。
 ```
 
 ### Keywords (100)
@@ -154,7 +155,7 @@ HEIC,紋理,顆粒,膠片,質感,照片,修圖,原圖,無損,紋粒,Texel,濾鏡
 【每天 5 張免費】
 • 依裝置本地自然日重置，所有入口共用額度
 • 只有成功儲存或匯出才扣 1 張；失敗、跳過、不相容、取消不扣
-• Texel Pro 為一次性購買，永久不限張數，支援回復購買
+• Texel Pro 提供 24 小時日卡、週 / 月訂閱與永久買斷，權益相同，支援回復購買
 
 【為真實工作流程設計】
 • 最多 9 張批次處理，iCloud 原件真實下載並顯示階段進度
@@ -167,15 +168,16 @@ HEIC,紋理,顆粒,膠片,質感,照片,修圖,原圖,無損,紋粒,Texel,濾鏡
 • 無需登入；照片只在你明確選取時存取
 • 簡體中文、繁體中文、English、日本語
 
-適用：iPhone 16 / 17 系列 HEIC 原片。Live Photo、RAW、JPEG / PNG 暫不支援。
+適用：iPhone 與 iPad 拍攝的 HEIC / HEIF 原片，支援實況照片。RAW、JPEG / PNG 暫不支援。
 ```
 
 ### What's New (4000)
 
 ```text
-• 修正分享擴充功能在讀取階段可能阻塞的問題
-• 改進分享擴充功能在取消、逾時與重試時的處理
-• 改進捷徑批次處理與額度提示
+• 新增成果保險箱：轉換結果在 App 內保留 7 天，可預覽、重新儲存、匯出或刪除，重新儲存不扣額度
+• 新增任務歷史與中斷恢復：失敗可重試，異常結束後不再重複扣額度
+• Pro 新增日卡、週訂閱與月訂閱，並可免費領取一次 24 小時體驗
+• 新增 iPad 原生兩欄佈局與 macOS 版
 • 其他穩定性改進
 ```
 
@@ -198,7 +200,7 @@ Real texture & grain for HEIC
 ### Promotional Text (170)
 
 ```text
-Made for iPhone 16/17 HEIC originals. Add texture and grain without overwriting the original or uploading. 5 free photos a day; Texel Pro is one-time and permanent.
+Made for iPhone and iPad HEIC originals. Add texture and grain without overwriting the original or uploading. 5 free photos a day; Pro offers a day pass, subscriptions, or lifetime.
 ```
 
 ### Keywords (100)
@@ -222,7 +224,7 @@ ONLY ADD, NEVER TRANSCODE
 5 FREE PHOTOS EVERY DAY
 • Resets on your device's local calendar day and is shared across every entry point
 • Only a successful save or export uses one photo; failures, skips, incompatible files, and cancellations do not
-• Texel Pro is a one-time purchase with unlimited photos forever; Restore Purchases is supported
+• Texel Pro offers a 24-hour day pass, weekly / monthly subscriptions, or a lifetime purchase, all with the same benefits; Restore Purchases is supported
 
 BUILT FOR REAL WORKFLOWS
 • Process up to 9 photos at once, with real iCloud download progress and stage-by-stage status
@@ -235,15 +237,16 @@ PRIVACY FIRST
 • No sign-in; photos are accessed only when you select them
 • Simplified Chinese, Traditional Chinese, English, Japanese
 
-Works with HEIC originals from iPhone 16 / 17. Live Photos, RAW, JPEG, and PNG are not supported.
+Works with HEIC / HEIF originals from iPhone and iPad, including Live Photos. RAW, JPEG, and PNG are not supported.
 ```
 
 ### What's New (4000)
 
 ```text
-• Fixes a possible stall while the Share Extension is reading a photo
-• Improves Share Extension handling for cancellation, timeouts, and retries
-• Improves Shortcuts batch processing and quota messages
+• New Vault keeps results in the app for 7 days, with preview, re-save, export, and delete; re-saving never uses quota
+• New task history and interruption recovery: retry failures without paying twice after a crash
+• Pro adds a day pass plus weekly and monthly subscriptions, and a free 24-hour trial
+• New native iPad layout and a macOS app
 • Other stability improvements
 ```
 
@@ -266,7 +269,7 @@ HEICに本物の質感と粒子を
 ### Promotional Text (170)
 
 ```text
-iPhone 16 / 17 の HEIC 原画向け。テクスチャと粒子だけを加え、元の写真は上書きせず、アップロードもしません。1日5枚まで無料、Texel Pro は一度の購入で永久に無制限。
+iPhone / iPad の HEIC 原画向け。テクスチャと粒子だけを加え、元の写真は上書きせず、アップロードもしません。1日5枚まで無料、Pro は日券・サブスク・買い切りに対応。
 ```
 
 ### Keywords (100)
@@ -290,7 +293,7 @@ Texel は、iPhone 16 / 17 で撮影した HEIC 原画に、本物のテクス�
 【1 日 5 枚まで無料】
 • 端末のローカル日付でリセット。すべての入口で同じ無料枠を共有
 • 保存または書き出しに成功したときだけ 1 枚消費。失敗、スキップ、非対応、キャンセルでは消費しません
-• Texel Pro は一度の購入で永久に無制限。購入の復元にも対応
+• Texel Pro は 24 時間の日券、週 / 月サブスク、買い切りの 4 種類。特典は同じで、購入の復元にも対応
 
 【実際のワークフロー向け】
 • 最大 9 枚をまとめて処理。iCloud の元画像を実際にダウンロードし、段階的な進行状況を表示
@@ -303,15 +306,16 @@ Texel は、iPhone 16 / 17 で撮影した HEIC 原画に、本物のテクス�
 • ログイン不要。写真にアクセスするのは、あなたが選択したときだけ
 • 簡体字中国語、繁体字中国語、英語、日本語
 
-対応：iPhone 16 / 17 シリーズの HEIC 原画。Live Photo、RAW、JPEG / PNG は非対応です。
+対応：iPhone と iPad で撮影した HEIC / HEIF 原画。Live Photo に対応。RAW、JPEG / PNG は非対応です。
 ```
 
 ### What's New (4000)
 
 ```text
-• 共有拡張機能の読み込み時に処理が止まる可能性がある問題を修正
-• 共有拡張機能のキャンセル、タイムアウト、再試行の処理を改善
-• ショートカットの一括処理と無料枠の表示を改善
+• 成果保険箱を追加：変換結果を 7 日間アプリ内に保存し、プレビュー、再保存、書き出し、削除が可能。再保存で無料枠は消費しません
+• タスク履歴と中断からの復元を追加：失敗の再試行、異常終了後の二重消費を防止
+• Pro に日券、週 / 月サブスクを追加。24 時間の無料体験も一度だけ利用可能
+• iPad のネイティブ 2 カラム レイアウトと macOS 版を追加
 • その他の安定性を改善
 ```
 
