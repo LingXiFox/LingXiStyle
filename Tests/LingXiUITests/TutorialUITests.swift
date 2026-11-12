@@ -29,6 +29,15 @@ final class TutorialUITests: XCTestCase {
                       "the tapped mode must show its selected checkmark")
     }
 
+    /// Settings gained rows in 1.9.1; scroll the form until the target row is reachable.
+    private func reveal(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 6) {
+        var swipes = 0
+        while !(element.exists && element.isHittable) && swipes < maxSwipes {
+            app.swipeUp()
+            swipes += 1
+        }
+    }
+
     func testFirstRunShowsTutorialAndSkipLeadsHome() throws {
         let app = XCUIApplication()
         launch(firstRun: true, app: app)
@@ -81,6 +90,7 @@ final class TutorialUITests: XCTestCase {
         app.buttons["home.settings"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 10))
         let settingsTutorial = app.buttons["settings.tutorial"]
+        reveal(settingsTutorial, in: app)
         XCTAssertTrue(settingsTutorial.waitForExistence(timeout: 5), "settings must link to the tutorial")
         settingsTutorial.tap()
         XCTAssertTrue(tutorial.waitForExistence(timeout: 10), "settings tutorial entry did not open the sheet")
@@ -111,7 +121,9 @@ final class TutorialUITests: XCTestCase {
 
         app.buttons["home.settings"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 10))
-        app.buttons["settings.tutorial"].tap()
+        let settingsTutorial = app.buttons["settings.tutorial"]
+        reveal(settingsTutorial, in: app)
+        settingsTutorial.tap()
         XCTAssertTrue(tutorial.waitForExistence(timeout: 10))
         advanceToLivePhotoStep(in: app)
         let persisted = app.buttons["livePhoto.mode.full"]

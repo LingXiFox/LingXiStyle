@@ -354,6 +354,10 @@ final class MacModel: ObservableObject {
                 items[index].outputURL = result.outputURL
                 items[index].outputVideoURL = result.outputVideoURL
                 items[index].vaultRecordID = result.vaultRecordID
+                if let vaultWarning = result.vaultWarning {
+                    notice = String(localized: "mac.vault.warning.saveFailed",
+                                    defaultValue: "成果已导出，但保险箱暂存失败：\(vaultWarning)")
+                }
                 if !status.isPro, allowance != Int.max { allowance -= 1 }
             } catch is CancellationError {
                 guard let index = items.firstIndex(where: { $0.id == id }) else { continue }

@@ -20329,6 +20329,64 @@
           }
         }
       }
+    },
+    "vault.warning.saveFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "成果已保存到相册，但保险箱暂存失败：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "成果已儲存到相簿，但保險箱暫存失敗：%@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved to Photos, but the vault copy failed: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真には保存しましたが、保管庫への保存に失敗しました：%@"
+          }
+        }
+      }
+    },
+    "mac.vault.warning.saveFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "成果已导出，但保险箱暂存失败：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "成果已匯出，但保險箱暫存失敗：%@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exported, but the vault copy failed: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "書き出しは完了しましたが、保管庫への保存に失敗しました：%@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -842,6 +842,10 @@ final class AppModel: ObservableObject {
                                             byteCount: result.outputByteCount)
                     }
                     run?.complete(id, state: .saved)
+                    if let vaultWarning = result.vaultWarning {
+                        notice = String(localized: "vault.warning.saveFailed",
+                                        defaultValue: "成果已保存到相册，但保险箱暂存失败：\(vaultWarning)")
+                    }
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } catch is CancellationError {
                     guard run?.id == sessionID else { return }
