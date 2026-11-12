@@ -2,7 +2,7 @@
 
 - 日期：2026-11-12
 - 版本：1.9.1（build 11）
-- 结论：iOS / iPadOS 与 macOS Debug、Release 构建通过；七套自动化测试合计 157 项、0 失败、2 跳过。
+- 结论：iOS / iPadOS 与 macOS Debug、Release 构建通过；七套自动化测试合计 160 项、0 失败、2 跳过。
   成果保险箱、任务日志与中断恢复、多档 Pro 权益、免费体验与 macOS 真实 HEIC 管线均有自动化覆盖。
   iPhone 17 与 iPad 13 模拟器、macOS 本机完成界面冒烟。本机没有真机与 iOS 18 / 26 运行时，
   真实交易、订阅续订 / 退款与 iPad / Mac 的完整人工流程未验证。
@@ -41,14 +41,14 @@
 | scheme | 环境 | 结果 |
 | --- | --- | --- |
 | `LingXiKitTests` | macOS arm64 | 68 / 68 通过（新增 VaultStore 8、TaskJournal 7、ProPlans 11） |
-| `LingXiPurchaseTests` | iPhone 17 模拟器（iOS 27.2） | 24 / 24 通过 |
+| `LingXiPurchaseTests` | iPhone 17 模拟器（iOS 27.2） | 27 / 27 通过（新增 3 条多档购买：四商品加载、日卡 24h、周订阅） |
 | `LingXiEngineTests` | macOS arm64 | 5 / 5 通过 |
 | `StylePortCoreTests` | macOS arm64 | 15 项，13 通过、2 跳过（依赖外部 fixture） |
 | `LingXiIntegrationTests` | iPhone 17 模拟器 | 37 / 37 通过（新增 VaultJournal 3：保存 + 保险箱 + journal、重存不扣费、中断不提交） |
 | `LingXiUITests` | iPhone 17 模拟器 | 5 / 5 通过（4 教程 + 1 启动 / 首页 / 设置 / Pro 冒烟） |
 | `LingXiMacPipelineTests` | macOS arm64 | 3 / 3 通过（真实 HEIC → ConversionService → 保险箱 + 任务日志；markSaved 不改额度；中断恢复释放预留） |
 
-合计执行 157 项、通过 155、跳过 2、失败 0。
+合计执行 160 项、通过 158、跳过 2、失败 0。
 
 **已知偶发**：`LingXiPurchaseTests` 整套首次运行时，`testFreeOfferCodeGrantsVerifiedPro` 曾失败一次，
 日志为 `StoreKitServiceError(... ErrorType.system(StoreKitInternalError.unknown), environment: XcodeTest)`；
@@ -60,6 +60,7 @@
 - iPhone 17（iOS 27.2）：启动、首页额度胶囊、设置「成果与记录」入口、任务历史、保险箱、
   Pro 方案页四档与试用卡片均可打开；截图逐个复核。
 - iPad 13（iOS 27.2）：两栏首页（左文案、右 380 pt 选择卡）、内容限宽 980 pt、顶部额度胶囊；
+  设置 / 保险箱 / 历史 / Pro 在 iPad 上以整页 sheet 呈现（`presentationSizing(.page)`），导航标题与返回可用；
   选择 / 处理 / 结果页居中限宽；未执行完整转换的人工点击流程。
 - macOS（Apple Silicon，macOS 15）：`Texel.app` 启动，窗口 1160 × 780，侧栏三项、拖放区、
   底部额度与「升级 纹粒 Pro」、操作栏可见；额度显示 5 / 5。导入 / 转换的真实管线由
