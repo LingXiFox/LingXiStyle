@@ -236,6 +236,23 @@ targets:
         Release:
           "CODE_SIGN_IDENTITY[sdk=macosx*]": Apple Distribution
           "PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]": "$(TEXEL_MAC_APP_STORE_PROFILE)"
+  LingXiMacPipelineTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/LingXiMacPipelineTests
+      - path: Tests/Fixtures/IMG_5296.HEIC
+        buildPhase: resources
+      - path: Tests/Fixtures/LivePhoto
+        buildPhase: resources
+    dependencies:
+      - target: LingXiServices
+      - target: LingXiKit
+      - target: LingXiEngine
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lingxifox.Texel.MacPipelineTests
+        GENERATE_INFOPLIST_FILE: YES
   LingXiKitTests:
     type: bundle.unit-test
     platform: macOS

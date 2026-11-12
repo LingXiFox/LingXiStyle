@@ -302,9 +302,10 @@ public final class TaskJournal: @unchecked Sendable {
                 if item.quotaState == .reserved, let reservation = item.quotaReservation {
                     if item.state == .saved {
                         toCommit.append(reservation)
-                    } else if item.vaultRecordID == nil {
-                        // The conversion never produced a result, so the reservation must not
-                        // stay held until its 30 minute expiry blocks another attempt.
+                    } else {
+                        // Only a confirmed save settles a slot. Anything else gives the slot
+                        // back immediately instead of holding it until the 30 minute expiry,
+                        // and a vaulted result stays re-savable for free.
                         item.quotaState = .released
                         toRelease.append(reservation)
                     }

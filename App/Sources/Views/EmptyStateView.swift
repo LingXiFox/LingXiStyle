@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import PhotosUI
 import LingXiKit
 
@@ -10,13 +11,17 @@ struct EmptyStateView: View {
     @Environment(\.contentMargin) private var margin
     @Environment(\.duoControlInset) private var controlInset
     @Environment(\.duoLayout) private var duoLayout
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.reduceMotionOverride) private var reduceMotionOverride
     private var reduceMotion: Bool { systemReduceMotion || reduceMotionOverride }
     @State private var appeared = false
     @ScaledMetric(relativeTo: .title) private var coverTitleSize: CGFloat = 28
     @ScaledMetric(relativeTo: .largeTitle) private var innerTitleSize: CGFloat = 36
-
+    @ScaledMetric(relativeTo: .largeTitle) private var padTitleSize: CGFloat = 44
+    private var usesPadLayout: Bool {
+        horizontalSizeClass == .regular && UIDevice.current.userInterfaceIdiom == .pad
+    }
     var body: some View {
         content
             .accessibilityIdentifier("home.root")
@@ -30,13 +35,68 @@ struct EmptyStateView: View {
 
     @ViewBuilder
     private var content: some View {
-        switch duoLayout {
-        case .phone:
-            standardBody
-        case .cover:
-            coverBody
-        case .inner:
-            innerBody
+        if usesPadLayout {
+            padBody
+        } else {
+            switch duoLayout {
+            case .phone:
+                standardBody
+            case .cover:
+                coverBody
+            case .inner:
+                innerBody
+            }
+        }
+    }
+
+    // MARK: - iPad
+
+    /// iPad has room for both the promise and the picker at once: text on the left,
+    /// a fixed-width picker card on the right, bounded so paragraphs never stretch.
+    private var padBody: some View {
+        GeometryReader { proxy in
+            ScrollView {
+            VStack(spacing: 0) {
+                topBar
+                    .frame(maxWidth: Layout.iPadHomeMaxWidth)
+                    .padding(.top, Spacing.xs)
+
+
+                HStack(alignment: .center, spacing: Spacing.xl) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        BrandMark(size: 72)
+
+                        Text("为原片添上\n纹理与颗粒")
+                            .font(.system(size: padTitleSize, weight: .bold))
+                            .foregroundStyle(Palette.textPrimary)
+                            .lineSpacing(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, Spacing.l)
+                            .accessibilityAddTraits(.isHeader)
+
+                        Text("只追加纹理与颗粒层，主图像素逐块校验不变。结果另存为一张新照片。")
+                            .font(.system(size: 17))
+                            .foregroundStyle(Palette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, Spacing.s)
+
+                        fullInfoGroup
+                            .padding(.top, Spacing.xl)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    pickerZone
+                        .frame(width: Layout.iPadPickerWidth, height: 420)
+                }
+                .frame(maxWidth: Layout.iPadHomeMaxWidth)
+                .padding(.top, Spacing.xl)
+
+                Spacer(minLength: Spacing.l)
+            }
+            .padding(.horizontal, Spacing.xl)
+            .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
         }
     }
 
@@ -263,7 +323,8 @@ struct EmptyStateView: View {
                 }
                 .frame(minHeight: Layout.minimumTouchTarget)
 
-                innerPickerZone
+                pickerZone
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .padding(.trailing, DuoMetrics.innerRightPadding)
@@ -273,7 +334,7 @@ struct EmptyStateView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var innerPickerZone: some View {
+    private var pickerZone: some View {
         VStack(spacing: Spacing.m) {
             Image(systemName: "photo.on.rectangle")
                 .font(.system(size: 34, weight: .light))

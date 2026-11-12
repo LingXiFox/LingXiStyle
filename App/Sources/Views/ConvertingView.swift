@@ -58,6 +58,7 @@ struct ConvertingView: View {
             .padding(.horizontal, margin)
             .padding(.top, Spacing.s)
             .padding(.bottom, Spacing.l)
+            .frame(maxWidth: Layout.iPadContentMaxWidth + 48)
         }
         .scrollBounceBehavior(.basedOnSize)
         .safeAreaInset(edge: .bottom, spacing: 0) { cancelBar }

@@ -60,9 +60,9 @@ final class TaskJournalTests: XCTestCase {
         XCTAssertEqual(recovery.task.state, .interrupted)
         XCTAssertEqual(recovery.task.items.map(\.state), [.saved, .interrupted, .interrupted])
         XCTAssertEqual(recovery.reservationsToCommit.map(\.id), ["r-1"])
-        XCTAssertEqual(recovery.reservationsToRelease.map(\.id), ["r-2"])
+        XCTAssertEqual(recovery.reservationsToRelease.map(\.id), ["r-2", "r-3"])
         XCTAssertEqual(recovery.task.items[1].quotaState, .released)
-        XCTAssertEqual(recovery.task.items[2].quotaState, .reserved)
+        XCTAssertEqual(recovery.task.items[2].quotaState, .released)
         XCTAssertEqual(recovery.task.items[2].vaultRecordID, vaulted)
         XCTAssertEqual(recovery.task.recoverableItems.map(\.id), [vaultedItem.id])
 

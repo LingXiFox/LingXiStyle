@@ -97,6 +97,9 @@ enum Layout {
     /// Native iPad detail panes get wide quickly; keep the reading column from
     /// stretching a single photo or a two-line paragraph across the whole screen.
     static let iPadContentMaxWidth: CGFloat = 720
+    /// iPad home puts the promise on the left and the picker card on the right.
+    static let iPadHomeMaxWidth: CGFloat = 980
+    static let iPadPickerWidth: CGFloat = 380
 }
 
 extension Color {
