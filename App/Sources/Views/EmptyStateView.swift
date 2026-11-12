@@ -16,6 +16,7 @@ struct EmptyStateView: View {
     @Environment(\.reduceMotionOverride) private var reduceMotionOverride
     private var reduceMotion: Bool { systemReduceMotion || reduceMotionOverride }
     @State private var appeared = false
+    @State private var padDropActive = false
     @ScaledMetric(relativeTo: .title) private var coverTitleSize: CGFloat = 28
     @ScaledMetric(relativeTo: .largeTitle) private var innerTitleSize: CGFloat = 36
     @ScaledMetric(relativeTo: .largeTitle) private var padTitleSize: CGFloat = 44
@@ -86,6 +87,12 @@ struct EmptyStateView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                     pickerZone
+                        .overlay {
+                            if padDropActive {
+                                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                                    .strokeBorder(Palette.accent, lineWidth: 2)
+                            }
+                        }
                         .frame(width: Layout.iPadPickerWidth, height: 420)
                 }
                 .frame(maxWidth: Layout.iPadHomeMaxWidth)
@@ -97,6 +104,13 @@ struct EmptyStateView: View {
             .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
             .scrollBounceBehavior(.basedOnSize)
+            .dropDestination(for: URL.self) { urls, _ in
+                guard !urls.isEmpty else { return false }
+                Task { await model.enqueue(fileURLs: urls) }
+                return true
+            } isTargeted: { isTargeted in
+                padDropActive = isTargeted
+            }
         }
     }
 

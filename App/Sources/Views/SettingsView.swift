@@ -220,7 +220,7 @@ struct SettingsView: View {
         if purchases.isPro {
             return String(localized: "pro.owner.card", defaultValue: "已解锁 \(Brand.proName)")
         }
-        return String(localized: "settings.pro.subtitle", defaultValue: "一次购买，永久不限张数。")
+        return String(localized: "settings.pro.subtitle", defaultValue: "解锁不限张数，支持日卡、订阅或永久。")
     }
 
     private var versionText: String {

@@ -104,12 +104,15 @@ final class MacModel: ObservableObject {
     // MARK: - Lifecycle
 
     func bootstrap() async {
-        await purchases.start()
-        await purchases.loadPlans()
+        // Read quota before StoreKit warms up so the window never shows a
+        // misleading "unavailable" while the entitlement check is pending.
         await refreshQuota()
         recoverInterruptedTasks()
         refreshVault()
         refreshHistory()
+        await purchases.start()
+        await purchases.loadPlans()
+        await refreshQuota()
     }
 
     func refreshQuota() async {
@@ -296,6 +299,13 @@ final class MacModel: ObservableObject {
 
         let status = await service.quotaStatus()
         quota = status
+        if !status.isPro && !status.isAvailable {
+            notice = String(localized: "mac.notice.quotaUnavailable",
+                            defaultValue: "暂时无法读取今日免费额度，请稍后重试。")
+            screen = .idle
+            stopExportAccess()
+            return
+        }
         var allowance = status.isPro ? Int.max : max(0, status.remaining)
         if allowance == 0 {
             notice = String(localized: "mac.notice.quota",

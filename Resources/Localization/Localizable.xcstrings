@@ -3139,25 +3139,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Buy once for unlimited photos, forever."
+            "value": "Unlock unlimited photos with a day pass, a subscription, or lifetime."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "一度の購入で、写真の処理枚数が永久に無制限。"
+            "value": "日券・サブスク・買い切りのいずれかで枚数無制限。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "一次购买，永久不限张数。"
+            "value": "解锁不限张数，支持日卡、订阅或永久。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "一次購買，永久不限張數。"
+            "value": "解鎖不限張數，支援日卡、訂閱或永久。"
           }
         }
       }
@@ -20239,6 +20239,93 @@
           "stringUnit": {
             "state": "translated",
             "value": "轉換完成的照片會留在這裡，最多按你所選的期限儲存。"
+          }
+        }
+      }
+    },
+    "mac.quota.unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quota unavailable"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本日の枠を取得できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日额度暂不可用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日額度暫不可用"
+          }
+        }
+      }
+    },
+    "mac.queue.unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld to convert · Quota unavailable"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld枚が変換待ち · 枠を取得できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 张待转换 · 额度暂不可用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 張待轉換 · 額度暫不可用"
+          }
+        }
+      }
+    },
+    "mac.notice.quotaUnavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't read today's free quota. Please try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本日の無料枠を取得できません。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂时无法读取今日免费额度，请稍后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫時無法讀取今日免費額度，請稍後再試。"
           }
         }
       }

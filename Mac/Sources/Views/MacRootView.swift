@@ -105,6 +105,9 @@ struct MacRootView: View {
         if model.quota.isPro {
             return String(localized: "mac.quota.pro", defaultValue: "\(Brand.proName) · 不限张数")
         }
+        guard model.quota.isAvailable else {
+            return String(localized: "mac.quota.unavailable", defaultValue: "今日额度暂不可用")
+        }
         return String(localized: "mac.quota.free",
                       defaultValue: "今日剩余 \(model.quota.remaining) / \(model.quota.limit) 张")
     }

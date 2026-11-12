@@ -181,6 +181,9 @@ final class AppModel: ObservableObject {
         recoverInterruptedTasks()
         refreshVault()
         refreshHistory()
+        // Read quota before StoreKit warms up so the badge never shows a
+        // misleading unavailable state while the entitlement check is pending.
+        await refreshQuota()
         await purchases.start()
         await refreshQuota()
     }

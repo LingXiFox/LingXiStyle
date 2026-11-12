@@ -124,23 +124,58 @@ jobs:
 
           with open("Configuration.storekit", encoding="utf-8") as handle:
               data = json.load(handle)
+
+          def fail(message):
+              sys.exit(message)
+
           products = data.get("products", [])
           if len(products) != 1:
-              sys.exit(f"Expected exactly one StoreKit product, found {len(products)}")
-          product = products[0]
-          if product.get("productID") != "com.lingxifox.LingXiStyle.pro":
-              sys.exit(f"Unexpected product ID: {product.get('productID')!r}")
-          if product.get("type") != "NonConsumable":
-              sys.exit(f"Pro must stay a NonConsumable: {product.get('type')!r}")
-          if product.get("displayPrice") != "2.99":
-              sys.exit(f"Unexpected local test price: {product.get('displayPrice')!r}")
-          offer_codes = product.get("offerCodes", [])
+              fail(f"Expected exactly one lifetime product, found {len(products)}")
+          lifetime = products[0]
+          if lifetime.get("productID") != "com.lingxifox.LingXiStyle.pro":
+              fail(f"Unexpected lifetime product ID: {lifetime.get('productID')!r}")
+          if lifetime.get("type") != "NonConsumable":
+              fail(f"Lifetime Pro must stay a NonConsumable: {lifetime.get('type')!r}")
+          if lifetime.get("displayPrice") != "2.99":
+              fail(f"Unexpected local test price: {lifetime.get('displayPrice')!r}")
+          offer_codes = lifetime.get("offerCodes", [])
           if not any(code.get("referenceName") == "DEVELOPER_FREE" and code.get("displayPrice") == "0"
                      for code in offer_codes):
-              sys.exit("The local DEVELOPER_FREE offer code is missing")
+              fail("The local DEVELOPER_FREE offer code is missing")
+
+          # The day pass is a non-renewing subscription: StoreKit Test drops the
+          # whole configuration when the type is missing, so pin it here too.
+          day_passes = data.get("nonRenewingSubscriptions", [])
+          if len(day_passes) != 1:
+              fail(f"Expected exactly one day pass, found {len(day_passes)}")
+          day = day_passes[0]
+          if day.get("productID") != "com.lingxifox.LingXiStyle.pro.day":
+              fail(f"Unexpected day pass ID: {day.get('productID')!r}")
+          if day.get("type") != "NonRenewingSubscription":
+              fail(f"Day pass must be a NonRenewingSubscription: {day.get('type')!r}")
+          if day.get("displayPrice") != "0.49":
+              fail(f"Unexpected day pass price: {day.get('displayPrice')!r}")
+
+          groups = data.get("subscriptionGroups", [])
+          subscriptions = {sub.get("productID"): sub for group in groups for sub in group.get("subscriptions", [])}
+          expected = {
+              "com.lingxifox.LingXiStyle.pro.weekly": ("0.99", "P1W"),
+              "com.lingxifox.LingXiStyle.pro.monthly": ("1.99", "P1M"),
+          }
+          for product_id, (price, period) in expected.items():
+              sub = subscriptions.get(product_id)
+              if sub is None:
+                  fail(f"Missing {product_id} in the subscription group")
+              if sub.get("displayPrice") != price:
+                  fail(f"Unexpected local test price for {product_id}: {sub.get('displayPrice')!r}")
+              if sub.get("recurringSubscriptionPeriod") != period:
+                  fail(f"Unexpected period for {product_id}: {sub.get('recurringSubscriptionPeriod')!r}")
+          if len(subscriptions) != len(expected):
+              fail(f"Unexpected subscription products: {sorted(subscriptions)}")
+
           if data.get("settings", {}).get("_developerTeamID"):
-              sys.exit("Configuration.storekit must not record a real developer team ID")
-          print("StoreKit product, price, and free offer code match the release policy.")
+              fail("Configuration.storekit must not record a real developer team ID")
+          print("StoreKit lifetime, day pass, and subscriptions match the release policy.")
           PY
 
       - name: Scan for credentials and signing assets
@@ -212,6 +247,60 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-tests-logs
+          path: .build/logs
+          if-no-files-found: ignore
+  macos-app:
+    name: macOS app build and pipeline tests
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      COMPILER_INDEX_STORE_ENABLE: NO
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Select Xcode and install XcodeGen
+        uses: ./.github/actions/setup
+        with:
+          xcode: /Applications/Xcode_16.4.app
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Build TexelMac Debug
+        run: |
+          set -euo pipefail
+          mkdir -p .build/logs
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme TexelMac -configuration Debug \
+            -destination 'platform=macOS' \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee .build/logs/mac-debug.log
+
+      - name: Build TexelMac Release
+        run: |
+          set -euo pipefail
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme TexelMac -configuration Release \
+            -destination 'platform=macOS' \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee .build/logs/mac-release.log
+
+      - name: Run macOS vault and journal pipeline tests
+        run: |
+          set -euo pipefail
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme LingXiMacPipelineTests -destination 'platform=macOS' \
+            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO CODE_SIGN_IDENTITY=- test \
+            2>&1 | tee .build/logs/mac-pipeline-tests.log
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app-logs
           path: .build/logs
           if-no-files-found: ignore
 

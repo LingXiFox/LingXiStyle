@@ -303,7 +303,7 @@ struct MacConvertView: View {
                 .buttonStyle(MacQuietButtonStyle())
                 .disabled(model.isCancelling)
             } else {
-                if !model.quota.isPro && model.quota.remaining == 0 {
+                if !model.quota.isPro && model.quota.isAvailable && model.quota.remaining == 0 {
                     Button(String(localized: "查看 Pro", defaultValue: "查看 Pro")) {
                         model.isPurchasePresented = true
                     }
@@ -330,6 +330,10 @@ struct MacConvertView: View {
         if model.quota.isPro {
             return String(localized: "mac.queue.pro",
                           defaultValue: "\(readyCount) 张待转换 · Pro 不限张数")
+        }
+        guard model.quota.isAvailable else {
+            return String(localized: "mac.queue.unavailable",
+                          defaultValue: "\(readyCount) 张待转换 · 额度暂不可用")
         }
         return String(localized: "mac.queue.free",
                       defaultValue: "\(readyCount) 张待转换 · 今日剩余 \(model.quota.remaining) 张")
