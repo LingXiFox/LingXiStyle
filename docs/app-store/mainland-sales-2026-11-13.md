@@ -31,7 +31,7 @@ App 本身的 CHN 状态在修改前已为 `available: true`、`contentStatuses:
 ## 距离正式提交的剩余项
 
 - 尚未把 1.9.1、日卡、周/月订阅及订阅组加入同一审核草稿，也未执行添加审核阶段的完整校验。
-- 周/月商品旧 API 状态与网页状态此前不一致；不得以已有价格与截图代替最终提审校验。
+- 最后一次只读回读确认周、月订阅均为 `READY_TO_SUBMIT`，此前 `MISSING_METADATA` 差异已消除；尚未执行的最终提审校验仍需完成。
 - 真机 TestFlight / Sandbox 的商品加载、购买、恢复、续期与撤销仍未验证。
 - 普通 iPhone 六张截图仍为旧版；本轮只补拍了 iPad 和 Duo 外屏。
 - 线上隐私与支持页可在 Chrome 正常打开，但内容仍旧：隐私页写旧 Bundle ID `com.lingxifox.LingXiStyle`，支持 FAQ 仍写 Pro 为一次性永久购买、不是订阅；页脚仍称未上架。本轮没有修改或部署该独立网站。
