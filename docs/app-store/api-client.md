@@ -127,12 +127,14 @@ uv run --frozen --script tools/appstoreconnect.py request PATCH appStoreVersionL
 2026-11-13 按 Apple OpenAPI 4.6 扩展了 `--release-setup` 的订阅配置范围：订阅组、订阅、
 对应 metadata versions、v2 四语言本地化、审核截图、价格和 `subscriptionPlanAvailabilities`。
 这些资源仍需显式开关；删除、`subscriptionSubmissions`、`subscriptionGroupSubmissions`、
-`inAppPurchaseSubmissions` 和 App 审核提交均被拦截。34 项离线测试包含这些边界。
+`inAppPurchaseSubmissions` 和 App 审核提交均被拦截。35 项离线测试包含这些边界。
 
 普通周 / 月续期使用 `planType: UPFRONT`，不是带 12 个月承诺的 `MONTHLY` 付款计划。
 应先配置计划的可售地区，再按 Apple 返回的价格点逐地区创建价格；没有一次设置全部订阅地区价格的端点。
 每次先读取实际状态并保存快照，409 停止；修正状态后只补尚未完成的地区，不重新创建商品或重发已验证价格。
 销售地区流程保存并比较实际价格快照，不再将永久版售价固定假定为历史的 $2.99。
+
+2026-11-13 主人新增授权中国大陆销售，当前地区策略为全部现有地区（175 个，包含 CHN），未来地区开关仍关闭。`release availability` 不再自动排除大陆；旧的 CHN 排除计划会在应用前被拒绝。四档商品的实际大陆配置与人民币价格见 [大陆销售记录](mainland-sales-2026-11-13.md)。下文 2026-11-10 的排除大陆范围仅为历史授权。
 
 2026-11-09 的初始批准范围是仅美国。2026-11-10 用户另行批准 App 与 Pro 同步
 开放所有现有地区、仅排除中国大陆；App 免费，Pro 非消耗型，美国基准 $2.99，其他地区自动本地定价。

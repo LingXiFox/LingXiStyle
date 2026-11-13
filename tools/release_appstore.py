@@ -347,7 +347,7 @@ def market_snapshot(client):
 
 
 def market_plan(snapshot):
-    wanted = sorted(t for t in snapshot['territories'] if t != 'CHN')
+    wanted = sorted(snapshot['territories'])
     if 'CHN' not in snapshot['territories'] or 'USA' not in wanted:
         raise ValueError('Unexpected Apple territory inventory.')
     app = {r['relationships']['territory']['data']['id']: r['attributes']['available'] for r in snapshot['app_rows']}
@@ -356,7 +356,7 @@ def market_plan(snapshot):
     if snapshot['app_new_territories'] or snapshot['iap_new_territories']:
         raise ValueError('Disable automatic future territories before applying this workflow.')
     current = sorted(t for t, available in app.items() if available)
-    return {'app_id': asc.APP_ID, 'product_id': asc.PRODUCT_ID, 'excluded': ['CHN'],
+    return {'app_id': asc.APP_ID, 'product_id': asc.PRODUCT_ID, 'excluded': [],
             'territories': snapshot['territories'], 'desired': wanted, 'future_territories': False,
             'before': {'app': current, 'iap': snapshot['iap_available']},
             'add': {'app': sorted(set(wanted)-set(current)), 'iap': sorted(set(wanted)-set(snapshot['iap_available']))},
@@ -375,9 +375,9 @@ def availability(args, client):
         asc.save(output/'availability-plan.json', plan)
         return plan
     plan = json.loads(args.apply_plan.read_text())
-    expected = sorted(t for t in current['territories'] if t != 'CHN')
+    expected = sorted(current['territories'])
     if (plan['app_id'] != asc.APP_ID or plan['product_id'] != asc.PRODUCT_ID or plan['desired'] != expected
-            or plan['excluded'] != ['CHN'] or plan['future_territories'] is not False
+            or plan['excluded'] != [] or plan['future_territories'] is not False
             or current['prices'] != plan['prices'] or current['app_new_territories'] or current['iap_new_territories']):
         raise ValueError('Availability preview, price or future-territory settings changed.')
     if current['iap_available'] not in [plan['before']['iap'], expected]:
@@ -394,7 +394,7 @@ def availability(args, client):
     changed = []
     for row in current['app_rows']:
         territory = row['relationships']['territory']['data']['id']
-        wanted = territory != 'CHN'
+        wanted = territory in expected
         if row['attributes']['available'] != wanted:
             response = client.request('PATCH', 'territoryAvailabilities/'+row['id'],
                 asc.resource('territoryAvailabilities', {'available': wanted}, row['id']))['data']
@@ -407,7 +407,7 @@ def availability(args, client):
     if available != expected or after['iap_available'] != expected or after['prices'] != plan['prices']:
         raise ValueError('Final availability or price readback mismatch.')
     private_write(output/'availability-verified.json', asc.dump(after).encode())
-    return {'configured': len(expected), 'excluded': ['CHN'], 'future_territories': False,
+    return {'configured': len(expected), 'excluded': [], 'future_territories': False,
             'app_changed': changed, 'iap_matches_app': True,
             'territory_states': {r['relationships']['territory']['data']['id']: r['attributes']['contentStatuses'] for r in after['app_rows']}}
 

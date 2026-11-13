@@ -12,6 +12,7 @@
 | `universal-purchase.md` | iOS / iPadOS / macOS 通用购买、Bundle ID、签名能力与 App Store Connect 手动步骤 |
 | `screenshots-1.9.1.md` | 1.9.1 分平台截图规格、页面清单与本轮 iPad / Duo 实拍范围 |
 | `release-report-2026-11-13.md` | 1.9.1 签名构建上传、四档商品价格与四语言 iPad / Duo 截图验收 |
+| `mainland-sales-2026-11-13.md` | 中国大陆四档商品开放、人民币价格、回读与提审剩余项 |
 | `screenshots.md` | iPhone 截图规格、6 页清单、四语言截图文案、捕获步骤 |
 | `china-mainland.md` | 中国大陆 App 备案 / ICP 备案、权限、内购、数据出境清单 |
 | `../index.html` | 公开首页（纹粒 / Texel、1.9.1、隐私与支持入口） |

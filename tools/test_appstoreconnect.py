@@ -416,15 +416,17 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(result['state'], 'COMPLETE')
             self.assertTrue(all(call.args[0] == 'GET' for call in c.request.call_args_list))
 
-    def test_market_plan_excludes_mainland_and_new_territories(self):
+    def test_market_plan_includes_mainland_and_preserves_future_territory_setting(self):
         import release_appstore as release
         snapshot = {'territories': ['CHN', 'JPN', 'USA'], 'app_new_territories': False,
             'iap_new_territories': False, 'iap_available': ['USA'], 'prices': {'base': 'USA'},
             'app_rows': [{'attributes': {'available': t == 'USA'},
                 'relationships': {'territory': {'data': {'id': t}}}} for t in ['CHN', 'JPN', 'USA']]}
         plan = release.market_plan(snapshot)
-        self.assertEqual(plan['desired'], ['JPN', 'USA'])
-        self.assertEqual(plan['add'], {'app': ['JPN'], 'iap': ['JPN']})
+        self.assertEqual(plan['desired'], ['CHN', 'JPN', 'USA'])
+        self.assertEqual(plan['excluded'], [])
+        self.assertEqual(plan['remove'], {'app': [], 'iap': []})
+        self.assertEqual(plan['add'], {'app': ['CHN', 'JPN'], 'iap': ['CHN', 'JPN']})
         self.assertFalse(plan['future_territories'])
         with self.assertRaises(ValueError):
             release.market_plan(dict(snapshot, app_new_territories=True))
@@ -447,6 +449,37 @@ class ReleaseTests(unittest.TestCase):
                 result = release.market_snapshot(c)
                 self.assertEqual(result["prices"]["points"][0]["attributes"]["customerPrice"], price)
                 self.assertTrue(all(call.args[0] == "GET" for call in c.request.call_args_list))
+
+    def test_availability_adds_mainland_without_changing_prices(self):
+        import release_appstore as release
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        def row(territory, available):
+            return {"id": territory, "attributes": {"available": available,
+                    "contentStatuses": ["AVAILABLE"] if available else []},
+                    "relationships": {"territory": {"data": {"id": territory}}}}
+        before = {"territories": ["CHN", "USA"], "app_new_territories": False,
+                  "iap_new_territories": False, "iap_available": ["USA"],
+                  "prices": {"base": "USA", "price": "7.99"},
+                  "app_rows": [row("CHN", False), row("USA", True)]}
+        after = dict(before, iap_available=["CHN", "USA"],
+                     app_rows=[row("CHN", True), row("USA", True)])
+        c = Mock(allow_v2=True, release_setup=True)
+        c.list.return_value = [{"id": "CHN"}, {"id": "USA"}]
+        c.request.return_value = {"data": {"attributes": {"available": True}}}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "plan.json"
+            asc.save(path, release.market_plan(before))
+            with patch.object(release, "market_snapshot", side_effect=[before, after]):
+                result = release.availability(SimpleNamespace(output=Path(tmp), apply_plan=path), c)
+        self.assertEqual(result["configured"], 2)
+        self.assertEqual(result["excluded"], [])
+        self.assertEqual(result["app_changed"], ["CHN"])
+        writes = c.request.call_args_list
+        self.assertEqual([(x.args[0], x.args[1]) for x in writes], [
+            ("POST", "inAppPurchaseAvailabilities"), ("PATCH", "territoryAvailabilities/CHN")])
+        self.assertEqual(writes[0].args[2]["data"]["relationships"]["availableTerritories"]["data"],
+                         [{"type": "territories", "id": "CHN"}, {"type": "territories", "id": "USA"}])
 
     def test_tampered_market_plan_stops_before_writes(self):
         import release_appstore as release
