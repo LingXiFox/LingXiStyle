@@ -33,8 +33,8 @@
 | `xcodebuild -scheme TexelMac -destination 'platform=macOS,arch=arm64' -configuration Debug` | BUILD SUCCEEDED，0 error |
 | 同上 `-configuration Release` | BUILD SUCCEEDED，0 error |
 | `xcodebuild -scheme LingXiStyle -destination 'platform=iOS Simulator,name=Texel iPad 13' build` | BUILD SUCCEEDED；产物安装到 iPad 13 并启动 |
-| `xcodebuild -scheme LingXiStyle -destination 'generic/platform=iOS' archive` | ARCHIVE SUCCEEDED（未签名）；`/tmp/Texel-iOS.xcarchive`，`com.lingxifox.Texel` 1.9.1 / build 11，arm64，含 dSYMs |
-| `xcodebuild -scheme TexelMac -destination 'platform=macOS,arch=arm64' archive` | ARCHIVE SUCCEEDED（未签名）；`/tmp/TexelMac.xcarchive`，同一 Bundle ID、1.9.1 / build 11，x86_64 + arm64，含 PrivacyInfo 与 dSYMs |
+| `xcodebuild -scheme LingXiStyle -destination 'generic/platform=iOS' archive` | ARCHIVE SUCCEEDED（未签名）；`build/rc-1.9.1/Texel-iOS.xcarchive`，`com.lingxifox.Texel` 1.9.1 / build 11，arm64，含 dSYMs |
+| `xcodebuild -scheme TexelMac -destination 'platform=macOS,arch=arm64' archive` | ARCHIVE SUCCEEDED（未签名）；`build/rc-1.9.1/TexelMac.xcarchive`，同一 Bundle ID、1.9.1 / build 11，x86_64 + arm64，含 PrivacyInfo 与 dSYMs |
 
 签名说明：界面冒烟用的 iOS 构建带共享 Keychain 组（`Simulated.xcent`），额度显示正常；
 `CODE_SIGNING_ALLOWED=NO` 的产物缺少 entitlement，会按设计走 fail-closed 显示「额度暂不可用」，
@@ -61,6 +61,7 @@
 不是商品配置或验签逻辑缺陷。CI 每次使用全新模拟器，不复现该现象。
 
 CI：GitHub Actions run 43220844706（head `6dc6bf6`）五个 job 全部 success：Policy and project checks、macOS unit tests、macOS app build and pipeline tests、iOS 18.5 compatibility、iOS 26.x current；两套 iOS 均执行了购买、集成与教程 / 启动 UI 测试。
+1.9.1 RC 的 run 43246117486（head `d983ae3`）中 Policy、macOS unit、macOS app + pipeline、iOS 26.x 通过；iOS 18.5 的教程首启 UI 用例失败，日志显示 tutorial 约 26 秒后才出现，超过 20 秒断言。根因是 `RootView` 先等待额度 / StoreKit / 保险箱启动再弹教程；已改为先 `presentTutorialIfFirstLaunch()` 再 `await model.onAppear()`。本机重跑 `LingXiUITests` 6 项（5 通过、1 条 iPad-only 跳过、0 失败）；CI 复跑待推送后确认。
 ### 4. 模拟器与本机界面验证
 
 - iPhone 17（iOS 27.2）：启动、首页额度胶囊、设置「成果与记录」入口、任务历史、保险箱、

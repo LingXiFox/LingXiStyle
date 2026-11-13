@@ -65,8 +65,10 @@ struct RootView: View {
         .environment(\.duoLayout, duoLayout)
         .overlay(alignment: .top) { noticeBanner }
         .task {
-            await model.onAppear()
+            // The first-run tutorial must not wait for quota, StoreKit or vault bootstrap;
+            // slow launches otherwise look like a missing tutorial and delay the user.
             model.presentTutorialIfFirstLaunch()
+            await model.onAppear()
         }
         .sheet(isPresented: $model.isTutorialPresented, onDismiss: { model.dismissTutorial() }) {
             TutorialView(model: model,

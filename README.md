@@ -399,7 +399,7 @@ project.yml             XcodeGen 工程定义
 
 ## 已知限制
 
-- 1.9.1 本机完成 iOS Debug / Release、macOS Debug / Release 构建与模拟器运行；自动化 168 项、3 项跳过、0 失败。iPhone 17 与 iPad 13 模拟器完成首屏、选片与保险箱 / 历史 / 购买入口检查；iPad 横竖屏两栏布局与 XCUITest 断言通过；macOS 完成启动、设置、四档 Pro 页与首屏额度显示。iPad 拖放与 macOS 真实转换已由代码路径与管线测试覆盖，但未做逐一点击的完整人工流程。
+- 1.9.1 本机完成 iOS Debug / Release、macOS Debug / Release 构建与模拟器运行；自动化 168 项、3 项跳过、0 失败。iPhone 17 与 iPad 13 模拟器完成首屏、选片与保险箱 / 历史 / 购买入口检查；iPad 横竖屏两栏布局与 XCUITest 断言通过；macOS 完成启动、设置、四档 Pro 页、首屏额度显示与 Finder 导入入队。iPad 拖放与 macOS 真实转换已由代码路径与管线测试覆盖，但未做逐一点击的完整人工流程。
 - 真机安装、真实 App Store 交易（尤其订阅续订 / 到期 / 退款）、iOS 18 / 26 运行时、权限拒绝页、快捷指令 UI、Duo 内屏完整转换与折叠中间态仍未验证。模拟器签名构建不能替代真机 distribution 签名。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 - 分享扩展与快捷指令各自使用独立容器，不读取主 App 的保险箱与任务历史；这是 1.9.1 的已知边界。
 - iOS 上的免费体验与 Pro 权益依赖 Keychain；`CODE_SIGNING_ALLOWED=NO` 的模拟器构建缺少共享组 entitlement，会显示「额度暂不可用」，属于 fail-closed，不是线上行为。
@@ -435,5 +435,6 @@ project.yml             XcodeGen 工程定义
 - [docs/app-store/release-notes-1.9.1.md](docs/app-store/release-notes-1.9.1.md)：1.9.1 四语言版本说明。
 - [docs/app-store/universal-purchase.md](docs/app-store/universal-purchase.md)：iOS / iPadOS / macOS 通用购买与 App Store Connect 手动配置。
 - [docs/app-store/screenshots-1.9.1.md](docs/app-store/screenshots-1.9.1.md)：1.9.1 分平台截图规格、页面清单与商品说明。
+- [docs/release/rc-report-1.9.1.md](docs/release/rc-report-1.9.1.md)：1.9.1 RC 验收报告（12 项、测试计数、ASC 手动步骤与风险）。
 - [docs/compatibility/photo-styles-research-1.9.1.md](docs/compatibility/photo-styles-research-1.9.1.md)：第二代摄影风格与第三代纹理 / 颗粒的研究记录与结论。
 - [AGENTS.md](AGENTS.md)：给在本仓库工作的编码代理的约束。
