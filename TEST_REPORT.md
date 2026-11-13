@@ -7,6 +7,15 @@
   iPhone 17、iPad 13 模拟器与 macOS 本机完成界面冒烟。本机没有真机与 iOS 18 / 26 运行时，
   真实交易、订阅续订 / 退款与 iPad / Mac 的完整人工流程未验证。
 
+## 2026-11-13 iOS 27.2 CI 修复复验
+
+- 分支 run [`43340105638`](https://github.com/LingXiFox/LingXiStyle/actions/runs/43340105638)（`eff8cc2`）失败：iOS 27.2 的取消购买用例挂起 900 秒，宿主被重启后，下一条日卡购买收到残留的取消结果；其余五个 job 通过。旧 main run `43398236791` 已取消。
+- 全新 iPhone 17 Pro / iOS 27.2（24B8117）本机复现了 Apple 账户登录框与 Sandbox 认证等待。商品预加载、Debug scheme 绑定及本地交易准备均不能解决，同进程方案已撤回。
+- CI 仅在 iOS 27.2 先独立运行现有 `testProductLoadsFromLocalConfiguration`，待宿主正常退出后再运行完整购买套件；不跳过取消、日卡、兑换码或其他购买用例，不放宽断言与原有完整套件超时。
+- 分阶段启动后，原取消 / 日卡问题消失，但首次整套复验为 28 通过、1 失败：免费兑换码交易返回后，交易缓存尚未发布权益。该断言改用既有 `waitUntil`（最多 8 秒），仍只接受真实 StoreKit 验证后的权益。
+- 最终在另一台全新 iPhone 17 Pro 模拟器按 CI 相同命令顺序执行：初始化 1 项通过；`LingXiPurchaseTests` 29 项通过、0 跳过、0 失败（Keychain 10、StoreKit 19）。完整套件用例耗时约 1.97 秒，`xcodebuild test` 成功退出。
+- 本轮只复验购买套件和 CI 配置；未重跑其他套件、App 构建或真机交易。新的 main CI 由推送触发，按要求不持续监控，不将本机通过写成远程 CI 已通过。
+
 ## 2026-11-12 1.9.1 验证
 
 ### 1. 范围与结论
@@ -58,7 +67,7 @@
 **已知偶发**：`LingXiPurchaseTests` 整套首次运行时，`testFreeOfferCodeGrantsVerifiedPro` 曾失败一次，
 日志为 `StoreKitServiceError(... ErrorType.system(StoreKitInternalError.unknown), environment: XcodeTest)`；
 单独重跑与随后两次整套重跑均通过。判断为 StoreKitTest 会话在上一轮被杀掉的 xcodebuild 之后残留脏状态，
-不是商品配置或验签逻辑缺陷。CI 每次使用全新模拟器，不复现该现象。
+不是商品配置或验签逻辑缺陷。此为当时判断；2026-11-13 全新模拟器出现了冷启动购买路由与交易发布问题，修复复验见上节。
 
 CI：GitHub Actions run 43220844706（head `6dc6bf6`）五个 job 全部 success：Policy and project checks、macOS unit tests、macOS app build and pipeline tests、iOS 18.5 compatibility、iOS 26.x current；两套 iOS 均执行了购买、集成与教程 / 启动 UI 测试。
 1.9.1 RC 的 run 43246117486（head `d983ae3`）中 Policy、macOS unit、macOS app + pipeline、iOS 26.x 通过；iOS 18.5 的教程首启 UI 用例失败，日志显示 tutorial 约 26 秒后才出现，超过 20 秒断言。根因是 `RootView` 先等待额度 / StoreKit / 保险箱启动再弹教程；已改为先 `presentTutorialIfFirstLaunch()` 再 `await model.onAppear()`。本机重跑 `LingXiUITests` 6 项（5 通过、1 条 iPad-only 跳过、0 失败）；CI 复跑待推送后确认。
@@ -92,7 +101,7 @@ CI：GitHub Actions run 43220844706（head `6dc6bf6`）五个 job 全部 success
 | 191.md 要求永久版 $7.99，仓库与线上为 $2.99 | 改价属未授权操作 | 本地 StoreKit 配置与 CI 校验保持 $2.99，待运营授权后统一改价，不静默修改 |
 | 保险箱不参与 iCloud 备份 | 换机或删除 App 后保险箱清空 | 已保存成果仍在系统相册；隐私页与发布说明写明「仅本机、删除即清空」 |
 | 分享扩展 / 快捷指令使用各自容器 | 无法读取 App 保险箱与历史 | 作为已知限制记录；两个入口仍统一走 `ConversionService` 与额度账本 |
-| StoreKitTest 偶发 `system(StoreKitInternalError.unknown)` | 单测偶发失败 | 重跑通过；CI 使用全新模拟器未复现，测试报告如实记录 |
+| StoreKitTest 冷启动与交易发布 | 首次购买挂起或即时权益断言失败 | iOS 27.2 独立进程初始化，兑换码等待真实权益发布；本机全新模拟器 29 / 29 通过，远程 CI 待执行 |
 | 日卡跨设备依赖 StoreKit 交易历史 | 同一 Apple ID 的另一台设备才能恢复；Keychain 只是本机镜像 | 已改用 `Transaction.all` + Apple `purchaseDate`，并用本地 StoreKit 测试覆盖；未做双真机验证 |
 | 无真机验证 | 权限、分享面板、Duo、真实交易未覆盖 | 仅在文档中声明模拟器与自动化结论，不写成真机通过 |
 

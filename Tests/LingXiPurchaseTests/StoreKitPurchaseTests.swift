@@ -228,7 +228,8 @@ final class StoreKitPurchaseTests: XCTestCase {
         XCTAssertNil(transaction.revocationDate)
         XCTAssertNil(transaction.expirationDate)
 
-        let verified = await StoreKitEntitlementProvider().isPro()
+        // Off-device StoreKitTest purchases can return before the transaction cache updates.
+        let verified = await waitUntil { await StoreKitEntitlementProvider().isPro() }
         XCTAssertTrue(verified, "A verified zero-price offer transaction must unlock Pro")
 
         let manager = PurchaseManager()

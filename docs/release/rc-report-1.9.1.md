@@ -60,6 +60,7 @@
 
 ## 4. 最终 CI
 
+- 2026-11-13 补充：加入 iOS 27.2 后，分支 run [`43340105638`](https://github.com/LingXiFox/LingXiStyle/actions/runs/43340105638) 在首次取消购买时挂起，其他五个 job 通过；旧 main run `43398236791` 已取消。修复为在独立宿主进程初始化本地 StoreKit，再跑完整套件，并等待兑换码交易的真实权益发布。本机全新 iPhone 17 Pro / iOS 27.2 初始化 1 / 1、完整购买 29 / 29，通过且无跳过；远程修复结果待新 CI 执行，不持续监控。下列记录保留历史状态。
 - GitHub Actions run：[`43246117486`](https://github.com/LingXiFox/LingXiStyle/actions/runs/43246117486)（head `d983ae3`）。
 - 该 run 覆盖 Policy and project checks、macOS unit tests、macOS app build and pipeline tests、iOS 18.5 compatibility、iOS 26.x current。
 - 首次结果：Policy、macOS unit、macOS app + pipeline、iOS 26.x 通过；iOS 18.5 的 `TutorialUITests.swift:46` 失败，日志显示 first-run tutorial 约 26 秒后才出现，超过 20 秒断言。根因是 `RootView` 先 `await model.onAppear()`（额度 / StoreKit / 保险箱 bootstrap）再 `presentTutorialIfFirstLaunch()`。
@@ -79,7 +80,7 @@
 | **合计** |  | **168** | **165** | **3** | **0** |
 
 - UI 的 1 条跳过是 iPad-only 布局用例在 iPhone 上按设计跳过；Core 的 2 条跳过依赖外部 fixture。
-- 已知偶发：`LingXiPurchaseTests` 整套首次运行曾出现一次 `StoreKitServiceError(... ErrorType.system(StoreKitInternalError.unknown), environment: XcodeTest)`，单跑与后续整套重跑通过；判断为 StoreKitTest 会话脏状态，不是商品配置或验签缺陷。CI 使用全新模拟器未复现。
+- 历史偶发：`LingXiPurchaseTests` 整套首次运行曾出现一次 `StoreKitServiceError(... ErrorType.system(StoreKitInternalError.unknown), environment: XcodeTest)`，单跑与后续整套重跑通过。2026-11-13 全新模拟器已复现冷启动购买路由与交易发布问题，不能再以全新 CI 环境作为排除依据；修复复验见第 4 节与 `TEST_REPORT.md`。
 
 ## 6. StoreKit 商品、权益与跨设备
 
@@ -150,7 +151,7 @@
 | ASC 未配置 macOS | 通用购买线上不成立 | 按第 10 节人工配置并复核 |
 | 日卡跨设备依赖 StoreKit 历史 | 离线新设备可能暂时读不到日卡 | UI 说明需联网恢复；不把 Keychain 当跨设备凭证 |
 | 体验防刷非绝对 | 抹机 / 清 Keychain 可再次领取 | 接受为每设备一次的产品边界，不宣称绝对防刷 |
-| StoreKitTest 偶发 unknown | 本地整套测试偶发 1 条失败 | 重跑确认；CI 全新模拟器不复现 |
+| StoreKitTest 冷启动与交易发布 | 首次购买挂起或即时权益断言失败 | iOS 27.2 独立进程初始化；兑换码等待真实权益；本机 29 / 29 通过，远程 CI 待执行 |
 | Mac GUI 未跑完整转换 | 只证明导入到队列与管线测试 | 真机 / 本机人工跑一次导入→转换→导出 |
 | 分享扩展 / 快捷指令容器隔离 | 不读主 App 保险箱与历史 | 作为 1.9.1 已知边界记录 |
 | Core 2 条 fixture 跳过 | Live Photo 样式写回测试未默认执行 | 提供干净 fixture 后再启用，不伪造通过 |

@@ -454,6 +454,23 @@ jobs:
             exit 1
           fi
 
+      - name: Initialize local StoreKit before relaunching the purchase host
+        if: matrix.runtime == 'iOS-27-2'
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          DEVICE_ID="${{ steps.simulator.outputs.device_id }}"
+          bash .github/scripts/boot-simulator.sh "$DEVICE_ID" 180
+          # A cold iOS 27.2 host can route its first purchase to Sandbox despite
+          # SKTestSession setup. Configure StoreKit in a separate host process first.
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme LingXiPurchaseTests -configuration Debug \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO \
+            -only-testing:LingXiPurchaseTests/StoreKitPurchaseTests/testProductLoadsFromLocalConfiguration \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 120 \
+            test 2>&1 | tee .build/logs/storekit-initialization.log
+
       - name: Run purchase and keychain tests
         timeout-minutes: 30
         run: |
