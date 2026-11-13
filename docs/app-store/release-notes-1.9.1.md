@@ -67,7 +67,7 @@ Texel 1.9.1: a vault for your results, a real task history, and native iPad and 
 ## 发布备注
 
 - 永久版沿用 `com.lingxifox.LingXiStyle.pro`，已购用户升级后权益不变；日卡 `...pro.day` 为非续期订阅，周 / 月订阅属于同一订阅组，切换档次由系统按升级 / 降级规则处理。
-- 价格只来自 `Product.displayPrice`。仓库内的 `Configuration.storekit` 仍是本地测试价（永久 $2.99、日卡 $0.49、周 $0.99、月 $1.99），191.md 提到的永久 $7.99 属于改价，必须在 App Store Connect 获得授权后单独调整，代码与本地配置不擅自修改。
+- 价格只来自 `Product.displayPrice`。`Configuration.storekit` 保留本地测试价；2026-11-13 主人批准的正式美国基准价为永久 $7.99、日卡 $0.49、周 $0.99、月 $1.99，其他地区按 Apple 返回的价格点配置。永久商品 ID 不变，已购用户权益不变。
 - 免费体验每台设备一次，记录在本机 Keychain；卸载重装不会重置，也不上传照片或设备信息。
 - 保险箱成果存放在 App 沙盒，默认保留 7 天且不参与 iCloud 备份；删除 App 会一并清除，云端相册中的已保存照片不受影响。
 - 分享扩展与快捷指令使用各自容器，不读取主 App 的保险箱与任务历史。

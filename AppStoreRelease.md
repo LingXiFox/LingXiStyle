@@ -41,8 +41,8 @@ UI 与测试都不得把它当作生产价格。
 | 自动续期订阅（同一订阅组） | `com.lingxifox.LingXiStyle.pro.monthly` | 月订阅 |
 
 1. 永久版类型必须是 **非消耗型**，Product ID 精确为 `com.lingxifox.LingXiStyle.pro`。
-2. 日卡类型必须是 **非续期订阅**，周期 1 天，不自动续订。
-3. 周 / 月订阅放在**同一个订阅组**，周为第 1 档、月为第 2 档；切换档次由系统按升级 / 降级规则处理。
+2. 日卡类型必须是 **非续期订阅**，不自动续订；24 小时权益由 App 按已验证交易的购买时间计算。
+3. 周 / 月订阅放在**同一个订阅组、同一等级（1）**，因为权益完全相同、仅期限不同；不同期限的切换由系统处理。
 4. 参考名称统一使用 `Texel Pro`，本地化至少填写简体中文，建议同时填写繁体中文、英文、日文：
    - 简体中文：`纹粒 Pro` / `解锁不限张数，支持日卡、订阅或永久。`
    - 繁體中文：`Texel Pro` / `解鎖不限張數，支援日卡、訂閱或永久。`
@@ -76,7 +76,7 @@ App 代码只读取 `Product.displayPrice`，不包含任何美元 / 人民币 /
 `project.yml` 已把 `Configuration.storekit` 绑定到 Debug 的 `LingXiStyle` 与 `TexelMac` scheme。
 执行 `xcodegen generate` 后，用 Xcode Run 启动任一 App，购买面板会使用本地配置，不产生真实交易。
 本地配置包含四种商品：永久 2.99、日卡 0.49、周 0.99、月 1.99，这些只是测试显示价，
-与 191.md 提到的永久 $7.99 不同；改价必须在 App Store Connect 获得授权后单独进行。
+这些本地测试价与生产定价分开管理。2026-11-13 主人已批准美国基准价：日卡 $0.49、周 $0.99、月 $1.99、永久 $7.99；线上操作与回读见本轮发布报告。
 
 自动化测试：
 
@@ -163,8 +163,8 @@ Offer Code，代码中不得出现固定兑换码、开发者账号白名单或�
 - [x] App target 已提供 `PrivacyInfo.xcprivacy`（`UserDefaults` / `CA92.1`）；Share Extension 已提供独立清单（`FileTimestamp` / `C617.1`）。
 - [ ] 隐私说明、支持 URL、审核备注已填写。
 - [x] 1.8.1 Release archive 已生成（1.8.1 / build 10，`Apple Distribution` 签名，IPA 无本地 StoreKit 配置）。
-- [x] 1.9.1 未签名归档已生成（iOS `Texel-iOS.xcarchive`、macOS `TexelMac.xcarchive`，均为 1.9.1 / build 11）；未做 distribution 签名与 IPA 导出。
-- [ ] 未上传 App Store Connect / TestFlight；无 distribution 签名 IPA，不能把本机归档写成可提审包。
+- [x] 此前工程验收的 iOS / macOS 未签名归档均为 1.9.1 / build 11；正式 iOS 签名上传见下一条，Mac 仍未做 distribution 签名。
+- [x] 2026-11-13 已上传并关联 iOS / iPadOS 1.9.1（11）distribution 签名构建，Apple 处理为 VALID；保持未提交审核。详见 [发布记录](docs/app-store/release-report-2026-11-13.md)。
 
 ## 6. 审核备注建议
 

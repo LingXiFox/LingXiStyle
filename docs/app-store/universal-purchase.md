@@ -1,6 +1,6 @@
 # Texel 通用购买（Universal Purchase）配置说明
 
-状态：代码与本地工程已按通用购买调整；App Store Connect 的 macOS 平台仍需主人手动添加。本文不代替 Apple 的审核与商务配置，也不包含任何线上改动。
+状态：代码与本地工程已按通用购买调整。2026-11-13 已上传 iOS / iPadOS 1.9.1（11）签名构建，保持未提交审核；App Store Connect 的 macOS 平台仍需主人手动添加，本轮未上传 Mac 构建。本文不代替 Apple 的审核与商务配置。
 
 ## 1. 目标身份
 
@@ -22,7 +22,7 @@ iOS、iPadOS 与 macOS 必须使用同一个 Bundle ID，才能归入同一条 A
 
 ## 2. 在 App Store Connect 添加 macOS 平台（手动）
 
-以下步骤只能在 App Store Connect 网页或 Transporter 中由有权限的账号完成。本轮没有创建新记录、没有上传构建、没有提交审核。
+以下步骤只能在 App Store Connect 网页或 Transporter 中由有权限的账号完成。本轮未添加 macOS 平台或上传 Mac 构建；iOS / iPadOS 1.9.1（11）已上传，均未提交审核。
 
 1. 登录 [App Store Connect](https://appstoreconnect.apple.com)，进入「我的 App」→ 选择现有 Texel / 纹粒记录。
 2. 打开「App 信息」，在「平台」或「Platforms」区域选择添加平台，勾选 macOS。若界面只显示 iOS，使用页面上的「添加平台 / Add Platform」入口；不要新建另一条 App 记录。
@@ -30,7 +30,7 @@ iOS、iPadOS 与 macOS 必须使用同一个 Bundle ID，才能归入同一条 A
 4. 在「App 信息」补充 macOS 所需的分类、年龄分级、版权、隐私政策 URL 与支持 URL；macOS 分类使用摄影（`public.app-category.photography`）。
 5. 在「价格与销售范围」确认 macOS 与 iOS 使用同一销售范围；Universal Purchase 下同一 App 记录的各平台共享价格与 App 内购买项目。
 6. 在「App 内购买项目」确认四个商品仍挂在同一条应用记录下。不要为 macOS 新建一套商品 ID；否则会破坏跨平台权益。
-7. 在「功能」→「App 内购买项目」检查四个商品的状态、价格层级与本地化显示名称。正式改价与启用新商品需要主人另行授权，本文不修改线上价格。
+7. 在「功能」→「App 内购买项目」检查四个商品的状态、价格层级与本地化显示名称。2026-11-13 的四档价格与新商品配置已获主人授权并完成，见发布报告。
 8. 为 macOS 准备独立的 1.9.1 截图、描述与关键词；不要复用 iPhone 截图冒充 macOS 界面。
 
 ## 3. 签名与能力
@@ -93,8 +93,8 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme TexelMac \
 
 ## 6. 已知边界
 
-1. **App Store Connect 操作未执行**：本轮只改本地工程与文档，未创建线上记录、未上传构建、未提交审核。
+1. **Mac 平台仍待配置**：iOS / iPadOS 1.9.1（11）已上传；macOS 平台与 Mac 构建仍未配置或上传，线上通用购买尚未验证。未提交审核。
 2. **Mac 旧 Bundle ID 的迁移**：1.9.1 之前本地 Mac 构建曾使用 `com.lingxifox.Texel.Mac`，但该构建从未上架；若外部曾有测试包，Mac App Store 不会把它当作同一应用升级。正式分发以本文件中的统一 Bundle ID 为准。
 3. **日卡跨设备依赖 StoreKit 交易历史**：当前用 `Transaction.all` 恢复同一 Apple ID 的非续期交易；Keychain 只是本机镜像与离线兜底，不是跨设备存储。没有引入账号系统或外部服务。
 4. **体验防重复是尽力而为**：Keychain 能抵抗普通卸载重装，但不能抵抗抹机、改设备标识或越狱级操作；不宣称绝对防刷。
-5. **价格未改**：永久 Pro 线上仍为 $2.99，191.md 规划的 $7.99 未获授权，未做任何线上改价。
+5. **2026-11-13 价格更新**：主人已批准美国基准价永久 $7.99、日卡 $0.49、周 $0.99、月 $1.99。此前“未获授权、未改价”的结论只适用于 2026-11-12；后续线上状态见发布报告。

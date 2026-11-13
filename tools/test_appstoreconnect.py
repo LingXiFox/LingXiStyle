@@ -142,6 +142,37 @@ class ClientTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             c.request("PATCH", "appStoreVersions/id/relationships/appStoreVersionSubmission", {"data": {"type": "appStoreVersionSubmissions", "id": "id"}})
 
+    def test_subscription_setup_requires_flags_and_still_blocks_submission(self):
+        writes = [
+            ("subscriptionGroups", {"referenceName": "Texel Pro"}),
+            ("subscriptions", {"name": "Weekly", "productId": "test.weekly", "subscriptionPeriod": "ONE_WEEK", "groupLevel": 1}),
+            ("subscriptionVersions", {}),
+            ("subscriptionGroupVersions", {}),
+            ("subscriptionPrices", {"preserveCurrentPrice": False, "planType": "UPFRONT"}),
+            ("subscriptionPlanAvailabilities", {"availableInNewTerritories": False, "planType": "UPFRONT"}),
+            ("/v2/subscriptionLocalizations", {"name": "Weekly", "locale": "en-US"}),
+            ("/v2/subscriptionGroupLocalizations", {"name": "Texel Pro", "locale": "en-US"}),
+        ]
+        for path, attrs in writes:
+            with self.subTest(path=path):
+                c = client()
+                kind = path.split("/")[-1]
+                body = asc.resource(kind, attrs)
+                with self.assertRaises(ValueError):
+                    c.request("POST", path, body)
+                c.release_setup = True
+                if path.startswith("/v2/"):
+                    with self.assertRaises(ValueError):
+                        c.request("POST", path, body)
+                c.allow_v2 = True
+                c.opener = FakeOpener([{"data": {}}])
+                c.request("POST", path, body)
+                with self.assertRaises(ValueError):
+                    c.request("POST", path, asc.resource(kind, dict(attrs, submitted=True)))
+        for kind in ("subscriptionSubmissions", "subscriptionGroupSubmissions", "inAppPurchaseSubmissions"):
+            with self.subTest(kind=kind), self.assertRaises(ValueError):
+                c.request("POST", kind, asc.resource(kind, {}))
+
     def test_release_draft_review_create_is_allowed_without_submission(self):
         c = client()
         c.release_setup = True
@@ -245,19 +276,19 @@ def png(width=2, height=2, color=2, extra=b""):
 
 
 class ScreenshotTests(unittest.TestCase):
-    def test_existing_ready_screenshot_rerun_does_not_write(self):
+    def test_existing_complete_screenshot_rerun_does_not_write(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)/"home.png"
             path.write_bytes(png())
             image = dict(asc.png_info(path), locale="ja", specId="spec", group="group", limit=10, localization_id="loc")
             asset = {"id": "existing", "type": "appAssetLibraryImages", "attributes": {
-                "fileName": path.name, "fileSize": image["fileSize"], "specId": "spec", "state": "PREPARE_FOR_SUBMISSION", "imageAsset": {"width": 2, "height": 2}}}
+                "fileName": path.name, "fileSize": image["fileSize"], "specId": "spec", "state": "COMPLETE", "imageAsset": {"width": 2, "height": 2}}}
             placement = {"id": "placement", "attributes": {"placementType": "APP_SCREENSHOT", "placementGroup": "group", "state": "ACTIVE"}, "relationships": {"image": asc.relationship("appAssetLibraryImages", "existing")}}
             c = client()
             c.opener = FakeOpener([{"data": [asset]}, {"data": asset}, {"data": asset}, {"data": [placement]}, {"data": [placement]}])
             with patch.object(asc, "target", return_value=(None, {"attributes": {"appStoreState": "PREPARE_FOR_SUBMISSION"}}, [])), contextlib.redirect_stdout(io.StringIO()):
                 result = asc.apply_screenshots(c, {"app_id": asc.APP_ID, "version": "1.7.1", "library_id": "library", "images": [image]}, Path(directory)/"journal.json")
-            self.assertEqual(result[0]["asset_state"], "PREPARE_FOR_SUBMISSION")
+            self.assertEqual(result[0]["asset_state"], "COMPLETE")
             self.assertTrue(all(r.method == "GET" for r in c.opener.requests))
 
     def test_resume_awaiting_reservation_uploads_and_commits_once(self):
@@ -268,12 +299,14 @@ class ScreenshotTests(unittest.TestCase):
             ready = {"id": "existing", "type": "appAssetLibraryImages", "attributes": {
                 "referenceName": "texel-ja-"+image["sha256"], "fileName": path.name, "fileSize": image["fileSize"], "specId": "spec", "state": "PREPARE_FOR_SUBMISSION", "imageAsset": {"width": 2, "height": 2}}}
             waiting = dict(ready, attributes=dict(ready["attributes"], state="AWAITING_UPLOAD"))
+            processing = dict(ready, attributes=dict(ready["attributes"], state="COMPLETE", specId=None, imageAsset=None))
             placement = {"id": "placement", "attributes": {"placementType": "APP_SCREENSHOT", "placementGroup": "group", "state": "ACTIVE"}, "relationships": {"image": asc.relationship("appAssetLibraryImages", "existing")}}
             c = client()
-            c.opener = FakeOpener([{"data": [waiting]}, {"data": waiting}, {"data": ready}, {"data": ready}, {"data": [placement]}, {"data": [placement]}])
-            with patch.object(asc, "target", return_value=(None, {"attributes": {"appStoreState": "PREPARE_FOR_SUBMISSION"}}, [])), patch.object(asc, "upload_parts") as upload, contextlib.redirect_stdout(io.StringIO()):
+            c.opener = FakeOpener([{"data": [waiting]}, {"data": waiting}, {"data": ready}, {"data": processing}, {"data": ready}, {"data": [placement]}, {"data": [placement]}])
+            with patch.object(asc, "target", return_value=(None, {"attributes": {"appStoreState": "PREPARE_FOR_SUBMISSION"}}, [])), patch.object(asc, "upload_parts") as upload, patch.object(asc.time, "sleep") as pause, contextlib.redirect_stdout(io.StringIO()):
                 asc.apply_screenshots(c, {"app_id": asc.APP_ID, "version": "1.7.1", "library_id": "library", "images": [image]}, Path(directory)/"journal.json")
             upload.assert_called_once()
+            pause.assert_called_once_with(5)
             writes = [r for r in c.opener.requests if r.method != "GET"]
             self.assertEqual(len(writes), 1)
             self.assertEqual(json.loads(writes[0].data)["data"]["attributes"], {"uploaded": True})
@@ -397,6 +430,23 @@ class ReleaseTests(unittest.TestCase):
             release.market_plan(dict(snapshot, app_new_territories=True))
         with self.assertRaises(ValueError):
             release.market_plan(dict(snapshot, app_rows=snapshot['app_rows'][:1]))
+
+    def test_market_snapshot_preserves_the_actual_price_after_an_authorized_change(self):
+        import release_appstore as release
+        from unittest.mock import Mock
+        for price in ("2.99", "7.99"):
+            with self.subTest(price=price):
+                c = Mock()
+                c.list.side_effect = [[{"id": "USA"}], [], [{"id": "USA"}]]
+                c.request.side_effect = [
+                    {"data": {"id": "app", "attributes": {"availableInNewTerritories": False}}},
+                    {"data": {"id": "iap", "attributes": {"availableInNewTerritories": False}}},
+                    {"data": {"id": "USA"}},
+                    {"data": [{"id": "manual"}], "included": [{"type": "inAppPurchasePricePoints", "attributes": {"customerPrice": price}}]},
+                ]
+                result = release.market_snapshot(c)
+                self.assertEqual(result["prices"]["points"][0]["attributes"]["customerPrice"], price)
+                self.assertTrue(all(call.args[0] == "GET" for call in c.request.call_args_list))
 
     def test_tampered_market_plan_stops_before_writes(self):
         import release_appstore as release

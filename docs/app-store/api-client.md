@@ -96,8 +96,8 @@ uv run --frozen --script tools/appstoreconnect.py screenshots --apply-plan .tmp/
 使用当前 App Asset Library：读取 library，创建 `appAssetLibraryImages` 预约，
 按 `uploadOperations` 的字节范围 PUT，最后 PATCH `uploaded: true`。
 不在新 API 上发送旧截图接口的 `sourceFileChecksum`。
-等待最长 120 秒，每 5 秒查询一次真实处理状态；没有假进度。
-只有 `PREPARE_FOR_SUBMISSION` / `APPROVED` 且实际尺寸与 spec 匹配才建立 placement，
+等待最长 120 秒，每 5 秒查询一次真实处理状态；`COMPLETE` 若尚未带尺寸与 spec，则继续等处理元数据，不提前创建 placement。
+只有 `COMPLETE` / `PREPARE_FOR_SUBMISSION` / `APPROVED` 且实际尺寸与 spec 匹配才建立 placement，
 最后设置和回读截图顺序。失败资产保留，删除需单独批准。
 
 新资产用 locale + 完整 SHA-256 生成 referenceName；重跑通过服务端状态恢复同一预约，
@@ -118,11 +118,21 @@ uv run --frozen --script tools/appstoreconnect.py request PATCH appStoreVersionL
 # The previous command only previews. Add --apply for an authorized metadata write.
 ```
 
-通用 GET 支持官方 v1。`--allow-v2` 仅放行官方内购和应用销售地区资源；
+通用 GET 支持官方 v1。`--allow-v2` 仅放行官方内购、订阅 / 订阅组本地化和应用销售地区资源；
 `--release-setup` 开启另行授权的发布资料、年龄分级、价格/地区、内购资料和未提交审核草稿操作。
 这些开关不代替用户对价格、地区的明确授权。删除、App 版本实际提交审核/发布、证书撤销、财务和 API 密钥修改始终禁止。
 单张创意图片有独立的显式审核开关，见后文；它不能提交混有 App 或内购条目的审核草稿。
 `--signing-setup` 仅允许创建证书/描述文件，不允许撤销。
+
+2026-11-13 按 Apple OpenAPI 4.6 扩展了 `--release-setup` 的订阅配置范围：订阅组、订阅、
+对应 metadata versions、v2 四语言本地化、审核截图、价格和 `subscriptionPlanAvailabilities`。
+这些资源仍需显式开关；删除、`subscriptionSubmissions`、`subscriptionGroupSubmissions`、
+`inAppPurchaseSubmissions` 和 App 审核提交均被拦截。34 项离线测试包含这些边界。
+
+普通周 / 月续期使用 `planType: UPFRONT`，不是带 12 个月承诺的 `MONTHLY` 付款计划。
+应先配置计划的可售地区，再按 Apple 返回的价格点逐地区创建价格；没有一次设置全部订阅地区价格的端点。
+每次先读取实际状态并保存快照，409 停止；修正状态后只补尚未完成的地区，不重新创建商品或重发已验证价格。
+销售地区流程保存并比较实际价格快照，不再将永久版售价固定假定为历史的 $2.99。
 
 2026-11-09 的初始批准范围是仅美国。2026-11-10 用户另行批准 App 与 Pro 同步
 开放所有现有地区、仅排除中国大陆；App 免费，Pro 非消耗型，美国基准 $2.99，其他地区自动本地定价。

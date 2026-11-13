@@ -52,6 +52,15 @@ RELEASE_ATTRIBUTES = {
     "inAppPurchaseVersions": set(),
     "inAppPurchaseLocalizations": {"locale", "name", "description"},
     "inAppPurchaseAppStoreReviewScreenshots": {"fileName", "fileSize", "sourceFileChecksum", "uploaded"},
+    "subscriptionGroups": {"referenceName"},
+    "subscriptionGroupVersions": set(),
+    "subscriptionGroupLocalizations": {"locale", "name", "customAppName"},
+    "subscriptions": {"name", "productId", "subscriptionPeriod", "groupLevel", "familySharable", "reviewNote"},
+    "subscriptionVersions": set(),
+    "subscriptionLocalizations": {"locale", "name", "description"},
+    "subscriptionAppStoreReviewScreenshots": {"fileName", "fileSize", "sourceFileChecksum", "uploaded"},
+    "subscriptionPrices": {"startDate", "preserveCurrentPrice", "planType"},
+    "subscriptionPlanAvailabilities": {"availableInNewTerritories", "planType"},
     "appPriceSchedules": set(),
     "inAppPurchasePriceSchedules": set(),
     "appAvailabilities": {"availableInNewTerritories"},
@@ -60,7 +69,8 @@ RELEASE_ATTRIBUTES = {
     "reviewSubmissions": {"platform"},
     "reviewSubmissionItems": set(),
 }
-V2_RESOURCES = {"inAppPurchases", "inAppPurchaseLocalizations", "appAvailabilities"}
+V2_RESOURCES = {"inAppPurchases", "inAppPurchaseLocalizations", "appAvailabilities",
+                "subscriptionLocalizations", "subscriptionGroupLocalizations"}
 
 
 def dump(value):
@@ -599,11 +609,15 @@ def apply_screenshots(client, plan, journal):
         deadline = time.monotonic() + 120
         while True:
             asset = client.request("GET", path)["data"]
-            state = asset["attributes"]["state"]
-            if state != "UPLOAD_COMPLETE" or time.monotonic() >= deadline:
+            actual = asset["attributes"]
+            state = actual["state"]
+            dimensions = actual.get("imageAsset") or {}
+            pending = state == "UPLOAD_COMPLETE" or (state == "COMPLETE" and
+                (not actual.get("specId") or not dimensions.get("width") or not dimensions.get("height")))
+            if not pending or time.monotonic() >= deadline:
                 break
             time.sleep(5)
-        if state not in {"PREPARE_FOR_SUBMISSION", "APPROVED"}:
+        if state not in {"COMPLETE", "PREPARE_FOR_SUBMISSION", "APPROVED"}:
             raise ValueError("Apple image not ready: " + state + "; rerun to resume, no resource was deleted.")
         actual = asset["attributes"]
         dimensions = actual.get("imageAsset") or {}

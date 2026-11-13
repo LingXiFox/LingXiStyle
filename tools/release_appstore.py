@@ -337,8 +337,8 @@ def market_snapshot(client):
     manual = client.request('GET', 'inAppPurchasePriceSchedules/6832499022/manualPrices',
                             params={'include': 'inAppPurchasePricePoint,territory', 'limit': 200})
     points = [p for p in manual.get('included', []) if p['type'] == 'inAppPurchasePricePoints']
-    if base != 'USA' or len(manual['data']) != 1 or not any(p['attributes']['customerPrice'] == '2.99' for p in points):
-        raise ValueError('Expected the unchanged USA $2.99 base price; no price write is permitted.')
+    if base != 'USA' or len(manual['data']) != 1 or len(points) != 1 or not points[0]['attributes'].get('customerPrice'):
+        raise ValueError('Expected one USA base price; no price write is permitted.')
     return {'territories': sorted(t['id'] for t in territories), 'app_id': app['id'],
             'app_new_territories': app['attributes']['availableInNewTerritories'],
             'iap_new_territories': iap['attributes']['availableInNewTerritories'],

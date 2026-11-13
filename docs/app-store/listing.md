@@ -15,10 +15,10 @@ Apple 的字符上限与本文文案的实际字符数（按 Unicode 字符计�
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Name | 30 | 16 | 15 | 23 | 15 |
 | Subtitle | 30 | 16 | 16 | 29 | 14 |
-| Promotional Text | 170 | 74 | 80 | 164 | 97 |
+| Promotional Text | 170 | 69 | 72 | 152 | 93 |
 | Keywords | 100 | 46 | 46 | 88 | 50 |
-| Description | 4000 | 576 | 580 | 1516 | 764 |
-| What's New | 4000 | 70 | 72 | 233 | 102 |
+| Description | 4000 | 747 | 750 | 1931 | 980 |
+| What's New | 4000 | 156 | 156 | 372 | 199 |
 
 > 字符数是按当前文本计算的编辑值；提交前以 App Store Connect 的实时计数器为准。
 > 关键词用英文逗号分隔，不要再加空格或重复品牌词。
@@ -100,6 +100,9 @@ HEIC,纹理,颗粒,胶片,质感,照片,修图,原图,无损,纹粒,Texel,滤镜
 • 简体中文、繁体中文、English、日本語
 
 适用：iPhone 与 iPad 上拍摄的 HEIC / HEIF 原片，支持实况照片。RAW、JPEG / PNG 暂不支持。
+
+周/月订阅自动续期，可随时在系统订阅设置中取消；日卡不自动续订，永久版一次购买。每设备一次的 24 小时免费体验不订阅、不扣费。
+使用条款（Apple 标准 EULA）：https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 ```
 
 ### What's New (4000)
@@ -169,6 +172,9 @@ HEIC,紋理,顆粒,膠片,質感,照片,修圖,原圖,無損,紋粒,Texel,濾鏡
 • 簡體中文、繁體中文、English、日本語
 
 適用：iPhone 與 iPad 拍攝的 HEIC / HEIF 原片，支援實況照片。RAW、JPEG / PNG 暫不支援。
+
+週/月訂閱自動續期，可隨時在系統訂閱設定中取消；日卡不自動續訂，永久版一次購買。每裝置一次的 24 小時免費體驗不訂閱、不扣費。
+使用條款（Apple 標準 EULA）：https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 ```
 
 ### What's New (4000)
@@ -200,7 +206,7 @@ Real texture & grain for HEIC
 ### Promotional Text (170)
 
 ```text
-Made for iPhone and iPad HEIC originals. Add texture and grain without overwriting the original or uploading. 5 free photos a day; Pro offers a day pass, subscriptions, or lifetime.
+Texture and grain for iPhone and iPad HEIC originals. No overwriting or uploads. 5 free photos a day; Pro offers a day pass, subscriptions, or lifetime.
 ```
 
 ### Keywords (100)
@@ -238,6 +244,9 @@ PRIVACY FIRST
 • Simplified Chinese, Traditional Chinese, English, Japanese
 
 Works with HEIC / HEIF originals from iPhone and iPad, including Live Photos. RAW, JPEG, and PNG are not supported.
+
+Weekly and monthly subscriptions renew automatically and can be canceled in system subscription settings. The day pass does not renew; lifetime is a one-time purchase. The optional 24-hour device trial creates no subscription or charge.
+Terms of Use (Apple Standard EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 ```
 
 ### What's New (4000)
@@ -307,6 +316,9 @@ Texel は、iPhone 16 / 17 で撮影した HEIC 原画に、本物のテクス�
 • 簡体字中国語、繁体字中国語、英語、日本語
 
 対応：iPhone と iPad で撮影した HEIC / HEIF 原画。Live Photo に対応。RAW、JPEG / PNG は非対応です。
+
+週・月プランは自動更新され、システムのサブスクリプション設定でいつでも解約できます。日券は自動更新なし、買い切りは一度の購入です。端末ごとの24時間無料体験では契約も課金も発生しません。
+利用規約（Apple 標準 EULA）：https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 ```
 
 ### What's New (4000)
@@ -329,11 +341,17 @@ Photo access: the app reads only the photo the user selects, and saves the resul
 as a new asset with PhotoKit. The original asset is never modified. Add to Photos
 permission is requested only when the user saves.
 
-Texel Pro is a one-time, non-consumable in-app purchase
-(com.lingxifox.LingXiStyle.pro). It removes the free limit of 5 successful
-conversions per local calendar day; it is not a subscription. Restore Purchases
-is available on the Pro page. The app only reads Product.displayPrice and never
-hard-codes a currency amount.
+Texel Pro removes the free limit of 5 successful conversions per local day.
+All plans grant the same benefits: a 24-hour non-renewing day pass
+(com.lingxifox.LingXiStyle.pro.day), auto-renewing weekly and monthly subscriptions
+(.pro.weekly and .pro.monthly), and the existing non-consumable lifetime purchase
+(com.lingxifox.LingXiStyle.pro). Weekly and monthly plans share one subscription
+group and level. Existing lifetime owners retain access. Restore Purchases and
+Manage Subscriptions are available on the Pro page. Prices come from StoreKit.
+
+The optional 24-hour device trial is not a StoreKit introductory offer. It does
+not create a subscription or charge, and expires automatically. Result Vault
+and task history stay on-device; saving an existing vault result uses no quota.
 
 No login or demo account is required. No external payment or external purchase
 link is used.
