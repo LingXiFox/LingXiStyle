@@ -247,3 +247,7 @@ uv run --frozen --script tools/appstoreconnect.py --allow-v2 --release-setup rel
 图片本地保存在 AppStoreScreenshots/Creative/（仍不提交 Git），旁边的 prompt 文件记录
 内置生图提示词、原始 1536×1024 和用户批准的 ImageIO 3072×2048 放大导出。
 它是品牌创意插画，不作为真实 App 截图，也不宣称原生生成分辨率达到 3072。
+
+## 1.9.1 首批新方案审核准备
+
+按 Apple 官方流程，首批订阅随 App 二进制通过 App Store Connect 网页加入审核草稿，再用 API 只读回读。1.9.1 的同一草稿包含 App、日卡元数据版本、周/月订阅元数据版本和订阅组元数据版本，共五项；不得盲用仍只处理旧永久商品的 `release prepare`。加入草稿后的版本状态为 `READY_FOR_REVIEW`，不等于已提交。实际提交仍由用户另行决定，客户端的提交保护不变。实操与证据见 [完成记录](submission-draft-2026-11-13.md)。
