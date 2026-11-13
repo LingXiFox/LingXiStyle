@@ -391,7 +391,7 @@ ShareExtension/         分享扩展
 Configuration.storekit  本地 StoreKit 测试商品（非线上价格）
 AppStoreRelease.md      App Store Connect / 真实内购发布清单
 Resources/Localization/ String Catalog（zh-Hans / zh-Hant / en / ja）
-.github/workflows/      CI：双 SDK 构建 + 测试矩阵
+.github/workflows/      CI：三套 iOS SDK 构建 + 测试矩阵
 .github/actions/setup/   CI 复用 action
 ThirdPartyNotices/      上游 MIT 许可证与 vendor 说明
 project.yml             XcodeGen 工程定义

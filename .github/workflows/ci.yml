@@ -306,7 +306,7 @@ jobs:
 
   ios-build-and-test:
     name: iOS ${{ matrix.label }}
-    runs-on: macos-15
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     env:
       # Indexing is not needed in CI and roughly doubles clean build time.
@@ -316,13 +316,22 @@ jobs:
       matrix:
         include:
           - label: 18.5 compatibility
+            runner: macos-15
             xcode: /Applications/Xcode_16.4.app
             runtime: iOS-18
             artifact: ios-18
           - label: 26.x current
+            runner: macos-15
             xcode: /Applications/Xcode_26.3.app
             runtime: iOS-26
             artifact: ios-26
+          - label: 27.2 iPhone 17 Pro
+            runner: xcode-27
+            xcode: /Applications/Xcode_27.2.app
+            runtime: iOS-27-2
+            device_name: iPhone 17 Pro
+            device_type: com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro
+            artifact: ios-27-2-iphone-17-pro
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -341,17 +350,52 @@ jobs:
         id: simulator
         env:
           RUNTIME_PREFIX: ${{ matrix.runtime }}
+          DEVICE_NAME: ${{ matrix.device_name }}
+          DEVICE_TYPE: ${{ matrix.device_type }}
         run: |
           set -euo pipefail
           xcrun simctl list devices available -j > /tmp/simulators.json
           DEVICE_ID=$(python3 - <<'PY'
           import json
           import os
+          import subprocess
           import sys
 
           prefix = "com.apple.CoreSimulator.SimRuntime." + os.environ["RUNTIME_PREFIX"]
+          requested_name = os.environ.get("DEVICE_NAME", "").strip()
+          requested_type = os.environ.get("DEVICE_TYPE", "").strip()
           with open("/tmp/simulators.json", encoding="utf-8") as handle:
               data = json.load(handle)
+
+          if requested_name:
+              for runtime, devices in data.get("devices", {}).items():
+                  if not runtime.startswith(prefix):
+                      continue
+                  for device in devices:
+                      if device.get("isAvailable", False) and device.get("name") == requested_name:
+                          print(f"Using {device['name']} ({runtime}) {device['udid']}", file=sys.stderr)
+                          print(device["udid"])
+                          sys.exit(0)
+              runtimes = [runtime for runtime in data.get("devices", {}) if runtime.startswith(prefix)]
+              if not runtimes:
+                  print(f"No installed simulator runtime matches {prefix}.", file=sys.stderr)
+                  sys.exit(1)
+              runtime_id = prefix if prefix in runtimes else sorted(runtimes)[0]
+              if not requested_type:
+                  print("DEVICE_TYPE is required when DEVICE_NAME is set.", file=sys.stderr)
+                  sys.exit(1)
+              try:
+                  udid = subprocess.check_output(
+                      ["xcrun", "simctl", "create", f"CI {requested_name}", requested_type, runtime_id],
+                      text=True, stderr=subprocess.PIPE,
+                  ).strip()
+              except subprocess.CalledProcessError as error:
+                  print(error.stderr, file=sys.stderr)
+                  sys.exit(1)
+              print(f"Created {requested_name} ({runtime_id}) {udid}", file=sys.stderr)
+              print(udid)
+              sys.exit(0)
+
           candidates = []
           for runtime, devices in data.get("devices", {}).items():
               if not runtime.startswith(prefix):

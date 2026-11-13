@@ -163,7 +163,7 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme TexelMac \
 | `Resources/Localization` | String Catalog（App / 分享扩展 / 快捷指令 / Info.plist） |
 | `App/Resources/PrivacyInfo.xcprivacy` | App 隐私清单：无跟踪 / 无数据收集，UserDefaults CA92.1 |
 | `ShareExtension/Resources/PrivacyInfo.xcprivacy` | 扩展隐私清单：FileTimestamp C617.1（临时目录清理） |
-| `.github/workflows` | CI：XcodeGen 一致性、四语言完整性、凭据扫描、StoreKit 配置、iOS 18.5 / 26.0 双 SDK 构建与测试、macOS 单元测试与 TexelMac 构建 |
+| `.github/workflows` | CI：XcodeGen 一致性、四语言完整性、凭据扫描、StoreKit 配置、iOS 18.5 / 26.x / 27.2 三套构建与测试、macOS 单元测试与 TexelMac 构建 |
 | `.github/actions/setup` | CI 复用的 Xcode 选择 + XcodeGen 安装 action |
 
 ## Resource Lifecycle and Cleanup
