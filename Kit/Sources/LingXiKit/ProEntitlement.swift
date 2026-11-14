@@ -42,24 +42,46 @@ public struct StoreKitEntitlementProvider: ProEntitlementProviding {
         await snapshot().isActive
     }
 
-    /// Combines every verified StoreKit transaction with the Keychain trial and day pass
-    /// ledgers. `Transaction.all` is used instead of `currentEntitlements` so the evaluator can
-    /// still see a refunded day pass and suppress its stale local mirror; revoked and expired
-    /// records are filtered by `ProAccessEvaluator`.
+    /// Combines the verified StoreKit entitlement with the Keychain trial and day pass ledgers.
+    /// `Transaction.currentEntitlements` is the only grant source: Apple documents it as the latest
+    /// transaction per entitled product, and a refunded or revoked product never appears there. A
+    /// cleared sandbox purchase therefore drops Pro instead of leaving a stale local record behind.
+    /// `Transaction.all` is a history, not an entitlement; it is read only to spot a revoked day
+    /// pass, which is the one record that has to keep its Keychain mirror suppressed.
     public func snapshot() async -> ProAccessSnapshot {
-        var records: [ProEntitlementRecord] = []
-        for await result in Transaction.all {
-            guard case .verified(let transaction) = result else { continue }
-            guard ProPlan.plan(forProductID: transaction.productID) != nil else { continue }
-            records.append(ProEntitlementRecord(productID: transaction.productID,
-                                                purchaseDate: transaction.purchaseDate,
-                                                expirationDate: transaction.expirationDate,
-                                                revocationDate: transaction.revocationDate))
+        var entitled: [ProEntitlementRecord] = []
+        for await result in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = result,
+                  ProPlan.plan(forProductID: transaction.productID) != nil else { continue }
+            entitled.append(Self.record(for: transaction))
         }
+
+        let storedDayPassExpiry = dayPass()
+        var revoked: [ProEntitlementRecord] = []
+        if storedDayPassExpiry != nil {
+            // Nothing else can be rescued from history, so skip the full scan when there is no
+            // local mirror to reconcile. Long-lived subscriptions would otherwise replay years of
+            // renewals on every foreground refresh.
+            for await result in Transaction.all {
+                guard case .verified(let transaction) = result,
+                      transaction.revocationDate != nil,
+                      ProPlan.plan(forProductID: transaction.productID) != nil else { continue }
+                revoked.append(Self.record(for: transaction))
+            }
+        }
+
+        let records = ProEntitlementResolver.records(entitled: entitled, revoked: revoked)
         return ProAccessEvaluator.snapshot(records: records,
                                            trial: trial().trial,
-                                           storedDayPassExpiry: dayPass(),
+                                           storedDayPassExpiry: storedDayPassExpiry,
                                            now: now())
+    }
+
+    private static func record(for transaction: Transaction) -> ProEntitlementRecord {
+        ProEntitlementRecord(productID: transaction.productID,
+                             purchaseDate: transaction.purchaseDate,
+                             expirationDate: transaction.expirationDate,
+                             revocationDate: transaction.revocationDate)
     }
 }
 
@@ -81,6 +103,10 @@ public final class PurchaseManager: ObservableObject {
     /// Kept for the 1.8 paywall and its tests: the lifetime product.
     @Published public private(set) var product: Product?
     @Published public private(set) var planProducts: [ProPlan: Product] = [:]
+    /// Plans StoreKit has answered for at least once. `planProducts` is sparse because the App
+    /// Store silently drops identifiers it cannot resolve, so an empty dictionary is not the only
+    /// sign that no load has happened yet.
+    @Published public private(set) var loadedPlans: Set<ProPlan> = []
     @Published public private(set) var access: ProAccessSnapshot = .free
     @Published public private(set) var isPro = false
     @Published public private(set) var isLoadingProduct = false
@@ -151,6 +177,18 @@ public final class PurchaseManager: ObservableObject {
         await loadProducts(plans: ProPlan.allCases)
     }
 
+    /// Loads the plans no earlier call has seen yet. Every paywall entry point calls this, so the
+    /// lifetime product fetched by `loadProduct()` can never hide the subscriptions behind it.
+    public func loadPlansIfNeeded() async {
+        guard !hasLoadedAllPlans else { return }
+        await loadProducts(plans: ProPlan.allCases)
+    }
+
+    /// True once every Pro plan has been requested and answered at least once.
+    public var hasLoadedAllPlans: Bool {
+        loadedPlans.count >= ProPlan.allCases.count
+    }
+
     private func loadProducts(plans: [ProPlan]) async {
         guard !isLoadingProduct else { return }
         isLoadingProduct = true
@@ -159,14 +197,26 @@ public final class PurchaseManager: ObservableObject {
         do {
             let products = try await Product.products(for: plans.map(\.productID))
             for plan in plans {
-                planProducts[plan] = products.first { $0.id == plan.productID }
+                let loaded = products.first { $0.id == plan.productID }
+                planProducts[plan] = loaded
+                if loaded == nil {
+                    loadedPlans.remove(plan)
+                } else {
+                    loadedPlans.insert(plan)
+                }
             }
             product = planProducts[.lifetime]
-            if plans.contains(.lifetime), product == nil {
-                productLoadError = String(localized: "App Store 暂时没有返回这个商品，请稍后重试。")
+            if plans.contains(where: { planProducts[$0] == nil }) {
+                // The App Store omits identifiers it cannot resolve instead of throwing, so a
+                // missing plan is a real failure the user has to see and retry.
+                productLoadError = String(localized: "pro.error.missingPlans",
+                                          defaultValue: "App Store 暂时没有返回部分商品，请稍后重试。")
             }
         } catch {
-            for plan in plans { planProducts[plan] = nil }
+            for plan in plans {
+                planProducts[plan] = nil
+                loadedPlans.remove(plan)
+            }
             product = nil
             productLoadError = Self.message(for: error, fallback: String(localized: "无法连接 App Store，请检查网络后重试。"))
         }

@@ -258,6 +258,58 @@ final class ProPlansTests: XCTestCase {
         )
         XCTAssertEqual(snapshot.source, .lifetime)
     }
+
+    // MARK: - Entitlements vs StoreKit history
+
+    func testResolverKeepsEntitledRecordsAndAppendsRevokedOnes() {
+        let revokedDayPass = record(.dayPass, purchased: -7_200, revoked: -3_600)
+        let resolved = ProEntitlementResolver.records(
+            entitled: [record(.lifetime)],
+            revoked: [revokedDayPass]
+        )
+        XCTAssertEqual(resolved.count, 2)
+        XCTAssertEqual(resolved.filter { $0.revocationDate == nil }.count, 1)
+        XCTAssertEqual(resolved.filter { $0.revocationDate != nil }.count, 1)
+    }
+
+    func testResolverPrefersTheRevokedCopyOfADuplicate() {
+        // StoreKit never lists a revoked transaction in current entitlements; if the two sequences
+        // ever disagree, the revocation must survive so the evaluator cannot grant access.
+        let resolved = ProEntitlementResolver.records(
+            entitled: [record(.monthly, expires: 30 * 86_400)],
+            revoked: [record(.monthly, expires: 30 * 86_400, revoked: -60)]
+        )
+        XCTAssertEqual(resolved.count, 1)
+        XCTAssertNotNil(resolved.first?.revocationDate)
+        XCTAssertEqual(ProAccessEvaluator.snapshot(records: resolved, trial: nil, now: now).source, .none)
+    }
+
+    func testClearedPurchaseHistoryFallsBackToFree() {
+        // Sandbox "clear purchase history" leaves no current entitlement, so the app must drop
+        // Pro even though the device used to own the lifetime product.
+        let snapshot = ProAccessEvaluator.snapshot(
+            records: ProEntitlementResolver.records(entitled: [], revoked: []),
+            trial: nil,
+            now: now
+        )
+        XCTAssertEqual(snapshot.source, .none)
+        XCTAssertFalse(snapshot.isActive)
+    }
+
+    func testRevokedDayPassFromHistoryClearsTheStoredMirror() {
+        let records = ProEntitlementResolver.records(
+            entitled: [],
+            revoked: [record(.dayPass, purchased: -3_600, revoked: -60)]
+        )
+        let snapshot = ProAccessEvaluator.snapshot(
+            records: records,
+            trial: nil,
+            storedDayPassExpiry: now.addingTimeInterval(86_400),
+            now: now
+        )
+        XCTAssertEqual(snapshot.source, .none)
+    }
+
     func testShareExtensionReadsTheHostAppLedger() {
         XCTAssertEqual(ProLedgerScope.ownerBundleID(for: "com.lingxifox.Texel"), "com.lingxifox.Texel")
         XCTAssertEqual(ProLedgerScope.ownerBundleID(for: "com.lingxifox.Texel.Share"), "com.lingxifox.Texel")

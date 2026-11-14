@@ -156,7 +156,7 @@ struct SettingsView: View {
             }
         }
         .task {
-            if purchases.product == nil { await purchases.loadProduct() }
+            await purchases.loadPlansIfNeeded()
         }
         .sheet(isPresented: $showPro) {
             ProPurchaseView(

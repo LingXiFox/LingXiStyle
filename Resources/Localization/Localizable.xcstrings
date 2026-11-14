@@ -146,35 +146,6 @@
         }
       }
     },
-    "App Store 暂时没有返回这个商品，请稍后重试。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The App Store didn’t return this product. Please try again later."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "App Store がこの商品を返しませんでした。しばらくしてから再試行してください。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "App Store 暂时没有返回这个商品，请稍后重试。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "App Store 暫時沒有傳回這個商品，請稍後再試。"
-          }
-        }
-      }
-    },
     "EXIF 元数据逐字节一致": {
       "extractionState": "manual",
       "localizations": {
@@ -1770,6 +1741,35 @@
         }
       }
     },
+    "pro.error.missingPlans": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The App Store didn’t return some products. Please try again later."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App Store が一部の商品を返しませんでした。しばらくしてから再試行してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App Store 暂时没有返回部分商品，请稍后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App Store 暫時沒有傳回部分商品，請稍後再試。"
+          }
+        }
+      }
+    },
     "pro.legal.freeLimit": {
       "extractionState": "manual",
       "localizations": {
@@ -1911,6 +1911,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ 購買頁"
+          }
+        }
+      }
+    },
+    "pro.plan.unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unavailable"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "利用できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂不可用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫不可用"
           }
         }
       }

@@ -32,6 +32,13 @@ struct ProPurchaseView: View {
             return true
         }
     }
+    /// Keeps the call to action usable when the plan the sheet opens on is not for sale, for
+    /// example a lifetime product that is still unpublished while the subscriptions are live.
+    private func selectAvailablePlanIfNeeded() {
+        guard purchases.planProducts[selectedPlan] == nil else { return }
+        guard let fallback = ProPlan.allCases.first(where: { purchases.planProducts[$0] != nil }) else { return }
+        selectedPlan = fallback
+    }
 
     var body: some View {
         ZStack {
@@ -90,9 +97,8 @@ struct ProPurchaseView: View {
         .duoFormWidth()
         .task {
             await purchases.start()
-            if purchases.planProducts.isEmpty {
-                await purchases.loadPlans()
-            }
+            await purchases.loadPlansIfNeeded()
+            selectAvailablePlanIfNeeded()
         }
         .onChange(of: purchases.isPro) { _, isPro in
             if isPro { onEntitlementChanged() }
@@ -226,9 +232,9 @@ struct ProPurchaseView: View {
 
     private var plans: some View {
         VStack(spacing: Spacing.xs) {
-            if purchases.planProducts.isEmpty, !purchases.isLoadingProduct {
+            if let message = purchases.productLoadError, !purchases.isLoadingProduct {
                 InlineErrorNotice(
-                    message: purchases.productLoadError ?? String(localized: "暂时无法加载商品信息，请稍后重试。"),
+                    message: message,
                     actionTitle: String(localized: "重新加载")
                 ) {
                     Task { await purchases.loadPlans() }
@@ -241,6 +247,13 @@ struct ProPurchaseView: View {
                 planRow(plan)
             }
         }
+    }
+    /// A dash would hide which plan the App Store refused to return, so a finished load that is
+    /// still missing a product says so instead of showing a placeholder price.
+    private var missingPriceText: String {
+        purchases.isLoadingProduct
+            ? "—"
+            : String(localized: "pro.plan.unavailable", defaultValue: "暂不可用")
     }
 
     private func planRow(_ plan: ProPlan) -> some View {
@@ -276,7 +289,7 @@ struct ProPurchaseView: View {
 
                 Spacer(minLength: 0)
 
-                Text(product?.displayPrice ?? "—")
+                Text(product?.displayPrice ?? missingPriceText)
                     .font(Typography.numeric)
                     .foregroundStyle(product == nil ? Palette.textTertiary : Palette.textPrimary)
             }

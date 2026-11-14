@@ -472,11 +472,24 @@ jobs:
             test 2>&1 | tee .build/logs/storekit-initialization.log
 
       - name: Run purchase and keychain tests
-        timeout-minutes: 30
+        timeout-minutes: 35
         run: |
           set -euo pipefail
           DEVICE_ID="${{ steps.simulator.outputs.device_id }}"
           bash .github/scripts/boot-simulator.sh "$DEVICE_ID" 180
+          # A freshly created simulator has no StoreKit account yet. The first
+          # purchase has to bootstrap one through Apple Media Services, and on the
+          # iOS 27.2 runtime that handshake never returns: the test is killed by its
+          # allowance and the leg goes red. Purchases after the bootstrap finish in
+          # milliseconds, so pay the cold start in a throwaway run whose result is
+          # ignored, then let the real suite below report the actual signal.
+          xcodebuild -project LingXiStyle.xcodeproj \
+            -scheme LingXiPurchaseTests -configuration Debug \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -derivedDataPath "$DERIVED_DATA" -parallel-testing-enabled NO \
+            -only-testing:LingXiPurchaseTests/StoreKitPurchaseTests/testSuccessfulPurchaseGrantsVerifiedPro \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 180 \
+            test 2>&1 | tee .build/logs/purchase-warmup.log || true
           # StoreKitTest's first purchase on the iOS 18.5 runtime has taken
           # 107-571s while its daemon starts. Keep the assertion timeout well
           # above that observed cold start; do not use it to hide a real hang.
