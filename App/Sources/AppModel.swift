@@ -200,9 +200,7 @@ final class AppModel: ObservableObject {
         Task { [weak self] in
             guard let self else { return }
             await self.purchases.start()
-            if self.purchases.product == nil {
-                await self.purchases.loadProduct()
-            }
+            await self.purchases.loadPlansIfNeeded()
         }
     }
 
@@ -211,9 +209,7 @@ final class AppModel: ObservableObject {
         Task { [weak self] in
             guard let self else { return }
             await self.purchases.start()
-            if self.purchases.product == nil {
-                await self.purchases.loadProduct()
-            }
+            await self.purchases.loadPlansIfNeeded()
         }
     }
 

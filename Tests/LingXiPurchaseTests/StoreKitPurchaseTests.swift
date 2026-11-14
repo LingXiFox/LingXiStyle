@@ -61,6 +61,37 @@ final class StoreKitPurchaseTests: XCTestCase {
         XCTAssertFalse(manager.planProducts[.monthly]?.displayPrice.isEmpty ?? true)
     }
 
+    func testLifetimeLoadKeepsTheSubscriptionsReachable() async throws {
+        let manager = PurchaseManager()
+        await manager.loadProduct()
+
+        XCTAssertEqual(manager.loadedPlans, [.lifetime])
+        XCTAssertFalse(manager.hasLoadedAllPlans)
+        XCTAssertNil(manager.planProducts[.monthly])
+
+        await manager.loadPlansIfNeeded()
+
+        XCTAssertTrue(manager.hasLoadedAllPlans)
+        XCTAssertNil(manager.productLoadError)
+        XCTAssertEqual(Set(manager.planProducts.keys), Set(ProPlan.allCases))
+        XCTAssertFalse(manager.planProducts[.monthly]?.displayPrice.isEmpty ?? true)
+    }
+
+    func testLoadedPlansAreNotRequestedTwiceOnThePaywall() async throws {
+        let manager = PurchaseManager()
+        await manager.loadPlansIfNeeded()
+        XCTAssertTrue(manager.hasLoadedAllPlans)
+
+        // A second paywall entry must not hit StoreKit again, so a simulated failure stays invisible.
+        try await session.setSimulatedError(
+            SKTestFailures.LoadProducts.generic(.networkError(URLError(.notConnectedToInternet))),
+            forAPI: .loadProducts
+        )
+        await manager.loadPlansIfNeeded()
+        XCTAssertNil(manager.productLoadError)
+        try await session.setSimulatedError(nil, forAPI: .loadProducts)
+    }
+
     func testDayPassPurchaseUnlocksProForTwentyFourHours() async throws {
         let trialStore = MemoryTrialStore()
         let dayPassStore = MemoryDayPassStore()
@@ -356,6 +387,25 @@ final class StoreKitPurchaseTests: XCTestCase {
         let status = try quota.status(isPro: manager.isPro)
         XCTAssertEqual(status.remaining, QuotaConfiguration.freeDailyLimit)
         XCTAssertFalse(status.isExhausted)
+    }
+
+    func testClearingPurchaseHistoryRestoresFreeAccess() async throws {
+        let manager = PurchaseManager()
+        await manager.start()
+        await manager.loadProduct()
+        await manager.purchase()
+        XCTAssertTrue(manager.isPro)
+
+        session.clearTransactions()
+
+        let cleared = await waitUntil {
+            await manager.refreshEntitlement()
+            return !manager.isPro
+        }
+        XCTAssertTrue(cleared)
+        XCTAssertEqual(manager.access.source, .none)
+        let stillPro = await StoreKitEntitlementProvider().isPro()
+        XCTAssertFalse(stillPro)
     }
 
     func testRepeatedCallbacksDoNotDuplicateEntitlement() async throws {

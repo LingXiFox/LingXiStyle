@@ -112,6 +112,39 @@ public struct ProAccessSnapshot: Sendable, Equatable {
     }
 }
 
+/// Splits the two StoreKit sequences into the records the evaluator may see.
+///
+/// `Transaction.currentEntitlements` is the only sequence allowed to grant Pro: Apple documents it
+/// as the latest transaction per product the customer is entitled to, and a refunded or revoked
+/// product never appears there. `Transaction.all` is a transaction history, not an entitlement.
+/// It is still the only place where a refunded non-renewing day pass stays visible, so revoked
+/// history is merged back in merely to suppress the stale Keychain mirror. Clearing a sandbox
+/// purchase drops the transaction from current entitlements while the cached history keeps the old
+/// verified record, which is exactly why history must never be able to grant access on its own.
+public enum ProEntitlementResolver {
+    private struct Key: Hashable {
+        let productID: String
+        let purchaseDate: Date
+    }
+
+    public static func records(entitled: [ProEntitlementRecord],
+                               revoked: [ProEntitlementRecord]) -> [ProEntitlementRecord] {
+        let revokedRecords = revoked.filter { $0.revocationDate != nil }
+        let revokedKeys = Set(revokedRecords.map { Key(productID: $0.productID, purchaseDate: $0.purchaseDate) })
+        var seen = Set<Key>()
+        var result = entitled.filter { record in
+            guard record.revocationDate == nil else { return false }
+            return !revokedKeys.contains(Key(productID: record.productID, purchaseDate: record.purchaseDate))
+        }
+        result.forEach { seen.insert(Key(productID: $0.productID, purchaseDate: $0.purchaseDate)) }
+        for record in revokedRecords {
+            let key = Key(productID: record.productID, purchaseDate: record.purchaseDate)
+            if seen.insert(key).inserted { result.append(record) }
+        }
+        return result
+    }
+}
+
 /// Pure entitlement rules. Any single active source is enough; a lifetime purchase always wins
 /// so refunds of shorter products can never downgrade an owner.
 public enum ProAccessEvaluator {
