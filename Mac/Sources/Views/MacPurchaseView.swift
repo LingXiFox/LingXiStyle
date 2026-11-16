@@ -19,6 +19,17 @@ struct MacPurchaseView: View {
                     }
                     if canPurchaseMore {
                         planList
+                        if let notice = ProPurchasePolicy.notice(for: selectedPlan, access: currentAccess) {
+                            Text(notice)
+                                .font(MacType.caption)
+                                .foregroundStyle(MacPalette.textSecondary)
+                        }
+                    }
+                    if purchases.purchaseState == .success, let note = purchases.postPurchaseNotice {
+                        Text(note)
+                            .font(MacType.caption)
+                            .foregroundStyle(MacPalette.success)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     if !purchases.access.isActive {
                         trialCard
@@ -31,12 +42,30 @@ struct MacPurchaseView: View {
             footer
         }
         .background(MacPalette.background)
-        .task { await purchases.loadPlans() }
+        .task {
+            await purchases.loadPlans()
+            reconcileSelection()
+        }
     }
 
-    /// Lifetime owners and active subscribers never see another purchase prompt.
+    /// Plans the paywall may show. A running subscription keeps the other term and the buyout on
+    /// sale; a lifetime owner gets no product row at all.
+    private var plansForSale: [ProPlan] {
+        ProPurchasePolicy.visiblePlans(for: currentAccess)
+    }
+
+    private var currentAccess: ProAccessSnapshot {
+        purchases.effectiveAccess
+    }
+
     private var canPurchaseMore: Bool {
-        !purchases.access.isLifetime && purchases.access.source != .subscription
+        !plansForSale.isEmpty
+    }
+
+    private var canPurchaseSelected: Bool {
+        purchases.planProducts[selectedPlan] != nil
+            && purchases.purchaseState != .purchasing
+            && ProPurchasePolicy.availability(of: selectedPlan, access: currentAccess).isPurchasable
     }
 
     private var header: some View {
@@ -52,7 +81,7 @@ struct MacPurchaseView: View {
 
     private var planList: some View {
         VStack(spacing: MacSpacing.s) {
-            ForEach(ProPlan.allCases) { plan in
+            ForEach(plansForSale) { plan in
                 planRow(plan)
             }
         }
@@ -60,6 +89,7 @@ struct MacPurchaseView: View {
 
     private func planRow(_ plan: ProPlan) -> some View {
         let isSelected = selectedPlan == plan
+        let availability = ProPurchasePolicy.availability(of: plan, access: currentAccess)
         let product = purchases.planProducts[plan]
         return Button {
             selectedPlan = plan
@@ -85,7 +115,9 @@ struct MacPurchaseView: View {
                         .foregroundStyle(MacPalette.textSecondary)
                 }
                 Spacer()
-                Text(product?.displayPrice ?? "—")
+                Text(availability.isPurchasable
+                     ? (product?.displayPrice ?? "—")
+                     : (ProPurchasePolicy.statusLabel(for: availability) ?? "—"))
                     .font(MacType.numeric)
             }
             .padding(.horizontal, MacSpacing.m)
@@ -98,7 +130,7 @@ struct MacPurchaseView: View {
             .contentShape(RoundedRectangle(cornerRadius: MacRadius.group, style: .continuous))
         }
         .buttonStyle(.plain)
-        .disabled(product == nil)
+        .disabled(!availability.isPurchasable || product == nil)
     }
 
     private var trialCard: some View {
@@ -143,7 +175,7 @@ struct MacPurchaseView: View {
                         .font(MacType.caption)
                         .foregroundStyle(MacPalette.textSecondary)
                 }
-                if purchases.access.source == .subscription {
+                if purchases.access.hasActiveSubscription {
                     Button(String(localized: "管理订阅", defaultValue: "管理订阅")) {
                         NSWorkspace.shared.open(PurchaseManager.manageSubscriptionsURL)
                     }
@@ -186,7 +218,7 @@ struct MacPurchaseView: View {
                     Task { await model.purchase(selectedPlan) }
                 }
                 .buttonStyle(MacPrimaryButtonStyle())
-                .disabled(purchases.planProducts[selectedPlan] == nil || purchases.purchaseState == .purchasing)
+                .disabled(!canPurchaseSelected)
             }
         }
         .padding(MacSpacing.l)
@@ -196,5 +228,15 @@ struct MacPurchaseView: View {
     private var purchaseTitle: String {
         let price = purchases.planProducts[selectedPlan]?.displayPrice ?? ""
         return String(localized: "购买 %@", defaultValue: "购买 \(selectedPlan.displayName) \(price)")
+    }
+    /// Keeps the footer usable when the preselected plan is a running plan or was not published.
+    private func reconcileSelection() {
+        let loaded = plansForSale.filter {
+            purchases.planProducts[$0] != nil
+                && ProPurchasePolicy.availability(of: $0, access: currentAccess).isPurchasable
+        }
+        guard !loaded.contains(selectedPlan) else { return }
+        guard let preferred = ProPurchasePolicy.defaultPlan(for: currentAccess) else { return }
+        selectedPlan = loaded.contains(preferred) ? preferred : (loaded.first ?? selectedPlan)
     }
 }

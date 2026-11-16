@@ -11,7 +11,7 @@
 | App Store Sandbox | App Store Connect 商品 + Sandbox 测试账号 | 否 | 真机验证完整 StoreKit 流程 |
 | App Store 生产 | App Store Connect 审核通过的商品 | 是 | 最终用户购买 |
 
-`Configuration.storekit` 里的 `2.99` 只是本地测试价格，不是任何地区的真实售价。
+`Configuration.storekit` 里的四档价格只是本地测试价格，具体数值以该文件为准，不是任何地区的真实售价。
 UI 与测试都不得把它当作生产价格。
 
 ## 1. 前置条件
@@ -75,8 +75,8 @@ App 代码只读取 `Product.displayPrice`，不包含任何美元 / 人民币 /
 
 `project.yml` 已把 `Configuration.storekit` 绑定到 Debug 的 `LingXiStyle` 与 `TexelMac` scheme。
 执行 `xcodegen generate` 后，用 Xcode Run 启动任一 App，购买面板会使用本地配置，不产生真实交易。
-本地配置包含四种商品：永久 2.99、日卡 0.49、周 0.99、月 1.99，这些只是测试显示价，
-与 191.md 提到的永久 $7.99 不同；改价必须在 App Store Connect 获得授权后单独进行。
+本地配置包含永久、日卡、周、月四种测试商品，价格以 `Configuration.storekit` 为准，这些只是测试显示价；
+正式售价仍由 App Store Connect 控制，本地改价不改变线上价格。
 
 自动化测试：
 
@@ -184,7 +184,7 @@ are shown before purchase; deleting the app does not cancel a subscription.
 
 - 本仓库不分发 IPA；真实商品只在 App Store 生产环境扣款。
 - 免费 Personal Team 的 7 天签名只适合源码自用，不能用于上架或真实内购。
-- 本地 StoreKit 配置的 `$2.99` 只是测试显示，不是定价建议。
+- 本地 StoreKit 配置的四档价格只是测试显示，具体数值以 `Configuration.storekit` 为准，不是定价建议。
 - 1.7.1 保留分享扩展阻塞修复，并新增 12 条取消 / 超时 / 回退 / 重试状态机测试；
   1.7.0 已在 iOS 27.3 模拟器完成原片 → 读取 → 转换 → 保存 → 额度同步；真机分享扩展仍未验证。
 - 1.7.1 新增真实 48MP HEIC 端到端集成测试与 XCUITest 启动冒烟；本机六套测试合计

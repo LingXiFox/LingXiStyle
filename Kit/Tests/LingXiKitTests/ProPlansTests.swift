@@ -7,11 +7,13 @@ final class ProPlansTests: XCTestCase {
     private func record(_ plan: ProPlan,
                         purchased: TimeInterval = 0,
                         expires: TimeInterval? = nil,
-                        revoked: TimeInterval? = nil) -> ProEntitlementRecord {
+                        revoked: TimeInterval? = nil,
+                        grace: TimeInterval? = nil) -> ProEntitlementRecord {
         ProEntitlementRecord(productID: plan.productID,
                              purchaseDate: now.addingTimeInterval(purchased),
                              expirationDate: expires.map { now.addingTimeInterval($0) },
-                             revocationDate: revoked.map { now.addingTimeInterval($0) })
+                             revocationDate: revoked.map { now.addingTimeInterval($0) },
+                             gracePeriodEndsAt: grace.map { now.addingTimeInterval($0) })
     }
 
     // MARK: - Access evaluation
@@ -192,15 +194,26 @@ final class ProPlansTests: XCTestCase {
                        "a late-applied transaction must not restart the 24-hour window")
     }
 
-    func testSecondDayPassExtendsFromTheRemainingWindow() throws {
+    func testSecondDayPassStartsANewWindowFromItsPurchaseDate() throws {
+        // Two passes never stack: the mirror has to match what another device would compute from
+        // the newest transaction alone, so a second pass restarts the 24-hour window instead of
+        // extending the leftover time.
         let store = MemoryDayPassStore()
         var clock = now
         let service = ProDayPassService(store: store, now: { clock })
         let first = try service.activate(transactionID: "1")
         clock = now.addingTimeInterval(6 * 3_600)
         let second = try service.activate(transactionID: "2")
-        XCTAssertEqual(second.timeIntervalSince(first), 24 * 3_600)
-        XCTAssertEqual(second.timeIntervalSince(clock), 42 * 3_600)
+        XCTAssertEqual(second.timeIntervalSince(first), 6 * 3_600, "the second pass restarts, so it only outlives the first by the gap")
+        XCTAssertEqual(second.timeIntervalSince(clock), 24 * 3_600)
+    }
+
+    func testLateTransactionUpdateKeepsTheLongerWindow() throws {
+        let store = MemoryDayPassStore()
+        let service = ProDayPassService(store: store, now: { self.now })
+        let current = try service.activate(transactionID: "1", purchasedAt: now.addingTimeInterval(-60))
+        let stale = try service.activate(transactionID: "2", purchasedAt: now.addingTimeInterval(-3 * 3_600))
+        XCTAssertEqual(stale, current, "an out-of-order update must not shorten the paid window")
     }
 
     func testReplayingTheSameTransactionNeverStacksTime() throws {
@@ -211,6 +224,17 @@ final class ProPlansTests: XCTestCase {
         clock = now.addingTimeInterval(3_600)
         let replay = try service.activate(transactionID: "7")
         XCTAssertEqual(replay, first)
+    }
+
+    func testReplayingAnExpiredTransactionDoesNotRestartTheWindow() throws {
+        let store = MemoryDayPassStore()
+        var clock = now
+        let service = ProDayPassService(store: store, now: { clock })
+        let first = try service.activate(transactionID: "8", purchasedAt: now)
+        clock = now.addingTimeInterval(25 * 3_600)
+        let replay = try service.activate(transactionID: "8")
+        XCTAssertEqual(replay, first, "a redelivered transaction must stay expired")
+        XCTAssertNil(service.expiresAt())
     }
 
     func testExpiredDayPassIsDropped() throws {
@@ -315,6 +339,52 @@ final class ProPlansTests: XCTestCase {
         XCTAssertEqual(ProLedgerScope.ownerBundleID(for: "com.lingxifox.Texel.Share"), "com.lingxifox.Texel")
         XCTAssertEqual(ProLedgerScope.ownerBundleID(for: "com.lingxifox.Texel.PurchaseHost"),
                        "com.lingxifox.Texel.PurchaseHost")
+    }
+    // MARK: - Grace period and management entry
+
+    func testGracePeriodKeepsAccessPastThePaidTerm() {
+        let snapshot = ProAccessEvaluator.snapshot(
+            records: [record(.monthly, purchased: -30 * 86_400, expires: -3_600, grace: 6 * 86_400)],
+            trial: nil,
+            now: now
+        )
+        XCTAssertEqual(snapshot.source, .subscription)
+        XCTAssertEqual(snapshot.plan, .monthly)
+        XCTAssertEqual(snapshot.expiresAt?.timeIntervalSince(now), 6 * 86_400)
+        XCTAssertTrue(snapshot.hasActiveSubscription)
+    }
+
+    func testExpiredGracePeriodFallsBackToFree() {
+        let snapshot = ProAccessEvaluator.snapshot(
+            records: [record(.monthly, expires: -86_400, grace: -3_600)],
+            trial: nil,
+            now: now
+        )
+        XCTAssertEqual(snapshot, .free)
+    }
+
+    func testRevokedSubscriptionIgnoresItsGracePeriod() {
+        let snapshot = ProAccessEvaluator.snapshot(
+            records: [record(.weekly, expires: -60, revoked: -30, grace: 86_400)],
+            trial: nil,
+            now: now
+        )
+        XCTAssertEqual(snapshot, .free)
+    }
+
+    func testLifetimeOwnerKeepsTheManagementEntryWhileASubscriptionRuns() {
+        let snapshot = ProAccessEvaluator.snapshot(
+            records: [record(.lifetime), record(.monthly, expires: 10 * 86_400)],
+            trial: nil,
+            now: now
+        )
+        XCTAssertEqual(snapshot.source, .lifetime)
+        XCTAssertTrue(snapshot.hasActiveSubscription)
+    }
+
+    func testLifetimeAloneHasNothingToManage() {
+        let snapshot = ProAccessEvaluator.snapshot(records: [record(.lifetime)], trial: nil, now: now)
+        XCTAssertFalse(snapshot.hasActiveSubscription)
     }
 }
 

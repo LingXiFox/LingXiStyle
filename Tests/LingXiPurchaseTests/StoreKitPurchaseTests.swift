@@ -52,7 +52,7 @@ final class StoreKitPurchaseTests: XCTestCase {
 
         XCTAssertNil(manager.productLoadError)
         XCTAssertEqual(Set(manager.planProducts.keys), Set(ProPlan.allCases))
-        XCTAssertEqual(manager.planProducts[.lifetime]?.displayPrice, "$2.99")
+        XCTAssertEqual(manager.planProducts[.lifetime]?.displayPrice, "$7.99")
         XCTAssertEqual(manager.planProducts[.dayPass]?.displayPrice, "$0.49")
         XCTAssertEqual(manager.planProducts[.dayPass]?.type, .nonRenewable)
         XCTAssertEqual(manager.planProducts[.weekly]?.type, .autoRenewable)
@@ -217,7 +217,7 @@ final class StoreKitPurchaseTests: XCTestCase {
                           "\(storefront) price should use \(symbol): \(product.displayPrice)")
             XCTAssertFalse(product.displayPrice.isEmpty)
             if storefront == "USA" {
-                XCTAssertEqual(product.displayPrice, "$2.99")
+                XCTAssertEqual(product.displayPrice, "$7.99")
             }
             prices.insert(product.displayPrice)
             print("\(storefront) locale=\(locale) price=\(product.displayPrice) currency=\(product.priceFormatStyle.currencyCode)")

@@ -64,12 +64,31 @@ public struct ProEntitlementRecord: Sendable, Equatable {
     public let purchaseDate: Date
     public let expirationDate: Date?
     public let revocationDate: Date?
+    /// Billing grace period Apple granted after a failed renewal. It only ever extends
+    /// `expirationDate`; the verified transaction state still decides whether Pro applies.
+    public let gracePeriodEndsAt: Date?
 
-    public init(productID: String, purchaseDate: Date, expirationDate: Date?, revocationDate: Date?) {
+    public init(productID: String,
+                purchaseDate: Date,
+                expirationDate: Date?,
+                revocationDate: Date?,
+                gracePeriodEndsAt: Date? = nil) {
         self.productID = productID
         self.purchaseDate = purchaseDate
         self.expirationDate = expirationDate
         self.revocationDate = revocationDate
+        self.gracePeriodEndsAt = gracePeriodEndsAt
+    }
+
+    /// The moment this record stops granting access. A grace period keeps a failed renewal
+    /// working, so it can push the deadline past the transaction's own expiration date.
+    public var accessEndsAt: Date? {
+        switch (expirationDate, gracePeriodEndsAt) {
+        case (nil, nil): return nil
+        case let (end?, nil): return end
+        case let (nil, grace?): return grace
+        case let (end?, grace?): return max(end, grace)
+        }
     }
 }
 
@@ -87,11 +106,19 @@ public struct ProAccessSnapshot: Sendable, Equatable {
     public let plan: ProPlan?
     /// `nil` for the lifetime purchase; always set for time-limited access.
     public let expiresAt: Date?
+    /// True while a verified weekly or monthly subscription is still in force, even when a
+    /// lifetime purchase already takes priority. The paywall and settings need it to keep the
+    /// "manage subscription" entry reachable after a buyout.
+    public let hasActiveSubscription: Bool
 
-    public init(source: Source, plan: ProPlan?, expiresAt: Date?) {
+    public init(source: Source,
+                plan: ProPlan?,
+                expiresAt: Date?,
+                hasActiveSubscription: Bool = false) {
         self.source = source
         self.plan = plan
         self.expiresAt = expiresAt
+        self.hasActiveSubscription = hasActiveSubscription
     }
 
     public static let free = ProAccessSnapshot(source: .none, plan: nil, expiresAt: nil)
@@ -156,24 +183,29 @@ public enum ProAccessEvaluator {
                                 storedDayPassExpiry: Date? = nil,
                                 now: Date) -> ProAccessSnapshot {
         let active = records.filter { record in
-            record.revocationDate == nil &&
-            (record.expirationDate == nil || record.expirationDate! > now)
-        }
-
-        if active.contains(where: { $0.productID == ProPlan.lifetime.productID }) {
-            return ProAccessSnapshot(source: .lifetime, plan: .lifetime, expiresAt: nil)
+            guard record.revocationDate == nil else { return false }
+            guard let end = record.accessEndsAt else { return true }
+            return end > now
         }
 
         let subscriptions = active.compactMap { record -> (ProPlan, Date, Date)? in
             guard let plan = ProPlan.plan(forProductID: record.productID),
                   plan.isSubscription,
-                  let expiration = record.expirationDate else { return nil }
-            return (plan, record.purchaseDate, expiration)
+                  let end = record.accessEndsAt else { return nil }
+            return (plan, record.purchaseDate, end)
         }
+        let hasActiveSubscription = !subscriptions.isEmpty
+
+        if active.contains(where: { $0.productID == ProPlan.lifetime.productID }) {
+            return ProAccessSnapshot(source: .lifetime, plan: .lifetime, expiresAt: nil,
+                                     hasActiveSubscription: hasActiveSubscription)
+        }
+
         // If StoreKit briefly reports both the old and the new plan during a switch, the most
         // recent purchase is the plan the user chose; expiry only breaks ties.
         if let best = subscriptions.max(by: { ($0.1, $0.2) < ($1.1, $1.2) }) {
-            return ProAccessSnapshot(source: .subscription, plan: best.0, expiresAt: best.2)
+            return ProAccessSnapshot(source: .subscription, plan: best.0, expiresAt: best.2,
+                                     hasActiveSubscription: true)
         }
 
         let purchasedDayPassExpiry = active
@@ -391,11 +423,15 @@ public struct ProDayPass: Codable, Sendable, Equatable {
     public let expiresAt: Date
     public let activatedAt: Date
     public let transactionID: String?
+    /// Apple's purchase date for this pass when StoreKit reported one. Records written by
+    /// earlier builds of 1.9.1 have no value, and the next activation repairs them.
+    public let purchasedAt: Date?
 
-    public init(expiresAt: Date, activatedAt: Date, transactionID: String?) {
+    public init(expiresAt: Date, activatedAt: Date, transactionID: String?, purchasedAt: Date? = nil) {
         self.expiresAt = expiresAt
         self.activatedAt = activatedAt
         self.transactionID = transactionID
+        self.purchasedAt = purchasedAt
     }
 }
 
@@ -429,7 +465,7 @@ public struct ProDayPassService: Sendable {
         ProDayPassService(store: KeychainDayPassStore(bundle: bundle))
     }
 
-    /// The stored record, even after it expired. Used for diagnostics and for extending a window.
+    /// The stored record, even after it expired. Used for diagnostics and for clearing a revoked pass.
     public func record() -> ProDayPass? {
         store.load()
     }
@@ -446,26 +482,32 @@ public struct ProDayPassService: Sendable {
         try store.clear()
     }
 
-    /// Buys 24 more hours on top of whatever is still left, so a second purchase never shortens
-    /// an active window. Activating the same transaction twice is a no-op, which keeps replayed
-    /// StoreKit updates from stacking free time.
+    /// One verified purchase buys 24 hours from Apple's purchase date and nothing more. The
+    /// cross-device restore path can only see the latest transaction, so a local mirror that
+    /// stacked time would keep Pro alive here after the paid window ended on another device.
+    /// Windows are therefore never accumulated, and activating the same transaction is a no-op.
     @discardableResult
     public func activate(transactionID: String? = nil, purchasedAt: Date? = nil) throws -> Date {
         let existing = store.load()
         if let transactionID,
            let existing,
-           existing.transactionID == transactionID,
-           existing.expiresAt > now() {
+           existing.transactionID == transactionID {
+            // Replaying a finished transaction must never start another 24-hour window, not even
+            // after the paid window ran out: StoreKit can redeliver it on relaunch or restore.
             return existing.expiresAt
         }
         let current = now()
         // StoreKit's purchase date is issued by Apple; using it for the fallback window keeps a
         // manually changed device clock from stretching the paid 24 hours.
         let start = purchasedAt ?? current
-        let base = max(start, existing?.expiresAt ?? start)
-        let pass = ProDayPass(expiresAt: base.addingTimeInterval(ProAccessEvaluator.dayPassDuration),
+        // A delayed update for an older transaction must not shorten a newer window.
+        if let existing, let known = existing.purchasedAt, known > start {
+            return existing.expiresAt
+        }
+        let pass = ProDayPass(expiresAt: start.addingTimeInterval(ProAccessEvaluator.dayPassDuration),
                               activatedAt: current,
-                              transactionID: transactionID)
+                              transactionID: transactionID,
+                              purchasedAt: purchasedAt)
         try store.save(pass)
         return pass.expiresAt
     }

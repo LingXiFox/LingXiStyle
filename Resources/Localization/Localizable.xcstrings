@@ -20822,6 +20822,296 @@
           }
         }
       }
+    },
+    "pro.plan.current": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current plan"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在のプラン"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前方案"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前方案"
+          }
+        }
+      }
+    },
+    "pro.plan.included": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Included"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "含まれています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已包含"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已包含"
+          }
+        }
+      }
+    },
+    "pro.notice.dayPassToSubscription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The subscription starts billing immediately; the remaining day-pass time is not credited."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サブスクリプションはすぐに課金が始まります。デイパスの残り時間は繰り越されません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "订阅会立即开始计费，日卡剩余时间不会自动抵扣。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "訂閱會立即開始計費，日卡剩餘時間不會自動折抵。"
+          }
+        }
+      }
+    },
+    "pro.notice.crossgrade": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switching happens inside the same subscription group and takes effect at the next renewal as App Store rules require; access stays the same."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切り替えは同じサブスクリプショングループ内で行われ、App Store の規則に従って次の更新時に有効になります。特典は変わりません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换在同一订阅组内完成，按 App Store 规则在下一个续费周期生效，权益保持不变。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切換會在同一個訂閱群組內完成，依 App Store 規則於下一個續訂週期生效，權益維持不變。"
+          }
+        }
+      }
+    },
+    "pro.notice.subscriptionToLifetime": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The lifetime unlock applies immediately; turn off the old auto-renewal in the App Store subscription settings."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "買い切り後はすぐに永久特典が有効になります。App Store の「サブスクリプション」で元の自動更新をオフにしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "买断后立即获得永久权益；请前往 App Store「订阅」关闭原来的自动续费。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "買斷後立即取得永久權益；請前往 App Store「訂閱」關閉原本的自動續訂。"
+          }
+        }
+      }
+    },
+    "pro.notice.dayPassNotNeeded": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your current access already has no photo limit; a day pass would not add time."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の特典はすでに枚数無制限です。デイパスを追加しても期間は延びません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前权益已经不限张数，日卡不会叠加时间。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前權益已不限張數，日卡不會累加時間。"
+          }
+        }
+      }
+    },
+    "pro.refuse.current": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This plan is already active; there is no need to buy it again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このプランはすでに有効です。再度購入する必要はありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前方案正在生效，不需要重复购买。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前方案正在生效，不需要重複購買。"
+          }
+        }
+      }
+    },
+    "pro.refuse.owned": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You already own the lifetime version; there is no need to buy it again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "永久版をすでに所有しています。再度購入する必要はありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你已拥有永久版，不需要再次购买。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你已擁有永久版，不需要再次購買。"
+          }
+        }
+      }
+    },
+    "pro.refuse.redundant": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your current access already has no photo limit, so a day pass is not needed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の特典はすでに枚数無制限のため、デイパスは不要です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前权益已经不限张数，不需要再买日卡。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前權益已不限張數，不需要再買日卡。"
+          }
+        }
+      }
+    },
+    "pro.postPurchase.lifetime": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lifetime access is now active; turn off the old auto-renewal in the App Store subscription settings."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "永久特典が有効になりました。App Store の「サブスクリプション」で元の自動更新をオフにしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已获得永久权益；请前往 App Store「订阅」关闭原来的自动续费。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已取得永久權益；請前往 App Store「訂閱」關閉原本的自動續訂。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

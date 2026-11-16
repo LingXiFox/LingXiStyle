@@ -66,7 +66,7 @@ struct MacSettingsView: View {
                 LabeledContent(String(localized: "当前权益", defaultValue: "当前权益"),
                                value: accessText)
                 if model.quota.isPro {
-                    if model.purchases.access.source == .subscription {
+                    if model.purchases.access.hasActiveSubscription {
                         Button(String(localized: "管理订阅", defaultValue: "管理订阅")) {
                             NSWorkspace.shared.open(PurchaseManager.manageSubscriptionsURL)
                         }

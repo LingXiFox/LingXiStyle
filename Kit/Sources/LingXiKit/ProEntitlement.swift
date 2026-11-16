@@ -52,8 +52,20 @@ public struct StoreKitEntitlementProvider: ProEntitlementProviding {
         var entitled: [ProEntitlementRecord] = []
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result,
-                  ProPlan.plan(forProductID: transaction.productID) != nil else { continue }
-            entitled.append(Self.record(for: transaction))
+                  let plan = ProPlan.plan(forProductID: transaction.productID) else { continue }
+            let record = Self.record(for: transaction)
+            if plan.isSubscription {
+                // StoreKit can keep serving the last subscription transaction after the term
+                // ends, and the copy still carries the old expiration date. The subscription
+                // status is authoritative: drop the record when Apple already reports the
+                // subscription as expired or revoked, and extend it while a grace period runs.
+                guard let current = await Self.subscriptionRecord(record, transaction: transaction) else {
+                    continue
+                }
+                entitled.append(current)
+            } else {
+                entitled.append(record)
+            }
         }
 
         let storedDayPassExpiry = dayPass()
@@ -82,6 +94,34 @@ public struct StoreKitEntitlementProvider: ProEntitlementProviding {
                              purchaseDate: transaction.purchaseDate,
                              expirationDate: transaction.expirationDate,
                              revocationDate: transaction.revocationDate)
+    }
+
+    /// A renewal Apple keeps alive with a billing grace period stays in current entitlements, but
+    /// its transaction keeps the original expiration date. The subscription status is the only
+    /// place that reports the real end of access, so it is read for every verified subscription.
+    /// The API arrived in iOS 18.4 / macOS 15.4; older systems fall back to the transaction date.
+    ///
+    /// Returns nil when Apple reports the subscription as expired or revoked. Finishing a
+    /// transaction does not remove it from `currentEntitlements`, so the status is what keeps a
+    /// lapsed term from unlocking Pro. A status lookup that fails keeps the transaction: a
+    /// flaky network must not revoke access the customer paid for.
+    private static func subscriptionRecord(_ record: ProEntitlementRecord,
+                                           transaction: Transaction) async -> ProEntitlementRecord? {
+        guard #available(iOS 18.4, macOS 15.4, *) else { return record }
+        guard let status = try? await Product.SubscriptionInfo.status(transactionID: transaction.id) else {
+            return record
+        }
+        if status.state == .expired || status.state == .revoked {
+            return nil
+        }
+        guard status.state == .inGracePeriod,
+              case .verified(let renewal) = status.renewalInfo,
+              let graceEnd = renewal.gracePeriodExpirationDate else { return record }
+        return ProEntitlementRecord(productID: record.productID,
+                                    purchaseDate: record.purchaseDate,
+                                    expirationDate: record.expirationDate,
+                                    revocationDate: record.revocationDate,
+                                    gracePeriodEndsAt: graceEnd)
     }
 }
 
@@ -117,7 +157,9 @@ public final class PurchaseManager: ObservableObject {
     @Published public private(set) var trialState: ProTrialState = .eligible
     @Published public private(set) var trialError: String?
     @Published public private(set) var dayPassError: String?
-
+    /// Confirmation copy shown after a successful purchase that leaves something to do, such as
+    /// turning off the old auto-renewal after a lifetime buyout.
+    @Published public private(set) var postPurchaseNotice: String?
     public let productID: String
     public let trialService: ProTrialService
     public let dayPassService: ProDayPassService
@@ -134,6 +176,12 @@ public final class PurchaseManager: ObservableObject {
         self.trialService = trialService
         self.dayPassService = dayPassService
         self.trialState = trialService.state()
+    }
+
+    /// Access the paywall works with. The Keychain day-pass mirror can be ahead of the entitlement
+    /// snapshot for the moment between a purchase and StoreKit publishing the transaction.
+    public var effectiveAccess: ProAccessSnapshot {
+        ProPurchasePolicy.resolved(access, dayPassExpiry: dayPassService.expiresAt(), now: Date())
     }
 
     deinit {
@@ -227,12 +275,22 @@ public final class PurchaseManager: ObservableObject {
     }
 
     public func purchase(plan: ProPlan) async {
+        guard purchaseState != .purchasing else { return }
+        purchaseState = .purchasing
+        // The paywall hides plans that cannot be bought, but the manager is the last gate: an
+        // access change while the sheet was open must never reach StoreKit.
+        await refreshEntitlement()
+        let availability = ProPurchasePolicy.availability(of: plan,
+                                                          access: access,
+                                                          dayPassExpiry: dayPassService.expiresAt())
+        guard availability.isPurchasable else {
+            purchaseState = .failed(ProPurchasePolicy.refusalMessage(for: availability))
+            return
+        }
         guard let product = planProducts[plan] ?? (plan == .lifetime ? product : nil) else {
             purchaseState = .failed(String(localized: "商品信息尚未加载，请稍后重试。"))
             return
         }
-        guard purchaseState != .purchasing else { return }
-        purchaseState = .purchasing
         do {
             let result = try await product.purchase()
             switch result {
@@ -249,7 +307,12 @@ public final class PurchaseManager: ObservableObject {
                                     purchasedAt: transaction.purchaseDate)
                 }
                 await refreshEntitlement()
-                purchaseState = isPro ? .success : .failed(String(localized: "交易已验证，但权益尚未生效，请稍后重试。"))
+                if isPro {
+                    postPurchaseNotice = ProPurchasePolicy.postPurchaseNotice(for: plan, access: access)
+                    purchaseState = .success
+                } else {
+                    purchaseState = .failed(String(localized: "交易已验证，但权益尚未生效，请稍后重试。"))
+                }
             case .pending:
                 purchaseState = .awaitingApproval
             case .userCancelled:
@@ -311,6 +374,7 @@ public final class PurchaseManager: ObservableObject {
 
     public func clearPurchaseMessage() {
         purchaseState = .idle
+        postPurchaseNotice = nil
     }
 
     private func handle(_ result: VerificationResult<Transaction>) async {

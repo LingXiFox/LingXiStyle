@@ -23,21 +23,30 @@ struct ProPurchaseView: View {
         }
     }
 
+    /// Plans the paywall may show. A running subscription keeps the other term and the buyout on
+    /// sale; a lifetime owner gets no product row at all.
+    private var plansForSale: [ProPlan] {
+        ProPurchasePolicy.visiblePlans(for: currentAccess)
+    }
+
+    private var currentAccess: ProAccessSnapshot {
+        purchases.effectiveAccess
+    }
+
     private var canPurchase: Bool {
         guard purchases.planProducts[selectedPlan] != nil, !isBusy else { return false }
-        switch selectedPlan {
-        case .lifetime:
-            return !purchases.access.isLifetime
-        case .dayPass, .weekly, .monthly:
-            return true
-        }
+        return ProPurchasePolicy.availability(of: selectedPlan, access: currentAccess).isPurchasable
     }
     /// Keeps the call to action usable when the plan the sheet opens on is not for sale, for
     /// example a lifetime product that is still unpublished while the subscriptions are live.
     private func selectAvailablePlanIfNeeded() {
-        guard purchases.planProducts[selectedPlan] == nil else { return }
-        guard let fallback = ProPlan.allCases.first(where: { purchases.planProducts[$0] != nil }) else { return }
-        selectedPlan = fallback
+        let loaded = plansForSale.filter {
+            purchases.planProducts[$0] != nil
+                && ProPurchasePolicy.availability(of: $0, access: currentAccess).isPurchasable
+        }
+        guard !loaded.contains(selectedPlan) else { return }
+        guard let preferred = ProPurchasePolicy.defaultPlan(for: currentAccess) else { return }
+        selectedPlan = loaded.contains(preferred) ? preferred : (loaded.first ?? selectedPlan)
     }
 
     var body: some View {
@@ -70,14 +79,13 @@ struct ProPurchaseView: View {
                     accessCard
                         .padding(.top, Spacing.m)
 
-                    if !purchases.access.isLifetime, purchases.access.source != .subscription {
+                    if !plansForSale.isEmpty || (purchases.purchaseState == .success && purchases.postPurchaseNotice != nil) {
                         plans
                             .padding(.top, Spacing.m)
 
                         purchaseArea
                             .padding(.top, Spacing.m)
                     }
-
                     if !purchases.access.isActive {
                         trialArea
                             .padding(.top, Spacing.m)
@@ -190,7 +198,7 @@ struct ProPurchaseView: View {
                        detail: accessDetail,
                        symbol: purchases.access.isLifetime ? "checkmark.seal" : "clock.badge.checkmark",
                        tint: Palette.success)
-            if purchases.access.source == .subscription {
+            if purchases.access.hasActiveSubscription {
                 Button {
                     openManageSubscriptions()
                 } label: {
@@ -243,7 +251,7 @@ struct ProPurchaseView: View {
             }
 
 
-            ForEach(ProPlan.allCases) { plan in
+            ForEach(plansForSale) { plan in
                 planRow(plan)
             }
         }
@@ -259,6 +267,7 @@ struct ProPurchaseView: View {
     private func planRow(_ plan: ProPlan) -> some View {
         let product = purchases.planProducts[plan]
         let isSelected = selectedPlan == plan
+        let availability = ProPurchasePolicy.availability(of: plan, access: currentAccess)
         return Button {
             selectedPlan = plan
         } label: {
@@ -289,7 +298,9 @@ struct ProPurchaseView: View {
 
                 Spacer(minLength: 0)
 
-                Text(product?.displayPrice ?? missingPriceText)
+                Text(availability.isPurchasable
+                     ? (product?.displayPrice ?? missingPriceText)
+                     : (ProPurchasePolicy.statusLabel(for: availability) ?? missingPriceText))
                     .font(Typography.numeric)
                     .foregroundStyle(product == nil ? Palette.textTertiary : Palette.textPrimary)
             }
@@ -307,6 +318,7 @@ struct ProPurchaseView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .disabled(!availability.isPurchasable)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityIdentifier("pro.plan.\(plan.rawValue)")
     }
@@ -316,9 +328,14 @@ struct ProPurchaseView: View {
     @ViewBuilder
     private var purchaseArea: some View {
         VStack(spacing: Spacing.s) {
-            if purchases.access.isLifetime {
-                EmptyView()
-            } else {
+            if !plansForSale.isEmpty {
+                if let notice = ProPurchasePolicy.notice(for: selectedPlan, access: currentAccess) {
+                    Text(notice)
+                        .font(Typography.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 PrimaryActionButton(
                     title: purchaseTitle,
                     isEnabled: canPurchase,
@@ -346,7 +363,7 @@ struct ProPurchaseView: View {
                     InlineErrorNotice(message: message)
                 case .success:
                     statusCard(String(localized: "购买完成"),
-                               detail: String(localized: "已验证交易，Pro 权益已生效。"),
+                               detail: purchases.postPurchaseNotice ?? String(localized: "已验证交易，Pro 权益已生效。"),
                                symbol: "checkmark.circle",
                                tint: Palette.success)
                 case .idle, .purchasing:

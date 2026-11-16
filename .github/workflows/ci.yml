@@ -136,7 +136,7 @@ jobs:
               fail(f"Unexpected lifetime product ID: {lifetime.get('productID')!r}")
           if lifetime.get("type") != "NonConsumable":
               fail(f"Lifetime Pro must stay a NonConsumable: {lifetime.get('type')!r}")
-          if lifetime.get("displayPrice") != "2.99":
+          if lifetime.get("displayPrice") != "7.99":
               fail(f"Unexpected local test price: {lifetime.get('displayPrice')!r}")
           offer_codes = lifetime.get("offerCodes", [])
           if not any(code.get("referenceName") == "DEVELOPER_FREE" and code.get("displayPrice") == "0"

@@ -6,6 +6,7 @@
   成果保险箱、任务日志与中断恢复、多档 Pro 权益（含跨设备日卡与退款）、免费体验与 macOS 真实 HEIC 管线均有自动化覆盖。
   iPhone 17、iPad 13 模拟器与 macOS 本机完成界面冒烟。本机没有真机与 iOS 18 / 26 运行时，
   真实交易、订阅续订 / 退款与 iPad / Mac 的完整人工流程未验证。
+- 2026-11-16 购买补丁：Kit 99、Purchase 46（合计 211 项，3 跳过），详见文末「2026-11-16 购买系统补丁验证」。
 
 ## 2026-11-12 1.9.1 验证
 
@@ -668,3 +669,55 @@ xcodebuild 导出上传；Apple 构建 b05e844e-a74c-4578-8d48-6d16c5085f2e 已 
 这不是新增真机业务验收；没有执行生产购买、退款、HEIC 转换或完整兼容矩阵复验。
 完整资料、证书/描述文件有效期、截图验证与执行边界见
 [正式分发记录](docs/app-store/release-report-2026-11-09.md)。未提交审核或正式发布。
+
+## 2026-11-16 购买系统补丁验证
+
+- 环境：Xcode 27.2 / iOS 27.2 模拟器（Texel iPhone 17）、macOS arm64。
+- 结论：**LOCAL STOREKIT VALIDATED**，**RELEASE BLOCKED**。本地 StoreKit Testing 生命周期与权益状态机通过；
+  真实 Sandbox / 生产交易、跨设备恢复与服务端商品可用性仍未验证。
+
+### 修复的代码问题
+
+- 订阅有效时购买区被整段隐藏：iOS `ProPurchaseView` 与 `MacPurchaseView` 改为按 `ProPurchasePolicy` 的
+  方案可用性渲染，始终保留套餐切换、升级买断与管理订阅入口；永久买断后的「关闭自动续费」提醒移出
+  计划列表条件，计划为空时仍可见。
+- 权益状态机：`ProEntitlementRecord` 增加 `gracePeriodEndsAt` 与 `accessEndsAt`；`ProAccessEvaluator`
+  以 `accessEndsAt` 过滤，退款 / 撤销立即失效，旧缓存不得解锁；订阅宽限期通过
+  `Product.SubscriptionInfo.status(transactionID:)`（iOS 18.4+）读取 `gracePeriodExpirationDate`，
+  `currentEntitlements` 不因交易 finish 而移除。
+- 日卡计时：`ProDayPass.activate` 不再按购买次数累加，严格以 `purchasedAt + 24h` 为窗口，与跨设备恢复
+  的单条交易推导一致；迟到交易只保留更长窗口，重复交易不重复延长。
+- 购买前防御式复检：`PurchaseManager.purchase(plan:)` 先刷新权益并按 policy 拒绝重复 / 已包含 / 冗余方案；
+  永久买断成功后通过 `postPurchaseNotice` 提醒前往 Apple 管理订阅关闭自动续费。
+- 商品与测试价：`Configuration.storekit` 永久 7.99、日卡 0.49、周 0.99、月 1.99；CI 与购买测试断言同步；
+  正式售价仍由 App Store Connect 控制。新增 10 个购买文案 key，四语言完整。
+
+### 新增 / 修复测试
+
+- 新建 `Tests/LingXiPurchaseTests/StoreKitLifecycleTests.swift`（14 例，`SKTestSession` 串行）：
+  月订阅首购解锁；订阅有效时方案阶梯可见；强制续订不叠加权益；关闭自动续费在已付周期内仍 Pro；
+  自然到期恢复 Free；过期历史交易不解锁；宽限期按 `gracePeriodExpirationDate` 延续；周↔月切换；
+  月订阅升级永久（永久优先、管理订阅入口仍在、买断提醒）；永久退款回落；日卡重复购买保护；
+  日卡升级月订阅；过期日卡不解锁；订阅到期恢复免费额度。
+- `ProPlansTests` 增加宽限期 / `hasActiveSubscription` / 迟到交易窗口用例；新建 `ProPurchasePolicyTests`
+  15 例覆盖四档可用性与文案。
+- StoreKit Testing 的 `expireSubscription` 在 iOS 27.2 不向 App 进程推送到期状态（`currentEntitlements`
+  持续返回旧交易），因此到期用例改用 `buyProduct(identifier:options:.purchaseDate(...))` 播种一条
+  10 秒后自然到期的交易，由 StoreKit 正常发到期事件；不依赖真实续订周期、网络或固定 sleep。
+
+### 结果
+
+| 套件 | 结果 |
+| --- | --- |
+| `LingXiKitTests` | 99 / 99 通过（0 失败） |
+| `LingXiPurchaseTests` | 46 / 46 通过（连续 3 次整套运行，每次约 43s，0 失败） |
+| iOS Debug generic build | BUILD SUCCEEDED |
+| TexelMac Debug build | BUILD SUCCEEDED（`CODE_SIGNING_ALLOWED=NO`） |
+
+### 未验证 / 已知边界
+
+- 同订阅组真实 Crossgrade：StoreKit Testing 不生成换购交易（有效订阅下购买另一档返回旧交易），
+  测试以「到期后购买另一档」覆盖权益侧；真实按续费周期生效的换购行为需 Sandbox 真机确认。
+- 宽限期到期后的回落仅由 Kit 单元测试覆盖；测试环境无法在保持 App 进程状态的同时推进 grace 到期。
+- 真实支付、退款到账、跨设备恢复、App Store Connect 商品可用性与 macOS 商店交易未验证。
+- 未提交审核、未发布、未修改线上价格。

@@ -306,8 +306,8 @@ App (SwiftUI)      Mac (TexelMac)      ShareExtension (SwiftUI in UIKit host)
   该功能只读必要的本地标识，不上传照片。
 - 本地测试配置在仓库根目录 `Configuration.storekit`，只在 Debug scheme 生效；
   Release 构建不包含可购买测试商品。真实商品配置见 [AppStoreRelease.md](AppStoreRelease.md)。
-  其中永久版仍标价 $2.99 是沿用现有线上商品，1.9.1 项目书提到的 $7.99 属于改价，需另行授权后
-  在 App Store Connect 调整，本地配置与 CI 不擅自改价。
+  其中本地测试价已在 1.9.1 购买补丁中按项目规划档位更新，仅用于 StoreKit 测试；具体数值以
+  `Configuration.storekit` 为准，线上售价仍由 App Store Connect 控制，本地配置与 CI 不构成改价授权。
 
 ## 快捷指令
 
@@ -399,12 +399,12 @@ project.yml             XcodeGen 工程定义
 
 ## 已知限制
 
-- 1.9.1 本机完成 iOS Debug / Release、macOS Debug / Release 构建与模拟器运行；自动化 168 项、3 项跳过、0 失败。iPhone 17 与 iPad 13 模拟器完成首屏、选片与保险箱 / 历史 / 购买入口检查；iPad 横竖屏两栏布局与 XCUITest 断言通过；macOS 完成启动、设置、四档 Pro 页、首屏额度显示与 Finder 导入入队。iPad 拖放与 macOS 真实转换已由代码路径与管线测试覆盖，但未做逐一点击的完整人工流程。
+- 1.9.1 本机完成 iOS Debug / Release、macOS Debug / Release 构建与模拟器运行；自动化合计 211 项、3 项跳过、0 失败（Kit / Purchase 于 2026-11-16 复跑，其余沿用 2026-11-12 结果）。iPhone 17 与 iPad 13 模拟器完成首屏、选片与保险箱 / 历史 / 购买入口检查；iPad 横竖屏两栏布局与 XCUITest 断言通过；macOS 完成启动、设置、四档 Pro 页、首屏额度显示与 Finder 导入入队。iPad 拖放与 macOS 真实转换已由代码路径与管线测试覆盖，但未做逐一点击的完整人工流程。
 - 真机安装、真实 App Store 交易（尤其订阅续订 / 到期 / 退款）、iOS 18 / 26 运行时、权限拒绝页、快捷指令 UI、Duo 内屏完整转换与折叠中间态仍未验证。模拟器签名构建不能替代真机 distribution 签名。详见 [TEST_REPORT.md](TEST_REPORT.md)。
 - 分享扩展与快捷指令各自使用独立容器，不读取主 App 的保险箱与任务历史；这是 1.9.1 的已知边界。
 - iOS 上的免费体验与 Pro 权益依赖 Keychain；`CODE_SIGNING_ALLOWED=NO` 的模拟器构建缺少共享组 entitlement，会显示「额度暂不可用」，属于 fail-closed，不是线上行为。
 - 免费 Personal Team 只能使用本地 StoreKit 配置测试；真实内购与上架需要付费 Apple Developer Program、App Store Connect 商品与 Sandbox / 生产环境。
-- `Configuration.storekit` 的 `$2.99` 只是本地测试价（沿用现有永久商品）；191.md 提到的 $7.99 属于改价，需在 App Store Connect 授权后调整。线上价格由 `Product.displayPrice` 决定。
+- `Configuration.storekit` 的四档价格只是本地测试价，具体数值以该文件为准；线上价格由 `Product.displayPrice` 与 App Store Connect 决定，本地改价不改变正式售价。
 - 不同机型 / iOS 版本的 HEIC 可能使用不同的 `iref` 结构；已加 16-bit / 32-bit 回归测试，但仍需更多样本。
 - 分享扩展首次运行时可能拿不到相册写入授权（扩展内不一定能弹权限框）。此时会提示先回 App 授权；这是系统行为，需真机确认具体表现。
 - 分享面板可能把照片转成 JPEG，扩展会拒绝而不是偷偷转码。

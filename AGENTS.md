@@ -136,8 +136,9 @@ xcodebuild -project LingXiStyle.xcodeproj -scheme TexelMac \
 - 真机验证状态以 `TEST_REPORT.md` 为准，不得把「编译通过」写成「真机通过」。
 - 交付默认：本地 commit 完成后直接 `git push origin main`，不要只留本地提交；推送前仍需确认工作区干净、无凭据与签名资产。
   1.7.1 的 GitHub Actions [run 42435430433](https://github.com/LingXiFox/LingXiStyle/actions/runs/42435430433)（commit `365abf5`）四个 job 全绿；iOS 18.5 购买 23、集成 29（0 跳过）、UI 1，iOS 26 购买 24（1 跳过）、集成 29（0 跳过）、UI 1。此前跳过的两条 PhotoKit 保存测试已通过 TCC auth_version 修复实际执行。
-- 1.9.1 本机七套测试 168 项 / 3 跳过 / 0 失败：Kit 73、Purchase 29、Engine 5、Core 15（2 跳过）、
-  Integration 37、UI 6（1 跳过）、MacPipeline 3；iOS Debug / Release 与 TexelMac Debug / Release 构建通过。
+- 1.9.1 本机七套测试 211 项 / 3 跳过 / 0 失败：Kit 99、Purchase 46、Engine 5、Core 15（2 跳过）、
+  Integration 37、UI 6（1 跳过）、MacPipeline 3（Kit / Purchase 为 2026-11-16 购买补丁后实测，其余沿用
+  2026-11-12 结果）；iOS Debug / Release 与 TexelMac Debug / Release 构建通过。
   通用购买的线上 App Store Connect 配置仍未完成，见 `docs/app-store/universal-purchase.md`。
 - 已有 48MP 实拍 HEIC 的引擎层与 1.2 App 端到端验证，记录见 `TEST_REPORT.md`；1.7 引擎算法未改。真实 App Store 交易 / 退款、真机 Keychain 共享组与系统权限矩阵仍需确认。
 - 语言偏好只写 `LingXiStyle.appLanguage`，非「跟随系统」时再写 `AppleLanguages`；不要让 SwiftUI 预览或测试进程持久化语言设置。
