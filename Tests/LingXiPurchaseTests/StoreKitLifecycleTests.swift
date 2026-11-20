@@ -14,7 +14,7 @@ final class StoreKitLifecycleTests: XCTestCase {
     private var session: SKTestSession!
     private var temporaryFiles: [URL] = []
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         let url = try XCTUnwrap(Bundle(for: StoreKitLifecycleTests.self)
             .url(forResource: "Configuration", withExtension: "storekit"))
         session = try SKTestSession(contentsOf: url)
@@ -23,11 +23,14 @@ final class StoreKitLifecycleTests: XCTestCase {
         session.clearTransactions()
         session.storefront = "USA"
         session.locale = Locale(identifier: "en_US")
+        let cleared = await waitUntil(timeout: 20) {
+            await self.entitlements().isEmpty
+        }
+        XCTAssertTrue(cleared, "StoreKit must clear the previous test's entitlements before the next purchase")
     }
 
     override func tearDownWithError() throws {
-        session.timeRate = .realTime
-        session.resetToDefaultState()
+        session?.resetToDefaultState()
         session = nil
         for url in temporaryFiles {
             try? FileManager.default.removeItem(at: url)
@@ -38,6 +41,15 @@ final class StoreKitLifecycleTests: XCTestCase {
     }
 
     // MARK: - First purchase
+
+    func testPurchaseManagerCanReleaseItsTransactionListener() async {
+        var manager: PurchaseManager? = makeManager()
+        await manager?.start()
+        await Task.yield()
+        let releasedManager = { [weak manager] in manager }
+        manager = nil
+        XCTAssertNil(releasedManager(), "The transaction stream must not retain the manager while it waits")
+    }
 
     func testMonthlyPurchaseUnlocksImmediately() async throws {
         let manager = makeManager()
@@ -83,7 +95,14 @@ final class StoreKitLifecycleTests: XCTestCase {
         let before = try XCTUnwrap(manager.access.expiresAt)
 
         try session.forceRenewalOfSubscription(productIdentifier: ProPlan.weekly.productID)
-        await manager.refreshEntitlement()
+        let updated = await waitUntil(timeout: 20) {
+            await manager.refreshEntitlement()
+            let transactions = self.session.allTransactions().filter { $0.productIdentifier == ProPlan.weekly.productID }
+            guard transactions.count == 2, let latest = transactions.compactMap(\.expirationDate).max(),
+                  let accessEnd = manager.access.expiresAt else { return false }
+            return abs(accessEnd.timeIntervalSince(latest)) <= 1
+        }
+        XCTAssertTrue(updated, "The renewed transaction must reach the entitlement snapshot")
 
         XCTAssertTrue(manager.isPro)
         XCTAssertEqual(manager.access.source, .subscription)
@@ -111,19 +130,20 @@ final class StoreKitLifecycleTests: XCTestCase {
     }
 
     func testACancelledSubscriptionExpiresIntoTheFreePlan() async throws {
-        try await seedTerm(.weekly, endingIn: 10)
+        try await seedCancelledTerm(.weekly)
 
         let manager = makeManager()
         await manager.start()
-        let active = await waitUntil(timeout: 5) {
+        let active = await waitUntil(timeout: 20) {
             await manager.refreshEntitlement()
             return manager.isPro
         }
         XCTAssertTrue(active, "the seeded term must reach the app")
 
-        let expired = await waitUntil(timeout: 18) {
+        let expired = await waitUntil(timeout: 50) {
             await manager.refreshEntitlement()
-            return !manager.isPro
+            guard !manager.isPro else { return false }
+            return await self.entitlements().isEmpty
         }
         XCTAssertTrue(expired, "a cancelled term must end on its own")
         XCTAssertEqual(manager.access.source, .none)
@@ -147,25 +167,37 @@ final class StoreKitLifecycleTests: XCTestCase {
     }
 
     func testBillingGracePeriodExtendsProToTheGraceDeadline() async throws {
+        session.timeRate = .oneRenewalEveryThirtySeconds
         session.billingGracePeriodIsEnabled = true
-        session.shouldEnterBillingRetryOnRenewal = true
 
         let manager = makeManager()
         await manager.start()
         await manager.loadPlans()
         await manager.purchase(plan: .weekly)
+        XCTAssertEqual(manager.purchaseState, .success)
         let paidExpiry = try XCTUnwrap(manager.access.expiresAt)
+        let subscription = try XCTUnwrap(manager.planProducts[.weekly]?.subscription)
 
-        try session.forceRenewalOfSubscription(productIdentifier: ProPlan.weekly.productID)
-        let graceApplied = await waitUntil {
+        session.shouldEnterBillingRetryOnRenewal = true
+        // Forcing an early renewal can start the grace period before the paid term ends.
+        var storeGraceEnd: Date?
+        let graceApplied = await waitUntil(timeout: 60) {
+            guard let statuses = try? await subscription.status else { return false }
+            for status in statuses where status.state == .inGracePeriod {
+                guard case .verified(let renewal) = status.renewalInfo,
+                      renewal.currentProductID == ProPlan.weekly.productID else { continue }
+                storeGraceEnd = renewal.gracePeriodExpirationDate
+            }
+            guard let storeGraceEnd else { return false }
             await manager.refreshEntitlement()
-            return (manager.access.expiresAt ?? .distantPast) > paidExpiry
+            return manager.isPro && manager.access.expiresAt == storeGraceEnd
         }
 
         XCTAssertTrue(graceApplied, "a failed renewal inside the grace period must keep Pro")
         XCTAssertTrue(manager.isPro)
         XCTAssertEqual(manager.access.source, .subscription)
         let graceEnd = try XCTUnwrap(manager.access.expiresAt)
+        XCTAssertEqual(graceEnd, try XCTUnwrap(storeGraceEnd))
         XCTAssertGreaterThan(graceEnd, paidExpiry)
         XCTAssertTrue(manager.access.hasActiveSubscription)
     }
@@ -176,20 +208,21 @@ final class StoreKitLifecycleTests: XCTestCase {
     /// weekly-to-monthly switch is replayed as "term ends, the other term starts". The entitlement
     /// half of the rule is what the app has to get right.
     func testSwitchingFromWeeklyToMonthlyKeepsSubscriptionAccess() async throws {
-        try await seedTerm(.weekly, endingIn: 10)
+        try await seedCancelledTerm(.weekly)
 
         let manager = makeManager()
         await manager.start()
         await manager.loadPlans()
-        let active = await waitUntil(timeout: 5) {
+        let active = await waitUntil(timeout: 20) {
             await manager.refreshEntitlement()
             return manager.access.plan == .weekly
         }
         XCTAssertTrue(active, "the seeded weekly term must reach the app")
 
-        let lapsed = await waitUntil(timeout: 18) {
+        let lapsed = await waitUntil(timeout: 50) {
             await manager.refreshEntitlement()
-            return !manager.isPro
+            guard !manager.isPro else { return false }
+            return await self.entitlements().isEmpty
         }
         XCTAssertTrue(lapsed)
 
@@ -200,20 +233,21 @@ final class StoreKitLifecycleTests: XCTestCase {
     }
 
     func testSwitchingFromMonthlyToWeeklyKeepsSubscriptionAccess() async throws {
-        try await seedTerm(.monthly, endingIn: 10)
+        try await seedCancelledTerm(.monthly)
 
         let manager = makeManager()
         await manager.start()
         await manager.loadPlans()
-        let active = await waitUntil(timeout: 5) {
+        let active = await waitUntil(timeout: 20) {
             await manager.refreshEntitlement()
             return manager.access.plan == .monthly
         }
         XCTAssertTrue(active, "the seeded monthly term must reach the app")
 
-        let lapsed = await waitUntil(timeout: 18) {
+        let lapsed = await waitUntil(timeout: 50) {
             await manager.refreshEntitlement()
-            return !manager.isPro
+            guard !manager.isPro else { return false }
+            return await self.entitlements().isEmpty
         }
         XCTAssertTrue(lapsed)
 
@@ -281,19 +315,12 @@ final class StoreKitLifecycleTests: XCTestCase {
     }
 
     func testDayPassUpgradeStartsTheMonthlySubscription() async throws {
-        let trialStore = LifecycleTrialStore()
-        let dayPassStore = LifecycleDayPassStore()
-        let manager = PurchaseManager(
-            entitlementProvider: StoreKitEntitlementProvider(
-                trial: { ProTrialService(store: trialStore).state() },
-                dayPass: { ProDayPassService(store: dayPassStore).expiresAt() }
-            ),
-            trialService: ProTrialService(store: trialStore),
-            dayPassService: ProDayPassService(store: dayPassStore)
-        )
+        let manager = makeManager()
         await manager.start()
         await manager.loadPlans()
         await manager.purchase(plan: .dayPass)
+        XCTAssertEqual(manager.purchaseState, .success)
+        XCTAssertEqual(manager.access.plan, .dayPass)
         let dayPassExpiry = try XCTUnwrap(manager.access.expiresAt)
         XCTAssertEqual(ProPurchasePolicy.availability(of: .monthly, access: manager.access), .available)
         XCTAssertNotNil(ProPurchasePolicy.notice(for: .monthly, access: manager.access))
@@ -329,11 +356,16 @@ final class StoreKitLifecycleTests: XCTestCase {
     }
 
     func testExpiredSubscriptionRestoresTheFreeAllowance() async throws {
-        try await seedTerm(.weekly, endingIn: 10)
+        try await seedCancelledTerm(.weekly)
 
         let manager = makeManager()
         await manager.start()
-        let expired = await waitUntil(timeout: 18) {
+        let active = await waitUntil(timeout: 20) {
+            await manager.refreshEntitlement()
+            return manager.access.plan == .weekly
+        }
+        XCTAssertTrue(active, "The seeded term must grant Pro before testing the quota fallback")
+        let expired = await waitUntil(timeout: 50) {
             await manager.refreshEntitlement()
             return !manager.isPro
         }
@@ -349,18 +381,11 @@ final class StoreKitLifecycleTests: XCTestCase {
     /// Seeds a transaction that ends a few seconds from now so StoreKit runs its normal expiration
     /// path. `expireSubscription` rewrites the stored transaction but the app keeps reading the stale
     /// active copy on iOS 27.2, which makes that API unusable for expiry assertions.
-    private func seedTerm(_ plan: ProPlan, endingIn seconds: TimeInterval) async throws {
-        let expiry = Date().addingTimeInterval(seconds)
-        let purchaseDate: Date
-        switch plan {
-        case .weekly: purchaseDate = expiry.addingTimeInterval(-7 * 24 * 3600)
-        case .monthly: purchaseDate = Calendar(identifier: .gregorian).date(byAdding: .month, value: -1, to: expiry) ?? expiry
-        case .dayPass: purchaseDate = expiry.addingTimeInterval(-24 * 3600)
-        case .lifetime: purchaseDate = expiry
-        }
+    private func seedCancelledTerm(_ plan: ProPlan) async throws {
+        session.timeRate = .oneRenewalEveryThirtySeconds
         _ = try await session.buyProduct(
             identifier: plan.productID,
-            options: [.purchaseDate(purchaseDate, renewalBehavior: .cancelImmediately)]
+            options: [.purchaseDate(Date(), renewalBehavior: .cancelImmediately)]
         )
     }
 

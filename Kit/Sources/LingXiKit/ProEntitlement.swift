@@ -194,8 +194,8 @@ public final class PurchaseManager: ObservableObject {
         if !hasStarted {
             hasStarted = true
             updatesTask = Task { [weak self] in
-                guard let self else { return }
                 for await update in Transaction.updates {
+                    guard let self else { return }
                     await self.handle(update)
                 }
             }
@@ -279,7 +279,7 @@ public final class PurchaseManager: ObservableObject {
         purchaseState = .purchasing
         // The paywall hides plans that cannot be bought, but the manager is the last gate: an
         // access change while the sheet was open must never reach StoreKit.
-        await refreshEntitlement()
+        await start()
         let availability = ProPurchasePolicy.availability(of: plan,
                                                           access: access,
                                                           dayPassExpiry: dayPassService.expiresAt())
